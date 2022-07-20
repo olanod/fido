@@ -1,0 +1,21 @@
+[application]
+name = "shell"
+default_platform = "web"
+# Web `build` & `serve` dist path
+out_dir = "dist"
+# resource (static) file folder
+asset_dir = "public"
+
+[web.app]
+title = "🐶 Fido"
+
+[web.watcher]
+watch_path = ["src"]
+
+# include `assets` in web platform
+[web.resource]
+style = []
+script = []
+
+[web.resource.dev]
+script = []
