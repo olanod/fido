@@ -121,7 +121,7 @@ dependencies = [
 [[package]]
 name = "dioxus"
 version = "0.2.4"
-source = "git+https://github.com/virto-network/dioxus.git#1b4e419ddde855d48779682b29320e20abf5c141"
+source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -133,7 +133,7 @@ dependencies = [
 [[package]]
 name = "dioxus-core"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#1b4e419ddde855d48779682b29320e20abf5c141"
+source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
 dependencies = [
  "backtrace",
  "bumpalo",
@@ -152,7 +152,7 @@ dependencies = [
 [[package]]
 name = "dioxus-core-macro"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#1b4e419ddde855d48779682b29320e20abf5c141"
+source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
 dependencies = [
  "dioxus-rsx",
  "proc-macro2",
@@ -163,7 +163,7 @@ dependencies = [
 [[package]]
 name = "dioxus-hooks"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#1b4e419ddde855d48779682b29320e20abf5c141"
+source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
 dependencies = [
  "dioxus-core",
  "futures-channel",
@@ -173,7 +173,7 @@ dependencies = [
 [[package]]
 name = "dioxus-html"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#1b4e419ddde855d48779682b29320e20abf5c141"
+source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
 dependencies = [
  "dioxus-core",
  "enumset",
@@ -186,7 +186,7 @@ dependencies = [
 [[package]]
 name = "dioxus-interpreter-js"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#1b4e419ddde855d48779682b29320e20abf5c141"
+source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -196,7 +196,7 @@ dependencies = [
 [[package]]
 name = "dioxus-rsx"
 version = "0.0.0"
-source = "git+https://github.com/virto-network/dioxus.git#1b4e419ddde855d48779682b29320e20abf5c141"
+source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -206,7 +206,7 @@ dependencies = [
 [[package]]
 name = "dioxus-web"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#1b4e419ddde855d48779682b29320e20abf5c141"
+source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
@@ -446,9 +446,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.13.1"
+version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "074864da206b4973b84eb91683020dbefd6a8c3f0f38e054d93954e891935e4e"
+checksum = "2f7254b99e31cad77da24b08ebf628882739a608578bb1bcdfc1f9c21260d7c0"
 
 [[package]]
 name = "pin-project-lite"

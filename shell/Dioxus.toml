@@ -1,20 +1,21 @@
 [application]
 name = "shell"
 default_platform = "web"
-# Web `build` & `serve` dist path
 out_dir = "dist"
-# resource (static) file folder
 asset_dir = "public"
 
 [web.app]
 title = "🐶 Fido"
 
 [web.watcher]
-watch_path = ["src"]
+watch_path = ["src", "examples", "public/web_components"]
 
-# include `assets` in web platform
 [web.resource]
-style = []
+style = [
+  "https://unpkg.com/open-props@1.4.3/open-props.min.css",
+  "https://unpkg.com/open-props@1.4.3/normalize.min.css",
+  "./app.css",
+]
 script = []
 
 [web.resource.dev]
