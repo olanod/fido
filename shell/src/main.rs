@@ -1,5 +1,3 @@
-use fido_shell::app;
-
 fn main() {
-    dioxus::web::launch(app)
+    dioxus_web::launch(fido_shell::app)
 }

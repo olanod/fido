@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-dioxus = { version = "0.2.4", features = ["web"] }
+dioxus = { git = "https://github.com/virto-network/dioxus.git" }
+dioxus-web = { git = "https://github.com/virto-network/dioxus.git" }
