@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use fido_shell::fido;
+use fido_shell::web_components::fido;
 
 fn main() {
     dioxus_web::launch(app)

@@ -7,25 +7,29 @@ const template = html`
 <style>
 :host {
   --bg: var(--surface-2, lightgray);
+  --mask-corner-cut-squares: conic-gradient(at 0.8rem 0.8rem,#000 75%,transparent 0) -0.4rem -0.4rem;
+}
+:host(:focus) {
+  border: var(--border-size-1) solid var(--indigo-3);
 }
 #prompt {
   display: flex;
   background: var(--bg);
   box-sizing: border-box;
   padding: var(--size-fluid-1) var(--size-fluid-2);
+  -webkit-mask: var(--mask-corner-cut-squares);
 }
-#prompt textarea {
+#text-entry {
   flex: 10;
-  border: none;
-  background: none;
-  outline: none;
-  resize: none;
   min-height: var(--size-fluid-3);
   font-size: var(--font-size-fluid-1);
+  font-family: monospace;
+  text-align: start;
+  outline: none;
 }
 </style>
 <div id="prompt">
-  <textarea></textarea>
+  <div id="text-entry" contenteditable></div>
 </div>
 `;
 
