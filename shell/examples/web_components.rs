@@ -9,10 +9,10 @@ fn app(cx: Scope) -> Element {
     cx.render(rsx! {
         h1 { "Fido custom elements" }
 
+        h2 { code { "<fido-window>" } }
+        fido::window { "custom elments work!" }
+
         h2 { code { "<fido-prompt>" } }
         fido::prompt { "type here ..." }
-
-        h2 { code { "<fido-pane>" } }
-        fido::pane { "custom elments work!" }
     })
 }

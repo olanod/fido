@@ -7,7 +7,7 @@ pub fn app(cx: Scope) -> Element {
     cx.render(rsx! {
         h1 { "Hello Fido!" }
         p { "Here your Fido companion will learn a trick or two 😉 " }
-        fido::pane { "custom elments work!" }
+        fido::window { "custom elments work!" }
     })
 }
 
@@ -16,7 +16,7 @@ pub mod web_components {
 
     custom_elements! {
         fido {
-            pane();
+            window();
             prompt();
         }
     }
