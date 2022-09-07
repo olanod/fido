@@ -6,8 +6,9 @@ const html = (ss, ...parts) => p.parseFromString('<template>' + parts
 const template = html`
 <style>
 :host {
-  --bg: var(--surface-2, lightgray);
+  --bg: var(--surface-2);
   --mask-corner-cut-squares: conic-gradient(at 0.8rem 0.8rem,#000 75%,transparent 0) -0.4rem -0.4rem;
+  margin: 1rem auto;
 }
 main {
   background: var(--bg);

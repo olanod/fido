@@ -6,11 +6,12 @@ const html = (ss, ...parts) => p.parseFromString('<template>' + parts
 const template = html`
 <style>
 :host {
-  --bg: var(--surface-2, lightgray);
+  --bg: linear-gradient(to right, var(--brand), var(--surface-2));
   --mask-corner-cut-squares: conic-gradient(at 0.8rem 0.8rem,#000 75%,transparent 0) -0.4rem -0.4rem;
+  margin: 1rem auto;
 }
-:host(:focus) {
-  border: var(--border-size-1) solid var(--indigo-3);
+:focus {
+  background: rgba(0, 0, 0, 0.02);
 }
 #prompt {
   display: flex;
