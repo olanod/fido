@@ -6,30 +6,49 @@ const html = (ss, ...parts) => p.parseFromString('<template>' + parts
 const template = html`
 <style>
 :host {
-  --bg: var(--surface-2, lightgray);
-  --mask-corner-cut-squares: conic-gradient(at 0.8rem 0.8rem,#000 75%,transparent 0) -0.4rem -0.4rem;
+  --bg: var(--surface-2);
+  --border: var(--brand);
+  --border-focus: var(--violet-3);
+  --clip: var(--pixel-corners, none);
 }
-:host(:focus) {
-  border: var(--border-size-1) solid var(--indigo-3);
+
+#wrap {
+  padding: var(--font-size-fluid-0);
 }
+#border {
+  clip-path: var(--clip);
+  background: linear-gradient(to right, var(--border) 40%, var(--border-focus) 60%);
+  background-size: 240% 100%;
+  background-position: 0%;
+  transition: background-position 500ms;
+  padding: 2px;
+}
+:host(:focus) #border { background-position: 100%; }
 #prompt {
   display: flex;
   background: var(--bg);
   box-sizing: border-box;
-  padding: var(--size-fluid-1) var(--size-fluid-2);
-  -webkit-mask: var(--mask-corner-cut-squares);
+  padding: var(--font-size-fluid-0) var(--font-size-fluid-1);
+  clip-path: var(--clip);
+  filter: drop-shadow(0 0 1px var(--brand));
+  color: white;
 }
 #text-entry {
   flex: 10;
-  min-height: var(--size-fluid-3);
-  font-size: var(--font-size-fluid-1);
+  min-height: var(--font-size-fluid-1);
+  line-height: var(--font-size-fluid-1);
+  font-size: var(--font-size-1);
   font-family: monospace;
   text-align: start;
   outline: none;
 }
 </style>
-<div id="prompt">
-  <div id="text-entry" contenteditable></div>
+<div id="wrap">
+  <div id="border">
+    <div id="prompt">
+      <div id="text-entry" contenteditable><slot></slot></div>
+    </div>
+  </div>
 </div>
 `;
 

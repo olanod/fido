@@ -6,13 +6,17 @@ const html = (ss, ...parts) => p.parseFromString('<template>' + parts
 const template = html`
 <style>
 :host {
-  --bg: var(--surface-2, lightgray);
-  --mask-corner-cut-squares: conic-gradient(at 0.8rem 0.8rem,#000 75%,transparent 0) -0.4rem -0.4rem;
+  --bg: var(--surface-2);
+  margin: 1rem auto;
 }
 main {
   background: var(--bg);
-  min-height: var(--size-fluid-10);
-  -webkit-mask: var(--mask-corner-cut-squares);
+  color: white;
+  height: var(--font-size-fluid-1);
+  line-height: var(--font-size-fluid-1);
+  font-size: var(--font-size-fluid-0);
+  text-align: start;
+  padding: 0 var(--font-size-fluid-0);
 }
 </style>
 <main><slot></slot></main>
@@ -21,8 +25,8 @@ main {
 /**
  * Extensible prompt that accepts custom controls that ease the input of custom data
  */
-export class Window extends HTMLElement {
-  static TAG = "fido-window";
+export class Status extends HTMLElement {
+  static TAG = "fido-status";
 	static observedAttributes = [];
   
   #$root;
@@ -33,4 +37,4 @@ export class Window extends HTMLElement {
 		this.#$root.append(template.content.cloneNode(true))
   }
 }
-customElements.define(Window.TAG, Window);
+customElements.define(Status.TAG, Status);

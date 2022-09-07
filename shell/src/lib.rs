@@ -1,13 +1,13 @@
-mod fido_elements;
-
 use dioxus::prelude::*;
 use web_components::*;
 
 pub fn app(cx: Scope) -> Element {
     cx.render(rsx! {
-        h1 { "Hello Fido!" }
-        p { "Here your Fido companion will learn a trick or two 😉 " }
-        fido::window { "custom elments work!" }
+        fido::status { "Home" }
+        main {
+            fido::app {  }
+        }
+        fido::prompt { "Hello mundito ..." }
     })
 }
 
@@ -16,8 +16,9 @@ pub mod web_components {
 
     custom_elements! {
         fido {
-            window();
+            status();
             prompt();
+            app();
         }
     }
 }
