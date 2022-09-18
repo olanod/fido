@@ -75,6 +75,18 @@ export class Prompt extends HTMLElement {
 			this.#internals.setFormValue(this.value);
 		}
   }
+  
+  connectedCallback() {
+    this.#$root.addEventListener('keypress', this.#onInput)
+  }
+  
+  #onInput = e => {
+    if (e.code == "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      this.form?.submit();
+      this.form?.reset();
+    }
+  }
 
 
 	// form associated element

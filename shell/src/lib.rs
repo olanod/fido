@@ -3,11 +3,15 @@ use web_components::*;
 
 pub fn app(cx: Scope) -> Element {
     cx.render(rsx! {
-        fido::status { "Home" }
+        fido::status { "⌗ Home" }
         main {
             fido::app {  }
         }
-        fido::prompt { "Hello mundito ..." }
+        form {
+            action: "#input",
+            method: "GET",
+            fido::prompt { name: "q" }
+        }
     })
 }
 
@@ -17,7 +21,7 @@ pub mod web_components {
     custom_elements! {
         fido {
             status();
-            prompt();
+            prompt(name);
             app();
         }
     }
