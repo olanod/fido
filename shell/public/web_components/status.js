@@ -15,6 +15,8 @@ main {
   height: var(--font-size-fluid-1);
   line-height: var(--font-size-fluid-1);
   font-size: var(--font-size-fluid-0);
+  font-family: monospace;
+  letter-spacing: 1px;
   text-align: start;
   padding: 0 var(--font-size-fluid-0);
 }
