@@ -105,10 +105,10 @@ const boxTpl = html`
 }
 #border {
   clip-path: var(--clip);
-  background: linear-gradient(to right, var(--box-border) 40%, var(--box-border-active) 60%);
-  background-size: 240% 100%;
-  background-position: var(--box-active);
-  transition: background-position 500ms;
+  background: linear-gradient(to bottom, var(--box-border) 40%, var(--box-border-active) 60%);
+  background-size: 100% 240%;
+  background-position: 0 var(--box-active);
+  transition: background-position 250ms;
   padding: 2px;
 }
 #content {
