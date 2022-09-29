@@ -8,7 +8,7 @@ const promptTpl = html`
 :host {
   --bg: var(--surface-2);
 }
-:host(:focus) fido-box { --box-active: 100%; }
+:host(:focus) fido-frame { --frame-active: 100%; }
 #wrap { padding: 0.5em var(--font-size-fluid-0); }
 #text-entry {
   color: white;
@@ -24,10 +24,10 @@ const promptTpl = html`
 }
 </style>
 <div id="wrap">
-  <fido-box>
+  <fido-frame>
     <slot></slot>
     <pre id="text-entry" contenteditable><br></pre>
-  </fido-box>
+  </fido-frame>
 </div>
 `;
 
@@ -95,29 +95,45 @@ export class Prompt extends HTMLElement {
 }
 customElements.define(Prompt.TAG, Prompt);
 
-const boxTpl = html`
+const frameTpl = html`
 <style>
 :host {
-  --box-border: var(--brand);
-  --box-border-active: var(--violet-3);
-  --box-active: 0%;
+  --frame-color: var(--brand);
+  --frame-color-active: var(--violet-3);
+  --frame-active: 0%;
+  --frame-active-angle: 180deg;
+  --frame-bg: var(--bg, white);
+  --frame-width: 2px;
+  --frame-size: ;
+  --frame-ratio: 1;
   --clip: var(--pixel-corners, none);
+  display: block;
 }
-#border {
+:host(.box) {
+  --frame-size: var(--size-fluid-5);
+  --frame-ratio: 2;
+}
+:host(.card) {
+  --frame-size: var(--size-fluid-5);
+  --frame-ratio: 2;
+}
+#frame {
   clip-path: var(--clip);
-  background: linear-gradient(to bottom, var(--box-border) 40%, var(--box-border-active) 60%);
+  background: linear-gradient(var(--frame-active-angle), var(--frame-color) 40%, var(--frame-color-active) 60%);
   background-size: 100% 240%;
-  background-position: 0 var(--box-active);
+  background-position: 0 var(--frame-active);
   transition: background-position 250ms;
-  padding: 2px;
+  padding: var(--frame-width);
+  height: var(--frame-size);
 }
 #content {
-  background: var(--bg);
+  background: var(--frame-bg);
   clip-path: var(--clip);
   display: flex;
+  height: 100%;
 }
 </style>
-<div id="border">
+<div id="frame">
   <div id="content">
     <slot></slot>
   </div>
@@ -125,10 +141,10 @@ const boxTpl = html`
 `
 
 /**
- * A box with a pixelated border
+ * A box with a pixelated frame/border
  */
-export class Box extends HTMLElement {
-  static TAG = 'fido-box';
+export class Frame extends HTMLElement {
+  static TAG = 'fido-frame';
 	static observedAttributes = [];
 
   #$root;
@@ -136,7 +152,7 @@ export class Box extends HTMLElement {
   constructor() {
     super();
 		this.#$root = this.attachShadow({ mode: 'closed'});
-		this.#$root.append(boxTpl.content.cloneNode(true))
+		this.#$root.append(frameTpl.content.cloneNode(true))
   }
 }
-customElements.define(Box.TAG, Box);
+customElements.define(Frame.TAG, Frame);
