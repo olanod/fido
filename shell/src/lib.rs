@@ -18,10 +18,14 @@ struct HomeProps {
 
 fn Home(cx: Scope<HomeProps>) -> Element {
     let app_list = cx.props.apps.iter().map(|name| {
+        let initial = name.chars().next().map_or('*', |c| c.to_ascii_uppercase());
+
         rsx! {
             figure {
-
-                a { href: "#", fido::frame { "{name}" } }
+                a {
+                    href: "#",
+                    fido::frame { class: "box", title: "{name}", "{initial}" }
+                }
                 figcaption { "{name}" }
             }
         }

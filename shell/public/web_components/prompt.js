@@ -108,13 +108,15 @@ const frameTpl = html`
   --frame-ratio: 1;
   --clip: var(--pixel-corners, none);
   display: block;
+  height: var(--frame-size);
+  width: calc(var(--frame-size, auto) * var(--frame-ratio, 1));
 }
 :host(.box) {
   --frame-size: var(--size-fluid-5);
-  --frame-ratio: 2;
+  --frame-ratio: 1;
 }
 :host(.card) {
-  --frame-size: var(--size-fluid-5);
+  --frame-size: var(--size-fluid-6);
   --frame-ratio: 2;
 }
 #frame {
@@ -122,6 +124,7 @@ const frameTpl = html`
   background: linear-gradient(var(--frame-active-angle), var(--frame-color) 40%, var(--frame-color-active) 60%);
   background-size: 100% 240%;
   background-position: 0 var(--frame-active);
+  box-sizing: border-box;
   transition: background-position 250ms;
   padding: var(--frame-width);
   height: var(--frame-size);
@@ -130,6 +133,7 @@ const frameTpl = html`
   background: var(--frame-bg);
   clip-path: var(--clip);
   display: flex;
+  flex-direction: column;
   height: 100%;
 }
 </style>
