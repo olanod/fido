@@ -5,10 +5,8 @@ const html = (ss, ...parts) => p.parseFromString('<template>' + parts
 
 const promptTpl = html`
 <style>
-:host {
-  --bg: var(--surface-2);
-}
 :host(:focus) fido-frame { --frame-active: 100%; }
+fido-frame { --frame-bg: var(--surface-2); }
 #wrap { padding: 0.5em var(--font-size-fluid-0); }
 #text-entry {
   color: white;
@@ -102,11 +100,18 @@ const frameTpl = html`
   --frame-color-active: var(--violet-3);
   --frame-active: 0%;
   --frame-active-angle: 180deg;
-  --frame-bg: var(--bg, white);
-  --frame-width: 2px;
-  --frame-size: ;
+  --frame-bg: var(--surface-1, white);
+  --frame: 2px;
+  --frame-size: 100%;
   --frame-ratio: 1;
+  --pixel-corners: polygon(
+    0px 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0px,
+    calc(100% - 4px) 0px, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%,
+    4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0px calc(100% - 4px)
+  );
   --clip: var(--pixel-corners, none);
+  --padding: 0;
   display: block;
   height: var(--frame-size);
   width: calc(var(--frame-size, auto) * var(--frame-ratio, 1));
@@ -126,8 +131,8 @@ const frameTpl = html`
   background-position: 0 var(--frame-active);
   box-sizing: border-box;
   transition: background-position 250ms;
-  padding: var(--frame-width);
-  height: var(--frame-size);
+  padding: var(--frame);
+  height: 100%;
 }
 #content {
   background: var(--frame-bg);
@@ -135,6 +140,7 @@ const frameTpl = html`
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding: var(--padding);
 }
 </style>
 <div id="frame">
@@ -142,7 +148,7 @@ const frameTpl = html`
     <slot></slot>
   </div>
 </div>
-`
+`;
 
 /**
  * A box with a pixelated frame/border
@@ -160,3 +166,47 @@ export class Frame extends HTMLElement {
   }
 }
 customElements.define(Frame.TAG, Frame);
+
+const gridTpl = html`
+<style>
+:host { --grid-cols: 3; }
+@media only screen and (min-device-width: 768px){
+  :host { --grid-cols: 4; }
+}
+#grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-cols), 1fr);
+  gap: var(--size-fluid-2);
+  align-items: center;
+}
+::slotted(a) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: fit-content;
+  margin: auto !important;
+  font-size: 0.9rem;
+  color: var(--text-1);
+}
+</style>
+<div id="grid">
+  <slot></slot>
+</div>
+`;
+
+/**
+ * Grid that can be sorted and have elements selected
+ */
+export class Grid extends HTMLElement {
+  static TAG = 'fido-grid';
+	static observedAttributes = [];
+
+  #$root;
+
+  constructor() {
+    super();
+		this.#$root = this.attachShadow({ mode: 'closed'});
+		this.#$root.append(gridTpl.content.cloneNode(true))
+  }
+}
+customElements.define(Grid.TAG, Grid);

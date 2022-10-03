@@ -14,12 +14,6 @@
     --brand-light: #7461a0; --brand-dark: #2f2f59;
     --surface-1-light: #e9e9f8; --surface-1-dark: #222233;
     --surface-2-light: #2f2f59; --surface-2-dark: #444466;
-    --pixel-corners: polygon(
-      0px 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0px,
-      calc(100% - 4px) 0px, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px,
-      100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%,
-      4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0px calc(100% - 4px)
-    );
   }
   :root {
     --text-1: var(--text-1-light);
@@ -31,8 +25,7 @@
     :root { --text-1: var(--text-1-dark); --brand: var(--brand-dark); --surface-1: var(--surface-1-dark); --surface-2: var(--surface-2-dark);}
   }
   body { background: var(--surface-2); align-items: center; text-align: center; }
-  #main { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
-  fido-main { flex: 1; background: var(--surface-1); clip-path: var(--pixel-corners); padding: var(--font-size-fluid-0); }
+  #main { display: flex; flex-direction: column-reverse; min-height: 100vh; min-height: 100dvh; }
   </style>
 
   <script type="module" async src="./web_components/prompt.js"></script>

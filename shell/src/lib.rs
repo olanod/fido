@@ -3,11 +3,12 @@ use web_components::*;
 
 pub fn app(cx: Scope) -> Element {
     cx.render(rsx! {
-        fido::status { "⌗ Home" }
-        fido::main {
-            Home { apps: vec!["news", "accounts", "contacts", "help"] }
-        }
         Prompt { endpoint: "#" }
+        fido::frame {
+            style: "--padding: var(--font-size-fluid-0); --frame: none;",
+            Home { apps: vec!["chat", "accounts", "contacts", "pay", "forum", "term", "settings", "help"] }
+        }
+        fido::status { "⌗ Home" }
     })
 }
 
@@ -18,31 +19,25 @@ struct HomeProps {
 
 fn Home(cx: Scope<HomeProps>) -> Element {
     let app_list = cx.props.apps.iter().map(|name| {
-        let initial = name.chars().next().map_or('*', |c| c.to_ascii_uppercase());
-
+        const IMG_DIR: &str = "./fido";
         rsx! {
-            figure {
-                a {
-                    href: "#",
-                    fido::frame { class: "box", title: "{name}", "{initial}" }
-                }
-                figcaption { "{name}" }
+            a {
+                href: "#",
+                class: "ic",
+                fido::frame {
+                    class: "box",
+                    title: "{name}",
+                    img { image_rendering: "pixelated", src: "{IMG_DIR}/{name}.webp", alt: "{name}" }
+                },
+                "{name}"
             }
         }
     });
 
     cx.render(rsx! {
-        header {
-            class: "hero",
-            display: "flex",
-            ul {
-                fido::frame { class: "card", "Info 1" },
-                fido::frame { class: "card", "Info 2" },
-            }
-        }
-        section {
-            id: "app-grid",
-            display: "grid",
+        fido::grid {
+            margin: "auto 0",
+            select: "none",
             app_list
         }
     })
@@ -72,9 +67,7 @@ pub mod web_components {
             main();
             prompt(name);
             frame();
-            card(title);
-            apps();
-            app(ic);
+            grid(select);
         }
     }
 }
