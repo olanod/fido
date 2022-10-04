@@ -102,29 +102,20 @@ const frameTpl = html`
   --frame-active-angle: 180deg;
   --frame-bg: var(--surface-1, white);
   --frame: 2px;
-  --frame-size: 100%;
+  --frame-size: auto;
   --frame-ratio: 1;
-  --pixel-corners: polygon(
+  --clip: polygon(
     0px 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0px,
     calc(100% - 4px) 0px, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px,
     100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%,
     4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0px calc(100% - 4px)
   );
-  --clip: var(--pixel-corners, none);
   --padding: 0;
-  display: block;
+  display: flex;
+  flex-direction: column;
   height: var(--frame-size);
   width: calc(var(--frame-size, auto) * var(--frame-ratio, 1));
-}
-:host(.box) {
-  --frame-size: var(--size-fluid-5);
-  --frame-ratio: 1;
-}
-:host(.card) {
-  --frame-size: var(--size-fluid-6);
-  --frame-ratio: 2;
-}
-#frame {
+
   clip-path: var(--clip);
   background: linear-gradient(var(--frame-active-angle), var(--frame-color) 40%, var(--frame-color-active) 60%);
   background-size: 100% 240%;
@@ -132,7 +123,18 @@ const frameTpl = html`
   box-sizing: border-box;
   transition: background-position 250ms;
   padding: var(--frame);
-  height: 100%;
+}
+:host(.simple) {
+  --frame: 0;
+  --frame-color: var(--frame-bg);
+}
+:host(.box) {
+  --frame-size: var(--size-fluid-6);
+  --frame-ratio: 1;
+}
+:host(.card) {
+  --frame-size: var(--size-fluid-7);
+  --frame-ratio: 2;
 }
 #content {
   background: var(--frame-bg);
@@ -141,12 +143,11 @@ const frameTpl = html`
   flex-direction: column;
   height: 100%;
   padding: var(--padding);
+  margin: auto 0;
 }
 </style>
-<div id="frame">
-  <div id="content">
-    <slot></slot>
-  </div>
+<div id="content">
+  <slot></slot>
 </div>
 `;
 

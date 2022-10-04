@@ -1,12 +1,27 @@
 use dioxus::prelude::*;
 use web_components::*;
 
+const APPS: [&'static str; 11] = [
+    "chat",
+    "accounts",
+    "contacts",
+    "pay",
+    "forum",
+    "term",
+    "settings",
+    "help",
+    "swap.cash",
+    "flea.market",
+    "go.delivery",
+];
+
 pub fn app(cx: Scope) -> Element {
     cx.render(rsx! {
         Prompt { endpoint: "#" }
         fido::frame {
-            style: "--padding: var(--font-size-fluid-0); --frame: none;",
-            Home { apps: vec!["chat", "accounts", "contacts", "pay", "forum", "term", "settings", "help"] }
+            style: "flex: 1; --padding: var(--font-size-fluid-0)",
+            class: "simple",
+            Home { apps: &APPS[..] }
         }
         fido::status { "⌗ Home" }
     })
@@ -14,16 +29,15 @@ pub fn app(cx: Scope) -> Element {
 
 #[derive(Props, PartialEq)]
 struct HomeProps {
-    apps: Vec<&'static str>,
+    apps: &'static [&'static str],
 }
 
 fn Home(cx: Scope<HomeProps>) -> Element {
     let app_list = cx.props.apps.iter().map(|name| {
-        const IMG_DIR: &str = "./fido";
+        const IMG_DIR: &str = "./ic";
         rsx! {
             a {
                 href: "#",
-                class: "ic",
                 fido::frame {
                     class: "box",
                     title: "{name}",
