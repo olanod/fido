@@ -18,10 +18,9 @@ const APPS: [&'static str; 11] = [
 pub fn app(cx: Scope) -> Element {
     cx.render(rsx! {
         Prompt { endpoint: "#" }
-        fido::frame {
-            style: "flex: 1; --padding: var(--font-size-fluid-0)",
-            class: "simple",
-            Home { apps: &APPS[..] }
+        section {
+            id: "app",
+            Home { apps: &APPS[..] },
         }
         fido::status { "⌗ Home" }
     })
@@ -35,22 +34,21 @@ struct HomeProps {
 fn Home(cx: Scope<HomeProps>) -> Element {
     let app_list = cx.props.apps.iter().map(|name| {
         const IMG_DIR: &str = "./ic";
+        let title = name.replace(".", " ");
         rsx! {
             a {
+                title: "{title}",
                 href: "#",
                 fido::frame {
                     class: "box",
-                    title: "{name}",
                     img { image_rendering: "pixelated", src: "{IMG_DIR}/{name}.webp", alt: "{name}" }
-                },
-                "{name}"
+                }
             }
         }
     });
 
     cx.render(rsx! {
         fido::grid {
-            margin: "auto 0",
             select: "none",
             app_list
         }
@@ -69,6 +67,12 @@ fn Prompt(cx: Scope<PromptProps>) -> Element {
             method: "GET",
             fido::prompt { name: "q" }
         }
+    })
+}
+
+fn FidoDialog(cx: Scope<HomeProps>) -> Element {
+    cx.render(rsx! {
+        dialog { output {} }
     })
 }
 

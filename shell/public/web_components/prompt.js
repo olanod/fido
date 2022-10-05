@@ -18,7 +18,7 @@ fido-frame { --frame-bg: var(--surface-2); }
   text-align: start;
   outline: none;
   margin: 0;
-  padding: 0.5em var(--font-size-fluid-0);
+  padding: 0.6em var(--font-size-fluid-0);
 }
 </style>
 <div id="wrap">
@@ -111,8 +111,7 @@ const frameTpl = html`
     4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0px calc(100% - 4px)
   );
   --padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: block;
   height: var(--frame-size);
   width: calc(var(--frame-size, auto) * var(--frame-ratio, 1));
 
@@ -124,17 +123,17 @@ const frameTpl = html`
   transition: background-position 250ms;
   padding: var(--frame);
 }
-:host(.simple) {
-  --frame: 0;
-  --frame-color: var(--frame-bg);
-}
 :host(.box) {
-  --frame-size: var(--size-fluid-6);
-  --frame-ratio: 1;
+  --frame-size: var(--size-fluid-5);
+  --frame-ratio: var(--ratio-square);
 }
 :host(.card) {
-  --frame-size: var(--size-fluid-7);
-  --frame-ratio: 2;
+  --frame-size: var(--size-fluid-6);
+  --frame-ratio: calc(var(--ratio-golden));
+}
+@media only screen and (min-device-width: 768px){
+  :host(.box) { --frame-size: var(--size-fluid-6); }
+  :host(.card) { --frame-size: var(--size-fluid-7); }
 }
 #content {
   background: var(--frame-bg);
@@ -170,29 +169,22 @@ customElements.define(Frame.TAG, Frame);
 
 const gridTpl = html`
 <style>
-:host { --grid-cols: 3; }
-@media only screen and (min-device-width: 768px){
-  :host { --grid-cols: 4; }
-}
-#grid {
+:host {
+  align-items: start;
   display: grid;
-  grid-template-columns: repeat(var(--grid-cols), 1fr);
-  gap: var(--size-fluid-2);
-  align-items: center;
+  justify-content: center;
+  justify-items: center;
+  gap: var(--size-fluid-3);
+  grid-template-columns: repeat(auto-fill, var(--size-fluid-6));
 }
-::slotted(a) {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: fit-content;
-  margin: auto !important;
-  font-size: 0.9rem;
-  color: var(--text-1);
+@media only screen and (min-device-width: 768px){
+  :host {
+    grid-template-columns: repeat(auto-fill, var(--size-fluid-7));
+    gap: var(--size-fluid-4);
+  }
 }
 </style>
-<div id="grid">
-  <slot></slot>
-</div>
+<slot></slot>
 `;
 
 /**

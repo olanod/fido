@@ -1,0 +1,39 @@
+#app {
+  background: var(--surface-1);
+  /* same pixelated clipping as frames */
+  clip-path: polygon(
+    0px 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0px,
+    calc(100% - 4px) 0px, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%,
+    4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0px calc(100% - 4px)
+  );
+  display: flex;
+  flex: 1;
+  flex-basis: 0;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--size-fluid-2);
+  overflow-y: auto;
+}
+
+#app > fido-grid {
+  margin: var(--size-fluid-3) auto;
+  max-width: 800px;
+  width: 100%;
+}
+fido-grid a {
+  user-select: none;
+  width: 100%;
+  overflow: hidden;
+  text-align: center;
+  -webkit-touch-callout: none;
+}
+fido-grid a::after {
+  color: var(--text-2);
+  content: attr(title);
+  display: block;
+  font-size: 0.9em;
+  line-height: 0.9em;
+  margin-top: 0.3rem;
+}
+fido-grid a>fido-frame { margin: auto; }
