@@ -1,3 +1,9 @@
+#prompt, fido-status, #app {
+  max-width: 1200px;
+  width: 100%;
+  margin: auto;
+}
+
 #app {
   background: var(--surface-1);
   /* same pixelated clipping as frames */
@@ -12,13 +18,13 @@
   flex-basis: 0;
   flex-direction: column;
   align-items: center;
-  padding: var(--size-fluid-2);
+  padding: var(--size-2);
   overflow-y: auto;
 }
 
 #app > fido-grid {
-  margin: var(--size-fluid-3) auto;
-  max-width: 800px;
+  margin: var(--size-3) auto;
+  max-width: 1000px;
   width: 100%;
 }
 fido-grid a {

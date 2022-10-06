@@ -17,12 +17,12 @@ const APPS: [&'static str; 11] = [
 
 pub fn app(cx: Scope) -> Element {
     cx.render(rsx! {
-        Prompt { endpoint: "#" }
+        fido::status { "⌗ Home" }
         section {
             id: "app",
             Home { apps: &APPS[..] },
         }
-        fido::status { "⌗ Home" }
+        Prompt { endpoint: "#" }
     })
 }
 
@@ -63,9 +63,13 @@ struct PromptProps {
 fn Prompt(cx: Scope<PromptProps>) -> Element {
     cx.render(rsx! {
         form {
+            id: "prompt",
             action: "{cx.props.endpoint}",
             method: "GET",
-            fido::prompt { name: "q" }
+            fido::prompt {
+                name: "q",
+                tabindex: "1",
+            }
         }
     })
 }
@@ -82,7 +86,6 @@ pub mod web_components {
     custom_elements! {
         fido {
             status();
-            main();
             prompt(name);
             frame();
             grid(select);

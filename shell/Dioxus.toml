@@ -8,12 +8,10 @@ asset_dir = "public"
 title = "🐶 Fido"
 
 [web.watcher]
-watch_path = ["src", "examples", "public/web_components"]
+watch_path = ["src", "examples", "public"]
 
 [web.resource]
 style = [
-  "https://unpkg.com/open-props@1.4.14/open-props.min.css",
-  "https://unpkg.com/open-props@1.4.14/normalize.min.css",
   "./app.css",
 ]
 script = []
