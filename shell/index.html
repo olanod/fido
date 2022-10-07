@@ -16,7 +16,8 @@
     --brand-light: #88d; --brand-dark: #77c;
     --alt-light: #66a; --alt-dark: #559;
     --surface-1-light: #eef; --surface-1-dark: #223;
-    --surface-2-light: #558; --surface-2-dark: #335;
+    --surface-2-light: #aac; --surface-2-dark: #88a;
+    --surface-3-light: #558; --surface-3-dark: #335;
     /* sizes */
     --size-1: clamp(.5rem, 1vw, 1rem);
     --size-2: clamp(1rem, 2vw, 1.5rem);
@@ -47,6 +48,7 @@
     --alt: var(--alt-light);
     --surface-1: var(--surface-1-light);
     --surface-2: var(--surface-2-light);
+    --surface-3: var(--surface-3-light);
   }
   @media (prefers-color-scheme: dark) {
     :root { 
@@ -56,13 +58,14 @@
       --alt: var(--alt-dark);
       --surface-1: var(--surface-1-dark); 
       --surface-2: var(--surface-2-dark);
+      --surface-3: var(--surface-3-dark);
     }
   }
   :where(:not(dialog)) { margin: 0; }
   :where(a):where(:not(:hover)) { text-decoration:inherit }
-  :where(:not(:active):focus-visible) { outline-offset: 4px }
+  :where(:not(:active):focus-visible) { outline-offset: 5px }
   :focus-visible { outline: 2px dashed var(--alt); }
-  body { background: var(--surface-2); }
+  body { background: var(--surface-3); }
   #main { display: flex; flex-direction: column; justify-content: center; min-height: 100vh; min-height: 100dvh; }
   </style>
 

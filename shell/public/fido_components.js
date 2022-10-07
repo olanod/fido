@@ -84,12 +84,7 @@ export class Status extends HTMLElement {
 	static observedAttributes = [];
   static template = html`
 <style>
-:host {
-  --bg: var(--surface-2);
-  margin: 1rem auto;
-}
 main {
-  background: var(--bg);
   color: white;
   height: var(--font-size-1);
   line-height: var(--font-size-1);
@@ -124,7 +119,7 @@ export class Prompt extends HTMLElement {
 <style>
 :host { --font-size: 1rem; }
 :host(:focus) fido-frame { --frame-active: 100%; }
-fido-frame { --frame-bg: var(--surface-2); }
+fido-frame { --frame-bg: var(--surface-3); }
 #wrap { padding: var(--size-1); }
 #text-entry {
   color: white;
@@ -219,11 +214,40 @@ export class Grid extends HTMLElement {
   gap: var(--size-3);
   grid-template-columns: repeat(auto-fill, var(--size-6));
 }
+::slotted(h4) {
+  display: flex;
+  border-bottom: 1px solid var(--surface-2);
+  color: var(--text-2);
+  cursor: pointer;
+  font-family: monospace;
+  grid-column: 1 / -1;
+  height: 1.4rem;
+  text-align: start;
+  margin: 0 var(--font-size-0);
+  width: 100%;
+}
+::slotted(h4:active) { color: var(--brand); border-bottom: 1px solid var(--brand); }
+::slotted(h4)::after {
+  content: '<';
+  display: inline-block;
+  margin-inline-start: auto;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  transition: transform 200ms;
+}
+::slotted(h4.collapse)::after {
+  transform: rotate(0deg);
+}
+::slotted(.collapse:not(h4)) {
+  display: none;
+}
+
 @media only screen and (min-device-width: 768px){
   :host {
     grid-template-columns: repeat(auto-fill, var(--size-7));
     gap: var(--size-4);
   }
+  ::slotted(fido-frame) { --frame: 4px; }
 }
 </style>
 <slot></slot>
@@ -234,7 +258,31 @@ export class Grid extends HTMLElement {
   constructor() {
     super();
 		this.#$root = this.attachShadow({ mode: 'closed'});
-		this.#$root.append(this.constructor.template.content.cloneNode(true))
+		this.#$root.append(this.constructor.template.content.cloneNode(true));
+  }
+
+  connectedCallback() {
+    this.addEventListener('click', ({target: h4}) => {
+      if (!h4.matches('h4')) return;
+      const isShowing = h4.classList.contains('collapse');
+      h4.classList.toggle('collapse');
+
+      const keyframes = isShowing ?
+        [{ transform: 'translateY(-70%) scale(0.4)', opacity: 0 }, { transform: 'translateY(0) scale(1)', opacity: 1 }] :
+        [{ transform: 'translateY(-70%) scale(0.4)', opacity: 0 }];
+      for (let ele of this.#elementsOf(h4)) {
+        if (isShowing) ele.classList.remove('collapse');
+        ele.animate(keyframes, { duration: 200, easing: isShowing ? 'ease-out' : 'ease-in' })
+          .finished.then(() => { if(!isShowing) ele.classList.add('collapse') });
+      }
+    })
+  }
+
+  *#elementsOf(title) {
+    let next = title.nextElementSibling;
+    if (next?.matches('h4') || !next) return;
+    yield next;
+    yield* this.#elementsOf(next);
   }
 }
 customElements.define(Grid.TAG, Grid);
