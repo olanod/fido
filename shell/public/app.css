@@ -1,5 +1,5 @@
-#prompt, fido-status, #app {
-  max-width: 1200px;
+#prompt {
+  max-width: var(--size-laptop);
   width: 100%;
   margin: auto;
 }
@@ -22,26 +22,46 @@
   overflow-y: auto;
 }
 
+/* Home */
 #app > fido-grid {
   margin: var(--size-3) auto;
-  max-width: 1000px;
+  max-width: var(--size-laptop);
   width: 100%;
 }
-fido-grid a {
+
+.app-ic {
   user-select: none;
   text-align: center;
+  text-decoration: none;
   -webkit-touch-callout: none;
 }
-fido-grid a::after {
+.app-ic::after {
   color: var(--text-2);
   content: attr(title);
   display: block;
-  font-size: 0.9em;
+  font-size: var(--font-size-0);
   line-height: 0.9em;
   margin-top: 0.3rem;
 }
-fido-grid a>fido-frame { margin: auto; }
-fido-frame { --frame: 3px; }
+.app-ic fido-frame { margin: auto; }
+
+:is(.app-ic, button):active fido-frame { --frame-active: 100%; }
+
+:is(.app-ic, button) fido-frame { --frame: 2px; }
 @media only screen and (min-device-width: 768px) {
-  fido-frame { --frame: 4px; }
+  :is(.app-ic, button) fido-frame { --frame: 3px; }
+}
+
+:where(.trick) { all: initial; user-select: none; }
+.trick fido-frame::part(content) {
+  image-renderign: pixelated;
+  background: linear-gradient(to right, transparent 15%, var(--surface-2) 60%), var(--frame-bg) no-repeat;
+  background-size: contain;
+}
+.trick i {
+  margin: auto;
+  margin-inline-end: var(--font-size-0);
+  font-family: monospace;
+  font-size: var(--font-size-0);
+  font-weight: bold;
 }

@@ -12,8 +12,8 @@ export class Frame extends HTMLElement {
   static template = html`
 <style>
 :host {
-  --frame-color: var(--alt);
-  --frame-color-active: var(--brand);
+  --frame-color: var(--brand);
+  --frame-color-active: var(--alt);
   --frame-active: 0%;
   --frame-active-angle: 180deg;
   --frame-bg: var(--surface-1, white);
@@ -28,8 +28,8 @@ export class Frame extends HTMLElement {
   );
   --padding: 0;
   display: block;
-  height: var(--frame-size);
-  width: calc(var(--frame-size, auto) * var(--frame-ratio, 1));
+  height: calc(var(--frame-size, auto) / var(--frame-ratio, 1));
+  width: var(--frame-size);
 
   clip-path: var(--clip);
   background: linear-gradient(var(--frame-active-angle), var(--frame-color) 40%, var(--frame-color-active) 60%);
@@ -39,19 +39,19 @@ export class Frame extends HTMLElement {
   transition: background-position 250ms;
   padding: var(--frame);
 }
-:host(.box) {
-  --frame-size: var(--size-5);
-  --frame-ratio: var(--ratio-square);
-}
-:host(.card) {
-  --frame-size: var(--size-6);
-  --frame-ratio: calc(var(--ratio-golden));
-}
+:host([selected]) { --frame-active: 100%; padding: calc(var(--frame) + 1px); }
+:host(.s) { --frame-size: var(--size-4); }
+:host(.m) { --frame-size: var(--size-5); }
+:host(.l) { --frame-size: var(--size-6); }
+:host(.box) { --frame-ratio: var(--ratio-square); }
+:host(.card) { --frame-ratio: calc(var(--ratio-golden)); }
 @media only screen and (min-device-width: 768px){
-  :host(.box) { --frame-size: var(--size-6); }
-  :host(.card) { --frame-size: var(--size-7); }
+  :host(.s) { --frame-size: var(--size-5); }
+  :host(.m) { --frame-size: var(--size-6); }
+  :host(.l) { --frame-size: var(--size-7); }
 }
 #content {
+  color: var(--text-1);
   background: var(--frame-bg);
   clip-path: var(--clip);
   display: flex;
@@ -61,7 +61,7 @@ export class Frame extends HTMLElement {
   margin: auto 0;
 }
 </style>
-<div id="content">
+<div id="content" part="content">
   <slot></slot>
 </div>
 `;
@@ -84,18 +84,37 @@ export class Status extends HTMLElement {
 	static observedAttributes = [];
   static template = html`
 <style>
+:host { --color: #eef; }
+@media (prefers-color-scheme: dark) { :host { --color: #dde; } }
 main {
-  color: white;
+  color: var(--color);
+  display: flex;
   height: var(--font-size-1);
   line-height: var(--font-size-1);
   font-size: var(--font-size-0);
   font-family: monospace;
   letter-spacing: 1px;
   text-align: start;
-  padding: 0 var(--font-size-0);
+  padding: 2px var(--size-1);
+}
+button {
+  all: initial;
+  color: var(--color);
+  height: var(--font-size-1);
+  margin-inline-start: auto;
+  padding: 0 var(--size-1);
+  letter-spacing: 1.5px;
+  user-select: none;
+}
+button:active {
+  font-weight: bold;
+  letter-spacing: 1px;
 }
 </style>
-<main><slot></slot></main>
+<main>
+  <slot></slot>
+  <button>···</button>
+</main>
 `;
   
   #$root;
@@ -119,10 +138,9 @@ export class Prompt extends HTMLElement {
 <style>
 :host { --font-size: 1rem; }
 :host(:focus) fido-frame { --frame-active: 100%; }
-fido-frame { --frame-bg: var(--surface-3); }
+fido-frame { --frame-bg: var(--surface-2); --frame-color: var(--surface-1); }
 #wrap { padding: var(--size-1); }
 #text-entry {
-  color: white;
   flex: 10;
   min-height: var(--font-size-1);
   line-height: var(--font-size-1);
@@ -131,7 +149,7 @@ fido-frame { --frame-bg: var(--surface-3); }
   text-align: start;
   outline: none;
   margin: 0;
-  padding: 0.6em var(--font-size-0);
+  padding: clamp(0.8em, 1vw, 1rem) var(--font-size-0);
 }
 </style>
 <div id="wrap">
@@ -211,7 +229,7 @@ export class Grid extends HTMLElement {
   display: grid;
   justify-content: center;
   justify-items: center;
-  gap: var(--size-3);
+  gap: var(--size-2);
   grid-template-columns: repeat(auto-fill, var(--size-6));
 }
 ::slotted(h4) {
@@ -233,21 +251,20 @@ export class Grid extends HTMLElement {
   margin-inline-start: auto;
   transform: rotate(-90deg);
   transform-origin: center;
-  transition: transform 200ms;
+  transition: transform 180ms;
 }
 ::slotted(h4.collapse)::after {
   transform: rotate(0deg);
 }
 ::slotted(.collapse:not(h4)) {
-  display: none;
+  display: none !important;
 }
 
 @media only screen and (min-device-width: 768px){
   :host {
     grid-template-columns: repeat(auto-fill, var(--size-7));
-    gap: var(--size-4);
+    gap: var(--size-3);
   }
-  ::slotted(fido-frame) { --frame: 4px; }
 }
 </style>
 <slot></slot>
