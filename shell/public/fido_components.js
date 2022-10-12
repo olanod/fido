@@ -85,16 +85,20 @@ export class Status extends HTMLElement {
   static template = html`
 <style>
 :host { --color: #eef; }
+::slotted(*) {
+  all: initial;
+  color: var(--color);
+  font-family: monospace;
+  font-size: var(--font-size-0);
+  letter-spacing: 1px;
+  line-height: var(--font-size-1);
+  text-align: start;
+  user-select: none;
+}
 @media (prefers-color-scheme: dark) { :host { --color: #dde; } }
 main {
-  color: var(--color);
   display: flex;
   height: var(--font-size-1);
-  line-height: var(--font-size-1);
-  font-size: var(--font-size-0);
-  font-family: monospace;
-  letter-spacing: 1px;
-  text-align: start;
   padding: 2px var(--size-1);
 }
 button {
