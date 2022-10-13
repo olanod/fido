@@ -12,6 +12,12 @@ export class Frame extends HTMLElement {
   static template = html`
 <style>
 :host {
+  --clip: polygon(
+    0px 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0px,
+    calc(100% - 4px) 0px, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%,
+    4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0px calc(100% - 4px)
+  );
   --frame-color: var(--brand);
   --frame-color-active: var(--alt);
   --frame-active: 0%;
@@ -20,24 +26,19 @@ export class Frame extends HTMLElement {
   --frame: 2px;
   --frame-size: auto;
   --frame-ratio: 1;
-  --clip: polygon(
-    0px 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0px,
-    calc(100% - 4px) 0px, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px,
-    100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%,
-    4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0px calc(100% - 4px)
-  );
   --padding: 0;
+
+  background: linear-gradient(var(--frame-active-angle), var(--frame-color) 40%, var(--frame-color-active) 60%);
+  background-position: 0 var(--frame-active);
+  background-size: 100% 240%;
+  box-sizing: border-box;
+  clip-path: var(--clip);
+  contain: content;
   display: block;
   height: calc(var(--frame-size, auto) / var(--frame-ratio, 1));
-  width: var(--frame-size);
-
-  clip-path: var(--clip);
-  background: linear-gradient(var(--frame-active-angle), var(--frame-color) 40%, var(--frame-color-active) 60%);
-  background-size: 100% 240%;
-  background-position: 0 var(--frame-active);
-  box-sizing: border-box;
-  transition: background-position 250ms;
   padding: var(--frame);
+  transition: background-position 250ms;
+  width: var(--frame-size);
 }
 :host([selected]) { --frame-active: 100%; padding: calc(var(--frame) + 1px); }
 :host(.s) { --frame-size: var(--size-4); }

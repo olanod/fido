@@ -83,7 +83,8 @@
     }
 
     :where(a):where(:not(:hover)) {
-      text-decoration: inherit
+      text-decoration: inherit;
+      -webkit-tap-highlight-color: transparent;
     }
 
     :where(:not(:active):focus-visible) {

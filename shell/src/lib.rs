@@ -1,27 +1,41 @@
 use dioxus::prelude::*;
 use dioxus_router::{Link, Redirect, Route, Router};
 
-use accounts::Accounts;
-use chat::Chat;
+use communities::Communities;
 use contacts::Contacts;
-use forum::Forum;
-use help::Help;
+use finances::Finances;
 use home::Home;
+use knowledge::KnowledgeBase;
+use news::News;
+use profile::Profile;
+use purchases::Purchases;
 use settings::Settings;
-use term::Term;
+use terminal::Term;
 
-mod accounts;
-mod chat;
+mod communities;
 mod contacts;
-mod forum;
-mod help;
+mod finances;
 mod home;
+mod knowledge;
+mod news;
+mod profile;
+mod purchases;
 mod settings;
-mod term;
+mod terminal;
 
-const APPS: [&'static str; 6] = ["accounts", "contacts", "forum", "term", "settings", "help"];
+const APPS: [&'static str; 9] = [
+    "communities",
+    "contacts",
+    "finances",
+    "knowledge_base",
+    "news",
+    "profile",
+    "purchases",
+    "settings",
+    "terminal",
+];
 const EXTERNAL: [&'static str; 3] = ["swap.cash", "flea.market", "go.delivery"];
-const TRICKS: [&'static str; 2] = ["pay", "chat"];
+const TRICKS: [&'static str; 3] = ["pay", "message", "capture"];
 
 pub fn app(cx: Scope) -> Element {
     cx.render(rsx! {
@@ -31,11 +45,14 @@ pub fn app(cx: Scope) -> Element {
             section {
                 id: "app",
                 Route { to: "/home", Home { apps: &APPS[..], external: &EXTERNAL[..], tricks: &TRICKS[..] } }
-                Route { to: "/accounts", Accounts {} }
+                Route { to: "/news", News {} }
+                Route { to: "/finances", Finances {} }
+                Route { to: "/profile", Profile {} }
+                Route { to: "/communities", Communities {} }
                 Route { to: "/contacts", Contacts {} }
-                Route { to: "/forum", Forum {} }
-                Route { to: "/help", Help {} }
-                Route { to: "/term", Term {} }
+                Route { to: "/purchases", Purchases {} }
+                Route { to: "/knowledge-base", KnowledgeBase {} }
+                Route { to: "/terminal", Term {} }
                 Route { to: "/settings", Settings {} }
             }
             Redirect { from: "", to: "/home" }
