@@ -57,12 +57,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1ad822118d20d2c234f427000d5acc36eabe1e29a348c89b63dd60b13f28e5d"
 
 [[package]]
-name = "byteorder"
-version = "1.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
-
-[[package]]
 name = "cc"
 version = "1.0.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -121,7 +115,7 @@ dependencies = [
 [[package]]
 name = "dioxus"
 version = "0.2.4"
-source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
+source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -133,17 +127,18 @@ dependencies = [
 [[package]]
 name = "dioxus-core"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
+source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
 dependencies = [
  "backtrace",
  "bumpalo",
+ "dyn-clone",
  "futures-channel",
  "futures-util",
- "fxhash",
  "indexmap",
  "log",
  "longest-increasing-subsequence",
  "once_cell",
+ "rustc-hash",
  "serde",
  "slab",
  "smallvec",
@@ -152,7 +147,7 @@ dependencies = [
 [[package]]
 name = "dioxus-core-macro"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
+source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
 dependencies = [
  "dioxus-rsx",
  "proc-macro2",
@@ -163,7 +158,7 @@ dependencies = [
 [[package]]
 name = "dioxus-hooks"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
+source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
 dependencies = [
  "dioxus-core",
  "futures-channel",
@@ -173,7 +168,7 @@ dependencies = [
 [[package]]
 name = "dioxus-html"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
+source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
 dependencies = [
  "dioxus-core",
  "enumset",
@@ -186,7 +181,7 @@ dependencies = [
 [[package]]
 name = "dioxus-interpreter-js"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
+source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -196,7 +191,7 @@ dependencies = [
 [[package]]
 name = "dioxus-router"
 version = "0.2.3"
-source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
+source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
 dependencies = [
  "dioxus",
  "futures-channel",
@@ -211,17 +206,19 @@ dependencies = [
 [[package]]
 name = "dioxus-rsx"
 version = "0.0.0"
-source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
+source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
 dependencies = [
+ "dioxus-core",
  "proc-macro2",
  "quote",
+ "serde",
  "syn",
 ]
 
 [[package]]
 name = "dioxus-web"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#988cebee4848b70f3f4dbb856ca73f2d7ccd29ce"
+source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
@@ -230,17 +227,24 @@ dependencies = [
  "dioxus-interpreter-js",
  "futures-channel",
  "futures-util",
- "fxhash",
  "gloo-timers",
  "js-sys",
  "log",
  "once_cell",
+ "rustc-hash",
  "serde-wasm-bindgen",
+ "serde_json",
  "smallstr",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
 ]
+
+[[package]]
+name = "dyn-clone"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f94fa09c2aeea5b8839e414b7b841bf429fd25b9c522116ac97ee87856d88b2"
 
 [[package]]
 name = "enumset"
@@ -344,15 +348,6 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
-]
-
-[[package]]
-name = "fxhash"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
-dependencies = [
- "byteorder",
 ]
 
 [[package]]
@@ -511,9 +506,9 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.46"
+version = "1.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94e2ef8dbfc347b10c094890f778ee2e36ca9bb4262e86dc99cd217e35f3470b"
+checksum = "5ea3d908b0e36316caf9e9e2c4625cdde190a7e6f440d794667ed17a1855e725"
 dependencies = [
  "unicode-ident",
 ]
@@ -532,6 +527,12 @@ name = "rustc-demangle"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ef03e0a2b150c7a90d01faf6254c9c48a41e95fb2a8c2ac1c6f0d2b9aefc342"
+
+[[package]]
+name = "rustc-hash"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "ryu"
@@ -568,6 +569,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "serde_json"
+version = "1.0.86"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41feea4228a6f1cd09ec7a3593a682276702cd67b5273544757dae23c096f074"
+dependencies = [
+ "itoa",
+ "ryu",
+ "serde",
 ]
 
 [[package]]

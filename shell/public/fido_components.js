@@ -22,7 +22,7 @@ export class Frame extends HTMLElement {
   --frame-color-active: var(--alt);
   --frame-active: 0%;
   --frame-active-angle: 180deg;
-  --frame-bg: var(--surface-1, white);
+  --frame-bg: var(--surface-2, white);
   --frame: 2px;
   --frame-size: auto;
   --frame-ratio: 1;
@@ -143,7 +143,7 @@ export class Prompt extends HTMLElement {
 <style>
 :host { --font-size: 1rem; }
 :host(:focus) fido-frame { --frame-active: 100%; }
-fido-frame { --frame-bg: var(--surface-2); --frame-color: var(--surface-1); }
+fido-frame { --frame-color: var(--surface-1); }
 #wrap { padding: var(--size-1); }
 #text-entry {
   flex: 10;

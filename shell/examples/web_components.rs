@@ -1,18 +1,18 @@
 use dioxus::prelude::*;
-use fido_shell::web_components::fido;
+use fido_shell::fido_elements::*;
 
 fn main() {
     dioxus_web::launch(app)
 }
 
 fn app(cx: Scope) -> Element {
-    cx.render(rsx! {
+    render! {
         h1 { "Fido custom elements" }
 
-        h2 { code { "<fido-window>" } }
-        fido::window { "custom elments work!" }
+        h2 { code { "<fido-frame>" } }
+        frame { "custom elments work!" }
 
         h2 { code { "<fido-prompt>" } }
-        fido::prompt { "type here ..." }
-    })
+        prompt { "type here ..." }
+    }
 }
