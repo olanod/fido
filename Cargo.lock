@@ -115,7 +115,7 @@ dependencies = [
 [[package]]
 name = "dioxus"
 version = "0.2.4"
-source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
+source = "git+https://github.com/virto-network/dioxus.git#1e48268d58eb5cfbada121b680da69899c274b7c"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -127,7 +127,7 @@ dependencies = [
 [[package]]
 name = "dioxus-core"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
+source = "git+https://github.com/virto-network/dioxus.git#1e48268d58eb5cfbada121b680da69899c274b7c"
 dependencies = [
  "backtrace",
  "bumpalo",
@@ -147,7 +147,7 @@ dependencies = [
 [[package]]
 name = "dioxus-core-macro"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
+source = "git+https://github.com/virto-network/dioxus.git#1e48268d58eb5cfbada121b680da69899c274b7c"
 dependencies = [
  "dioxus-rsx",
  "proc-macro2",
@@ -158,7 +158,7 @@ dependencies = [
 [[package]]
 name = "dioxus-hooks"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
+source = "git+https://github.com/virto-network/dioxus.git#1e48268d58eb5cfbada121b680da69899c274b7c"
 dependencies = [
  "dioxus-core",
  "futures-channel",
@@ -168,7 +168,7 @@ dependencies = [
 [[package]]
 name = "dioxus-html"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
+source = "git+https://github.com/virto-network/dioxus.git#1e48268d58eb5cfbada121b680da69899c274b7c"
 dependencies = [
  "dioxus-core",
  "enumset",
@@ -181,7 +181,7 @@ dependencies = [
 [[package]]
 name = "dioxus-interpreter-js"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
+source = "git+https://github.com/virto-network/dioxus.git#1e48268d58eb5cfbada121b680da69899c274b7c"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -191,7 +191,7 @@ dependencies = [
 [[package]]
 name = "dioxus-router"
 version = "0.2.3"
-source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
+source = "git+https://github.com/virto-network/dioxus.git#1e48268d58eb5cfbada121b680da69899c274b7c"
 dependencies = [
  "dioxus",
  "futures-channel",
@@ -206,7 +206,7 @@ dependencies = [
 [[package]]
 name = "dioxus-rsx"
 version = "0.0.0"
-source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
+source = "git+https://github.com/virto-network/dioxus.git#1e48268d58eb5cfbada121b680da69899c274b7c"
 dependencies = [
  "dioxus-core",
  "proc-macro2",
@@ -218,7 +218,7 @@ dependencies = [
 [[package]]
 name = "dioxus-web"
 version = "0.2.1"
-source = "git+https://github.com/virto-network/dioxus.git#35e784e40e4d4adc6c18cd4af2babf7b32e73461"
+source = "git+https://github.com/virto-network/dioxus.git#1e48268d58eb5cfbada121b680da69899c274b7c"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",

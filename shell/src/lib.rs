@@ -54,19 +54,16 @@ pub fn app(cx: Scope) -> Element {
         Router {
             status { Link { to: "/home", "⌗ Home" } }
             Prompt { endpoint: "#" }
-            section {
-                id: "app",
-                Route { to: "/home", Home { apps: &APPS[..], external: &EXTERNAL[..], tricks: &TRICKS[..] } }
-                Route { to: "/news", News {} }
-                Route { to: "/funds", Funds {} }
-                Route { to: "/profile", Profile {} }
-                Route { to: "/communities", Communities {} }
-                Route { to: "/contacts", Contacts {} }
-                Route { to: "/purchases", Purchases {} }
-                Route { to: "/wiki", Wiki {} }
-                Route { to: "/terminal", Term {} }
-                Route { to: "/settings", Settings {} }
-            }
+            Route { to: "/home", section { id: "app-home", Home { apps: &APPS[..], external: &EXTERNAL[..], tricks: &TRICKS[..] } } }
+            Route { to: "/news", section { id: "app-news", News {} } }
+            Route { to: "/funds", section { id: "app-funds", Funds {} } }
+            Route { to: "/profile", section { id: "app-profile", Profile {} } }
+            Route { to: "/communities", section { id: "app-communities", Communities {} } }
+            Route { to: "/contacts", section { id: "app-contacts", Contacts {} } }
+            Route { to: "/purchases", section { id: "app-purchases", Purchases {} } }
+            Route { to: "/wiki", section { id: "app-wiki", Wiki {} } }
+            Route { to: "/terminal", section { id: "app-terminal", Term {} } }
+            Route { to: "/settings", section { id: "app-settings", Settings {} } }
             Redirect { from: "", to: "/home" }
         }
     }

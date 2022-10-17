@@ -18,6 +18,12 @@ export class Frame extends HTMLElement {
     100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%,
     4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0px calc(100% - 4px)
   );
+  --clip-2: polygon(
+    0px 10px, 2px 10px, 2px 6px, 4px 6px, 4px 4px, 6px 4px, 6px 2px, 8px 2px, 10px 2px, 10px 0px,
+    calc(100% - 10px) 0px, calc(100% - 10px) 2px, calc(100% - 6px) 2px, calc(100% - 6px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 6px, calc(100% - 2px) 6px, calc(100% - 2px) 8px, calc(100% - 2px) 10px, 100% 10px,
+    100% calc(100% - 10px), calc(100% - 2px) calc(100% - 10px), calc(100% - 2px) calc(100% - 6px), calc(100% - 4px) calc(100% - 6px), calc(100% - 4px) calc(100% - 4px), calc(100% - 6px) calc(100% - 4px), calc(100% - 6px) calc(100% - 2px), calc(100% - 8px) calc(100% - 2px), calc(100% - 10px) calc(100% - 2px), calc(100% - 10px) 100%,
+    10px 100%, 10px calc(100% - 2px), 6px calc(100% - 2px), 6px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 6px), 2px calc(100% - 6px), 2px calc(100% - 8px), 2px calc(100% - 10px), 0px calc(100% - 10px)
+  );
   --frame-color: var(--brand);
   --frame-color-active: var(--alt);
   --frame-active: 0%;
@@ -27,6 +33,7 @@ export class Frame extends HTMLElement {
   --frame-size: auto;
   --frame-ratio: 1;
   --padding: 0;
+  --h: calc(var(--frame-size, auto) / var(--frame-ratio, 1));
 
   background: linear-gradient(var(--frame-active-angle), var(--frame-color) 40%, var(--frame-color-active) 60%);
   background-position: 0 var(--frame-active);
@@ -35,21 +42,27 @@ export class Frame extends HTMLElement {
   clip-path: var(--clip);
   contain: content;
   display: block;
-  height: calc(var(--frame-size, auto) / var(--frame-ratio, 1));
+  min-height: var(--h);
   padding: var(--frame);
   transition: background-position 250ms;
   width: var(--frame-size);
 }
 :host([selected]) { --frame-active: 100%; padding: calc(var(--frame) + 1px); }
+:host(.r2) { clip-path: var(--clip-2); }
+:host(.r2) #content { clip-path: var(--clip-2); }
+:host(.box) { --frame-ratio: var(--ratio-square); }
+:host(.card) { --frame-ratio: calc(var(--ratio-golden)); }
 :host(.s) { --frame-size: var(--size-4); }
 :host(.m) { --frame-size: var(--size-5); }
 :host(.l) { --frame-size: var(--size-6); }
-:host(.box) { --frame-ratio: var(--ratio-square); }
-:host(.card) { --frame-ratio: calc(var(--ratio-golden)); }
+:host(.xl) { --frame-size: var(--size-7); }
+:host(.xxl) { --frame-size: var(--size-l); }
 @media only screen and (min-device-width: 768px){
   :host(.s) { --frame-size: var(--size-5); }
   :host(.m) { --frame-size: var(--size-6); }
   :host(.l) { --frame-size: var(--size-7); }
+  :host(.xl) { --frame-size: var(--size-8); }
+  :host(.xxl) { --frame-size: var(--size-9); }
 }
 #content {
   color: var(--text-1);
@@ -57,7 +70,7 @@ export class Frame extends HTMLElement {
   clip-path: var(--clip);
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: calc(var(--h) - var(--frame) * 2);
   padding: var(--padding);
   margin: auto 0;
 }
@@ -222,7 +235,7 @@ fido-frame { --frame-color: var(--surface-1); }
 customElements.define(Prompt.TAG, Prompt);
 
 /**
- * Grid that can be sorted and have elements selected
+ * Grid of *usually* frame elements that can have its elements selected
  */
 export class Grid extends HTMLElement {
   static TAG = 'fido-grid';
@@ -230,12 +243,26 @@ export class Grid extends HTMLElement {
   static template = html`
 <style>
 :host {
+  --size: var(--size-6);
+  --gap: calc(var(--size) * 0.3);
   align-items: start;
   display: grid;
   justify-content: center;
   justify-items: center;
-  gap: var(--size-2);
-  grid-template-columns: repeat(auto-fill, var(--size-6));
+  gap: var(--gap);
+  grid-template-columns: repeat(auto-fill, var(--size));
+}
+:host(.s) { --size: var(--size-5); }
+:host(.m) { --size: var(--size-6); }
+:host(.l) { --size: var(--size-7); }
+:host(.xl) { --size: var(--size-8); }
+:host(.xxl) { --size: var(--size-9); }
+@media only screen and (min-device-width: 768px){
+  :host(.s) { --frame-size: var(--size-6); }
+  :host(.m) { --frame-size: var(--size-7); }
+  :host(.l) { --frame-size: var(--size-8); }
+  :host(.xl) { --frame-size: var(--size-9); }
+  :host(.xxl) { --frame-size: var(--size-10); }
 }
 ::slotted(h4) {
   display: flex;
@@ -263,13 +290,6 @@ export class Grid extends HTMLElement {
 }
 ::slotted(.collapse:not(h4)) {
   display: none !important;
-}
-
-@media only screen and (min-device-width: 768px){
-  :host {
-    grid-template-columns: repeat(auto-fill, var(--size-7));
-    gap: var(--size-3);
-  }
 }
 </style>
 <slot></slot>
