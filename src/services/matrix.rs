@@ -31,7 +31,7 @@ pub mod matrix {
     use url::Url;
 
     use crate::{
-        components::atoms::{message, room::RoomItem},
+        components::atoms::room::RoomItem,
         utils::matrix::{mxc_to_https_uri, ImageSize},
     };
 
@@ -362,7 +362,7 @@ pub mod matrix {
 
                             match reply {
                                 Some(r) => match &r.body {
-                                    TimelineMessageType::Image(uri) => {
+                                    TimelineMessageType::Image(_uri) => {
                                         if let Some(mut mr) = message_result {
                                             mr.reply = Some(Box::from(r.clone()));
                                             message_result = Some(mr)
@@ -436,7 +436,6 @@ pub mod matrix {
     }
 
     pub async fn login(
-        client: &Client,
         homeserver: String,
         username: String,
         password: String,

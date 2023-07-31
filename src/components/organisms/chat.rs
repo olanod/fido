@@ -123,8 +123,6 @@ pub fn IndexChat(cx: Scope) -> Element {
                         })
                     }
 
-                    // info!("rep: {:?}", rep);
-
                     messages.with_mut(|messages| {
                         messages.push(Message {
                             id: *next_id.read(),

@@ -145,7 +145,6 @@ pub async fn sync(
     loop {
         match client.sync_once(sync_settings.clone()).await {
             Ok(response) => {
-                sync_settings = sync_settings.token(response.next_batch.clone());
                 persist_sync_token(response.next_batch).await?;
                 break;
             }

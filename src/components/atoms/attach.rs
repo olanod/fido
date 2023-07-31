@@ -12,8 +12,6 @@ pub struct AttachProps<'a> {
 }
 
 pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
-    let image_read = use_ref::<Option<Vec<u8>>>(cx, || None);
-
     let button_style = r#"
         cursor: pointer;
         background: var(--surface-0);

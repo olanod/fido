@@ -2,7 +2,6 @@ use crate::components::atoms::message::{Message, Messages};
 use crate::components::molecules::input_message::FormMessageEvent;
 use crate::components::molecules::{InputMessage, List};
 use crate::services::matrix::matrix::{login, FullSession, TimelineMessageType};
-use crate::MatrixClientState;
 use dioxus::prelude::*;
 use dioxus_std::i18n::use_i18;
 use dioxus_std::translate;
@@ -18,10 +17,9 @@ pub struct LoggedIn {
     pub is_logged_in: bool,
 }
 
-pub fn IndexLogin<'a>(cx: Scope<'a>) -> Element<'a> {
+pub fn IndexLogin(cx: Scope) -> Element {
     let i18 = use_i18(cx);
 
-    let matrix_client = use_shared_state::<MatrixClientState>(cx).unwrap();
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
 
     let homeserver_login = use_ref::<String>(cx, || String::new());
@@ -42,8 +40,6 @@ pub fn IndexLogin<'a>(cx: Scope<'a>) -> Element<'a> {
             reply: None,
         }]
     });
-
-    let client = matrix_client.read().client.clone().unwrap();
 
     let login_task = use_coroutine(cx, |mut rx: UnboundedReceiver<String>| {
         to_owned![
@@ -78,7 +74,7 @@ pub fn IndexLogin<'a>(cx: Scope<'a>) -> Element<'a> {
 
                 if homeserver_login.read().len() == 0 {
                     push_message(
-                        TimelineMessageType::Text(String::from("Introduce tu nombre de usuario")),
+                        TimelineMessageType::Text(String::from("")),
                         next_id.to_owned(),
                         String::from("Fido"),
                         messages.to_owned(),
@@ -110,7 +106,6 @@ pub fn IndexLogin<'a>(cx: Scope<'a>) -> Element<'a> {
                     let server = homeserver_login.read().clone();
 
                     let response = login(
-                        &client.clone(),
                         String::from(server),
                         String::from(user),
                         String::from(message_item.clone()),
@@ -141,7 +136,7 @@ pub fn IndexLogin<'a>(cx: Scope<'a>) -> Element<'a> {
 
                             logged_in.write().is_logged_in = true;
                         }
-                        Err(err) => {
+                        Err(_err) => {
                             push_message(
                                 TimelineMessageType::Text(String::from("Error")),
                                 next_id.to_owned(),
@@ -218,7 +213,6 @@ pub async fn sync(client: Client, initial_sync_token: Option<String>) -> anyhow:
     loop {
         match client.sync_once(sync_settings.clone()).await {
             Ok(response) => {
-                sync_settings = sync_settings.token(response.next_batch.clone());
                 persist_sync_token(response.next_batch).await?;
                 break;
             }
