@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  ci:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Install latest
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+            target: wasm32-unknown-unknown
+            default: true
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+      
+      - name: Install dependencies
+        run: cargo install dioxus-cli
+
+      - name: Build
+        run: dioxus build --release
+
+      - name: Publish Cloudflare
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: Fido
+          directory: dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

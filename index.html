@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>{app_title}</title>
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :where(html) {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+      /* colors */
+      --text-1-light: #224;
+      --text-1-dark: #ddf;
+      --text-2-light: #668;
+      --text-2-dark: #aac;
+      --brand-light: #88d;
+      --brand-dark: #77a; 
+      --alt-light: #66a;
+      --alt-dark: #558;
+      --surface-0-light: #fafaff;
+      --surface-1-light: #eef;
+      --surface-1-dark: #223;
+      --surface-2-light: #dde;
+      --surface-2-dark: #334;
+      --surface-3-light: #558;
+      --surface-3-dark: #112;
+      /* sizes */
+      --size-0: clamp(.25rem, .5vw, 1rem);
+      --size-1: clamp(.5rem, 1vw, 1rem);
+      --size-2: clamp(1rem, 2vw, 1.5rem);
+      --size-3: clamp(1.5rem, 3vw, 2rem);
+      --size-4: clamp(2.5rem, 4vw, 4rem);
+      --size-5: clamp(4rem, 5vw, 5rem);
+      --size-6: clamp(5rem, 7vw, 7.5rem);
+      --size-7: clamp(7.5rem, 10vw, 10rem);
+      --size-8: clamp(10rem, 20vw, 15rem);
+      --size-9: clamp(15rem, 30vw, 20rem);
+      --size-10: clamp(20rem, 40vw, 30rem);
+      --size-laptop: 1280px;
+      --size-mobile: 767px;
+      --font-size-0: clamp(.75rem, 2vw, 1rem);
+      --font-size-1: clamp(1rem, 4vw, 1.5rem);
+      --font-size-2: clamp(1.5rem, 6vw, 2.5rem);
+      --font-size-3: clamp(2rem, 9vw, 3.5rem);
+      --avatar-default-size: 30px;
+
+      --ratio-square: 1;
+      --ratio-landscape: 4/3;
+      --ratio-portrait: 3/4;
+      --ratio-widescreen: 16/9;
+      --ratio-ultrawide: 18/5;
+      --ratio-golden: 1.618/1;
+    }
+
+    :root {
+      --text-1: var(--text-1-light);
+      --text-2: var(--text-2-light);
+      --text-alt: var(--text-1-dark);
+      --brand: var(--brand-light);
+      --alt: var(--alt-light);
+      --surface-0: var(--surface-0-light);
+      --surface-1: var(--surface-1-light);
+      --surface-2: var(--surface-2-light);
+      --surface-3: var(--surface-3-light);
+      --avatar-size: var(--avatar-default-size);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --text-1: var(--text-1-dark);
+        --text-2: var(--text-2-dark);
+        --text-alt: var(--text-1-light);
+        --brand: var(--brand-dark);
+        --alt: var(--alt-dark);
+        --surface-0: var(--surface-3-dark);
+        --surface-1: var(--surface-1-dark);
+        --surface-2: var(--surface-2-dark);
+        --surface-3: var(--surface-3-dark);
+      }
+    }
+
+    :where(:not(dialog)) {
+      margin: 0;
+    }
+
+    :where(a) {
+      color: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :where(a):where(:not(:hover)) {
+      text-decoration: inherit;
+    }
+
+    :where(:not(:active):focus-visible) {
+      outline-offset: 5px
+    }
+
+    :focus-visible {
+      outline: 2px dashed var(--alt);
+    }
+
+    body {
+      background: var(--surface-1);
+    }
+
+    #main {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+  </style>
+
+  {style_include}
+</head>
+
+<body>
+  <div id="main"></div>
+  <script type="module">
+    import init from "/{base_path}/assets/dioxus/{app_name}.js";
+    init("/{base_path}/assets/dioxus/{app_name}_bg.wasm").then(wasm => {
+      if (wasm.__wbindgen_start == undefined) wasm.main();
+    });
+  </script>
+  {script_include}
+</body>
+
+</html>
