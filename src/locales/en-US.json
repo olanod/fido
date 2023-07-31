@@ -1,0 +1,60 @@
+{
+    "id": "en-US",
+    "texts": {
+        "main": {
+            "loading": {
+                "title": "Searching for sessions to restore",
+                "steps": {
+                    "fount": "Session found",
+                    "restoring": "Restoring session"
+                }
+            }
+        },
+        "login": {
+            "actors": {
+                "bot": "Fido",
+                "user": "User"
+            },
+            "chat_steps": {
+                "homeserver": {
+                    "message": "Hello. Enter a homeserver",
+                    "placeholder": "https://matrix.org"
+                },
+                "username": {
+                    "message": "Enter your username",
+                    "placeholder": "username"
+                },
+                "password": {
+                    "message": "Enter your password",
+                    "placeholder": "password"
+                },
+                "messages": {
+                    "validating": "Validating your information...",
+                    "welcome": "Welcome! It's great to have you here. We will redirect you shortly..."
+                }
+                
+            }
+        },
+        "chat": {
+            "nav": {
+                "log_out": "Log Out"
+            },
+            "helpers": {
+                "join": {
+                    "title": "Join a room",
+                    "description": "With this command, you can join a room by indicating the id",
+                    "subtitle": "Example"
+                }
+            },
+            "inputs": {
+                "plain_message": {
+                    "placeholder": "Write..."
+                }
+            },
+            "message_list": {
+                "see_more": "See more"
+            }
+        }
+    }
+    
+}

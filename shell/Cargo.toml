@@ -1,9 +1,0 @@
-[package]
-name = "fido_shell"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-dioxus = { git = "https://github.com/virto-network/dioxus.git" }
-dioxus-web = { git = "https://github.com/virto-network/dioxus.git" }
-dioxus-router = { git = "https://github.com/virto-network/dioxus.git" }
