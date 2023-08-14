@@ -29,14 +29,19 @@
                     "placeholder": "contraseña"
                 }, 
                 "messages": {
-                    "validating": "Validanto tu información...",
-                    "welcome": "Quie bien tenerte acá, pronto te vamos a redirigir..."
+                    "validating": "Validando tu información...",
+                    "welcome": "Que bien tenerte acá, pronto te vamos a redirigir..."
                 }
+            },
+            "chat_errors": {
+                "invalid_url": "Error: URL relativa sin base",
+                "unknown": "Error: Error desconocido",
+                "invalid_username_password": "Error: Nombre de usuario o contraseña inválidos"
             }
         },
         "chat": {
             "nav": {
-                "log_out": "Cerrar Sesión"
+                "log_out": "Cerrar sesión"
             },
             "helpers": {
                 "join": {

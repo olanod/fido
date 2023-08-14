@@ -23,6 +23,7 @@ pub struct ReplyingTo {
 #[derive(Props)]
 pub struct InputMessageProps<'a> {
     message_type: &'a str,
+    placeholder: &'a str,
     #[props(!optional)]
     replying_to: &'a Option<ReplyingTo>,
     is_attachable: bool,
@@ -74,7 +75,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
             }
             MessageInput {
                 message: "{message_field}",
-                placeholder: "Escribe...",
+                placeholder: cx.props.placeholder,
                 itype: cx.props.message_type,
                 on_input: move |event: FormEvent| {
                     message_field.set(event.value.clone());

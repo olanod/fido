@@ -27,7 +27,6 @@ pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
                 rsx!(RoomView {
                     key: "{room.id}",
                     room_avatar_uri: room.avatar_uri.as_ref(),
-                    room_id: room.id.as_str(),
                     room_name: room.name.as_str() ,
                     on_click: move |_| {
                         cx.props.on_submit.call(FormRoomEvent { room: CurrentRoom { id: room.id.clone(), name: room.name.clone() } })

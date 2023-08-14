@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use crate::components::atoms::message::{Message, Messages};
 use crate::components::molecules::input_message::FormMessageEvent;
 use crate::components::molecules::{InputMessage, List};
-use crate::services::matrix::matrix::{login, FullSession, TimelineMessageType};
+use crate::services::matrix::matrix::{build_client, login, FullSession, TimelineMessageType};
 use dioxus::prelude::*;
 use dioxus_std::i18n::use_i18;
 use dioxus_std::translate;
@@ -20,6 +22,52 @@ pub struct LoggedIn {
 pub fn IndexLogin(cx: Scope) -> Element {
     let i18 = use_i18(cx);
 
+    let i18n_map = HashMap::from([
+        ("actors-bot", translate!(i18, "login.actors.bot")),
+        ("actors-user", translate!(i18, "login.actors.user")),
+        (
+            "homeserver-message",
+            translate!(i18, "login.chat_steps.homeserver.message"),
+        ),
+        (
+            "homeserver-placeholder",
+            translate!(i18, "login.chat_steps.homeserver.placeholder"),
+        ),
+        (
+            "username-message",
+            translate!(i18, "login.chat_steps.username.message"),
+        ),
+        (
+            "username-placeholder",
+            translate!(i18, "login.chat_steps.username.placeholder"),
+        ),
+        (
+            "password-message",
+            translate!(i18, "login.chat_steps.password.message"),
+        ),
+        (
+            "password-placeholder",
+            translate!(i18, "login.chat_steps.password.placeholder"),
+        ),
+        (
+            "messages-validating",
+            translate!(i18, "login.chat_steps.messages.validating"),
+        ),
+        (
+            "messages-welcome",
+            translate!(i18, "login.chat_steps.messages.welcome"),
+        ),
+        (
+            "invalid-url",
+            translate!(i18, "login.chat_errors.invalid_url"),
+        ),
+        ("unknown", translate!(i18, "login.chat_errors.unknown")),
+        (
+            "invalid_username_password",
+            translate!(i18, "login.chat_errors.invalid_username_password"),
+        ),
+    ]);
+
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
 
     let homeserver_login = use_ref::<String>(cx, || String::new());
@@ -27,16 +75,16 @@ pub fn IndexLogin(cx: Scope) -> Element {
     let next_id = use_ref(cx, || 1);
 
     let input_type = use_state::<String>(cx, || String::from("text"));
+    let input_placeholder = use_state::<String>(cx, || {
+        i18n_get_key_value(&i18n_map, "homeserver-placeholder")
+    });
     let messages = use_state::<Messages>(cx, || {
         vec![Message {
             id: 0,
-            display_name: String::from("Fido"),
+            display_name: i18n_get_key_value(&i18n_map, "actors-bot"),
             event_id: None,
             avatar_uri: None,
-            content: TimelineMessageType::Text(String::from(translate!(
-                i18,
-                "login.chat_steps.homeserver.message"
-            ))),
+            content: TimelineMessageType::Text(i18n_get_key_value(&i18n_map, "homeserver-message")),
             reply: None,
         }]
     });
@@ -48,6 +96,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
             messages,
             next_id,
             input_type,
+            input_placeholder,
             logged_in
         ];
 
@@ -58,47 +107,98 @@ pub fn IndexLogin(cx: Scope) -> Element {
                     push_message(
                         TimelineMessageType::Text(hint_message),
                         next_id.to_owned(),
-                        String::from("Usuario"),
+                        i18n_get_key_value(&i18n_map, "actors-user"),
                         messages.to_owned(),
                     );
                 } else {
                     push_message(
                         TimelineMessageType::Text(message_item.clone()),
                         next_id.to_owned(),
-                        String::from("Usuario"),
+                        i18n_get_key_value(&i18n_map, "actors-user"),
                         messages.to_owned(),
                     );
                 }
 
                 input_type.set(String::from("text"));
+                input_placeholder.set(i18n_get_key_value(&i18n_map, "homeserver-placeholder"));
 
                 if homeserver_login.read().len() == 0 {
-                    push_message(
-                        TimelineMessageType::Text(String::from("")),
-                        next_id.to_owned(),
-                        String::from("Fido"),
-                        messages.to_owned(),
-                    );
+                    let result = build_client(message_item.clone()).await;
 
-                    homeserver_login.set(message_item.clone());
+                    match result {
+                        Ok(_) => {
+                            push_message(
+                                TimelineMessageType::Text(i18n_get_key_value(
+                                    &i18n_map,
+                                    "username-message",
+                                )),
+                                next_id.to_owned(),
+                                i18n_get_key_value(&i18n_map, "actors-bot"),
+                                messages.to_owned(),
+                            );
+
+                            homeserver_login.set(message_item.clone());
+                            input_placeholder
+                                .set(i18n_get_key_value(&i18n_map, "username-placeholder"));
+                        }
+                        Err(err) => {
+                            info!("homeserver error: {err}");
+
+                            if err.to_string().eq("relative URL without a base") {
+                                push_message(
+                                    TimelineMessageType::Text(i18n_get_key_value(
+                                        &i18n_map,
+                                        "invalid-url",
+                                    )),
+                                    next_id.to_owned(),
+                                    i18n_get_key_value(&i18n_map, "actors-bot"),
+                                    messages.to_owned(),
+                                );
+                            } else {
+                                push_message(
+                                    TimelineMessageType::Text(i18n_get_key_value(
+                                        &i18n_map, "unknown",
+                                    )),
+                                    next_id.to_owned(),
+                                    i18n_get_key_value(&i18n_map, "actors-bot"),
+                                    messages.to_owned(),
+                                );
+                            }
+
+                            push_message(
+                                TimelineMessageType::Text(i18n_get_key_value(
+                                    &i18n_map,
+                                    "homeserver-message",
+                                )),
+                                next_id.to_owned(),
+                                i18n_get_key_value(&i18n_map, "actors-bot"),
+                                messages.to_owned(),
+                            );
+                        }
+                    }
                 } else if username_login.read().len() == 0 {
                     input_type.set(String::from("password"));
 
                     push_message(
-                        TimelineMessageType::Text(String::from("Introduce tu contraseña")),
+                        TimelineMessageType::Text(i18n_get_key_value(
+                            &i18n_map,
+                            "password-message",
+                        )),
                         next_id.to_owned(),
-                        String::from("Fido"),
+                        i18n_get_key_value(&i18n_map, "actors-bot"),
                         messages.to_owned(),
                     );
 
                     username_login.set(message_item.clone());
+                    input_placeholder.set(i18n_get_key_value(&i18n_map, "password-placeholder"));
                 } else {
                     push_message(
-                        TimelineMessageType::Text(String::from(
-                            "Validando tu información. Espera...",
+                        TimelineMessageType::Text(i18n_get_key_value(
+                            &i18n_map,
+                            "messages-validating",
                         )),
                         next_id.to_owned(),
-                        String::from("Fido"),
+                        i18n_get_key_value(&i18n_map, "actors-bot"),
                         messages.to_owned(),
                     );
 
@@ -115,11 +215,12 @@ pub fn IndexLogin(cx: Scope) -> Element {
                     match response {
                         Ok((client, serialized_session)) => {
                             push_message(
-                                TimelineMessageType::Text(String::from(
-                                    "Bienvenido, pronto vas a ser redirigido...",
+                                TimelineMessageType::Text(i18n_get_key_value(
+                                    &i18n_map,
+                                    "messages-welcome",
                                 )),
                                 next_id.to_owned(),
-                                String::from("Fido"),
+                                i18n_get_key_value(&i18n_map, "actors-bot"),
                                 messages.to_owned(),
                             );
 
@@ -136,17 +237,39 @@ pub fn IndexLogin(cx: Scope) -> Element {
 
                             logged_in.write().is_logged_in = true;
                         }
-                        Err(_err) => {
+                        Err(err) => {
+                            info!("{:?}", err.to_string());
+                            if err
+                                .to_string()
+                                .eq("the server returned an error: [403 / M_FORBIDDEN] Invalid username or password")
+                            {
+                                push_message(
+                                    TimelineMessageType::Text(i18n_get_key_value(
+                                        &i18n_map,
+                                        "invalid_username_password",
+                                    )),
+                                    next_id.to_owned(),
+                                    i18n_get_key_value(&i18n_map, "actors-bot"),
+                                    messages.to_owned(),
+                                );
+                            } else {
+                                push_message(
+                                    TimelineMessageType::Text(i18n_get_key_value(
+                                        &i18n_map, "unknown",
+                                    )),
+                                    next_id.to_owned(),
+                                    i18n_get_key_value(&i18n_map, "actors-bot"),
+                                    messages.to_owned(),
+                                );
+                            }
+
                             push_message(
-                                TimelineMessageType::Text(String::from("Error")),
+                                TimelineMessageType::Text(i18n_get_key_value(
+                                    &i18n_map,
+                                    "homeserver-message",
+                                )),
                                 next_id.to_owned(),
-                                String::from("Fido"),
-                                messages.to_owned(),
-                            );
-                            push_message(
-                                TimelineMessageType::Text(String::from("Ingresa un servidor")),
-                                next_id.to_owned(),
-                                String::from("Fido"),
+                                i18n_get_key_value(&i18n_map, "actors-bot"),
                                 messages.to_owned(),
                             );
 
@@ -172,6 +295,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
             InputMessage {
                 message_type: input_type.get().as_str(),
                 replying_to: &None,
+                placeholder: input_placeholder.get().as_str(),
                 is_attachable: false,
                 on_submit: search
                 on_event: move |_| {}
@@ -201,6 +325,10 @@ pub fn push_message(
 
     let current_id = *next_id.read();
     next_id.set(current_id + 1);
+}
+
+pub fn i18n_get_key_value(i18n_map: &HashMap<&str, String>, key: &str) -> String {
+    i18n_map.get_key_value(key).unwrap().1.clone()
 }
 
 pub async fn sync(client: Client, initial_sync_token: Option<String>) -> anyhow::Result<()> {

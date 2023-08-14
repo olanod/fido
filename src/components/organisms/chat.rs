@@ -14,6 +14,8 @@ use crate::services::matrix::matrix::{
 };
 use crate::MatrixClientState;
 use dioxus::prelude::*;
+use dioxus_std::i18n::use_i18;
+use dioxus_std::translate;
 use futures_util::StreamExt;
 use gloo::storage::LocalStorage;
 use log::info;
@@ -50,6 +52,17 @@ pub struct MessageEvent {
 }
 
 pub fn IndexChat(cx: Scope) -> Element {
+    let i18 = use_i18(cx);
+
+    let i18n_map = HashMap::from([
+        ("nav-log-out", translate!(i18, "chat.nav.log_out")),
+        ("join-title", translate!(i18, "chat.helpers.join.title")),
+        ("join-description", translate!(i18, "chat.helpers.join.description")),
+        ("join-subtitle", translate!(i18, "chat.helpers.join.subtitle")),
+        ("inputs-plain-message", translate!(i18, "chat.inputs.plain-message")),
+        ("message-list-see-more", translate!(i18, "chat.message_list.see_more")),
+    ]);
+
     let matrix_client = use_shared_state::<MatrixClientState>(cx).unwrap();
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
 
@@ -58,6 +71,7 @@ pub fn IndexChat(cx: Scope) -> Element {
     let next_id = use_ref(cx, || 0);
     let limit_events_by_room = use_ref::<HashMap<String, u64>>(cx, || HashMap::new());
 
+    let input_placeholder = use_state::<String>(cx, || i18n_get_key_value(&i18n_map, "inputs-plain-message"));
     let messages_loading = use_state::<bool>(cx, || false);
     let message_field = use_state(cx, String::new);
     let notification = use_state::<NotificationItem>(cx, || NotificationItem {
@@ -90,6 +104,7 @@ pub fn IndexChat(cx: Scope) -> Element {
         ];
 
         async move {
+            info!("{:?}", client.homeserver().await);
             while let Some(load_more) = rx.next().await {
                 messages_loading.set(true);
                 messages.set(Vec::new());
@@ -341,6 +356,8 @@ pub fn IndexChat(cx: Scope) -> Element {
         }
     };
 
+    let key_nav_log_out= "nav-log-out";
+
     cx.render(rsx! {
         if notification.show {
             rsx!(
@@ -367,8 +384,7 @@ pub fn IndexChat(cx: Scope) -> Element {
                     "#,
                     RoomView {
                         room_avatar_uri: None,
-                        room_id: "1",
-                        room_name: "Cerrar sesion" ,
+                        room_name: "{i18n_get_key_value(&i18n_map, key_nav_log_out)}" ,
                         on_click: move |_| {
                             log_out()
                         }
@@ -447,7 +463,7 @@ pub fn IndexChat(cx: Scope) -> Element {
                                 onclick: move |_| {
                                     task_timeline.send(true);
                                 },
-                                "Ver más",
+                                i18n_get_key_value(&i18n_map, "message-list-see-more"),
                             }
                         )
                     } else {
@@ -462,6 +478,7 @@ pub fn IndexChat(cx: Scope) -> Element {
                     InputMessage {
                         message_type: "text",
                         replying_to: replying_to.get().clone(),
+                        placeholder: input_placeholder.get().as_str(), 
                         is_attachable: true,
                         on_submit: on_push_message,
                         on_event: input_message_event
@@ -502,8 +519,8 @@ pub fn IndexChat(cx: Scope) -> Element {
                         style: centered,
                         Helper {
                             helper: HelperData{
-                                title: String::from("Unirse a un room"),
-                                description: String::from("Con este comando puedes unirte a un room indicando el id"),
+                                title: i18n_get_key_value(&i18n_map, "join-title"),
+                                description: i18n_get_key_value(&i18n_map, "join-description"),
                                 example: String::from("!join !vaoCGcunXVlxJqWyjQ:matrix.org"),
                             }
                             on_click: x
@@ -512,6 +529,7 @@ pub fn IndexChat(cx: Scope) -> Element {
                     InputMessage {
                         message_type: "text",
                         replying_to: &None,
+                        placeholder: input_placeholder.get().as_str(), 
                         is_attachable: false,
                         on_submit: on_push_message,
                         on_event: move |_| {}
@@ -520,6 +538,10 @@ pub fn IndexChat(cx: Scope) -> Element {
             )
         }
     })
+}
+
+pub fn i18n_get_key_value(i18n_map: &HashMap<&str, String>, key: &str) -> String {
+    i18n_map.get_key_value(key).unwrap().1.clone()
 }
 
 pub fn handle_notification(item: NotificationItem, notification: UseState<NotificationItem>) {

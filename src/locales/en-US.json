@@ -32,7 +32,11 @@
                     "validating": "Validating your information...",
                     "welcome": "Welcome! It's great to have you here. We will redirect you shortly..."
                 }
-                
+            },
+            "chat_errors": {
+                "invalid_url": "Error: Relative URL without base",
+                "unknown": "Error: Unknown error",
+                "invalid_username_password": "Error: Invalid username or password"
             }
         },
         "chat": {
@@ -56,5 +60,4 @@
             }
         }
     }
-    
 }

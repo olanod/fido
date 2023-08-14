@@ -1,5 +1,5 @@
-pub mod avatar;
 pub mod attach;
+pub mod avatar;
 pub mod button;
 pub mod header;
 pub mod helper;

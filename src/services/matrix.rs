@@ -132,7 +132,9 @@ pub mod matrix {
 
     pub fn list_rooms(client: &Client) -> Vec<RoomItem> {
         let mut rooms = Vec::new();
+        let x = client.joined_rooms();
 
+        info!("{x:?}");
         for room in client.rooms() {
             let x = room.avatar_url();
 
@@ -455,7 +457,12 @@ pub mod matrix {
             }
             Err(error) => {
                 info!("Error logging in: {error}");
-                return Err(error.into());
+                match error {
+                    // Error::Http(HttpError::Api(FromHttpResponseError::Server(
+                    //     ServerError::Known(matrix_sdk::RumaApiError::ClientApi(m)),
+                    // ))) => return Err(m.into()),
+                    _ => return Err(error.into()),
+                }
             }
         }
 
@@ -513,6 +520,7 @@ pub mod matrix {
                         matrix_sdk::ClientBuildError::AutoDiscovery(_)
                         | matrix_sdk::ClientBuildError::Url(_)
                         | matrix_sdk::ClientBuildError::Http(_) => {
+                            info!("{error}");
                             return Err(error.into());
                         }
                         _ => {
