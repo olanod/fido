@@ -12,6 +12,7 @@ pub struct RoomItem {
 pub struct RoomViewProps<'a> {
     #[props(!optional)]
     room_avatar_uri: Option<&'a String>,
+    room_id: &'a str,
     room_name: &'a str,
     on_click: EventHandler<'a, MouseEvent>,
 }

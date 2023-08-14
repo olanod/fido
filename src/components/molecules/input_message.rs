@@ -2,7 +2,7 @@ use dioxus::{html::input_data::keyboard_types, prelude::*};
 
 use crate::{
     components::atoms::{
-        header::HeaderEvent, message::Message, Attach, Button, MessageInput, MessageView,
+        header::HeaderEvent, message::Message, Attach, MessageInput, MessageView,
     },
     services::matrix::matrix::TimelineMessageType,
 };
@@ -40,6 +40,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
 
     let container_style = r#"
         display: flex;
+        gap: 0.75rem;
     "#;
     cx.render(rsx! {
       div {
@@ -65,7 +66,6 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
         }
         div {
             style: "{container_style}", 
-            class: "input__t",
             if cx.props.is_attachable {
                 rsx!(
                     Attach {
@@ -85,19 +85,13 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                         cx.props.on_submit.call(FormMessageEvent { value: message_field.get().clone() });
                         message_field.set(String::new());
                     }
+                },
+                on_click: move |_| {
+                    cx.props.on_submit.call(FormMessageEvent { value: message_field.get().clone() });
+                    message_field.set(String::new());
                 }
             }
-            if message_field.get().len() > 0 {
-                rsx!(
-                    Button {
-                        text: "Enviar",
-                        on_click: move |_| {
-                            cx.props.on_submit.call(FormMessageEvent { value: message_field.get().clone() });
-                            message_field.set(String::new());
-                        }
-                    }
-                )
-            }
+            
         }
       }
     })

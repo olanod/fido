@@ -1,5 +1,7 @@
 use dioxus::prelude::{SvgAttributes, *};
 
+use crate::components::atoms::{Close, Icon};
+
 #[derive(Debug)]
 pub enum HeaderCallOptions {
     CLOSE,
@@ -38,10 +40,6 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
       border: 1px solid transparent;
     "#;
 
-    let icon_style = r#"
-      fill: var(--text-1)
-    "#;
-
     cx.render(rsx!(
         nav {
           style: "{nav_style}",
@@ -51,15 +49,10 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
           button {
             style: "{close_style}",
             onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })},
-            svg {
-              style: "{icon_style}",
-              view_box: "0 0 50 50",
-              height: 20,
-              width: 20,
-              path {
-                  d: "M 9.15625 6.3125 L 6.3125 9.15625 L 22.15625 25 L 6.21875 40.96875 L 9.03125 43.78125 L 25 27.84375 L 40.9375 43.78125 L 43.78125 40.9375 L 27.84375 25 L 43.6875 9.15625 L 40.84375 6.3125 L 25 22.15625 Z"
-              }
-            }
+            Icon {
+              stroke: "#818898",
+              icon: Close
+          }
           }
       }
     ))
