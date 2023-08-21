@@ -18,15 +18,10 @@ pub struct Sender {
 #[derive(PartialEq, Props)]
 pub struct MessageReplyProps {
     pub message: MessageReply,
+    pub is_replying_for_me: bool,
 }
 
 pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
-    let message_wrapper_style = r#"
-      margin: var(--size-0) 0;
-      padding: 0 var(--size-0);
-      border-left: 2px solid var(--brand);
-    "#;
-
     let message_style = r#"
         width: calc(100% - 30px);
     "#;
@@ -36,9 +31,23 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
         justify-content: space-between;
     "#;
 
-    let sender_style = r#"
+    let sender_style = if cx.props.is_replying_for_me {
+      r#"
+        color: var(--text-white);
+        font-family: Inter;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 12px; 
+      "#
+    } else {
+      r#"
         color: var(--text-1);
-    "#;
+        font-family: Inter;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 12px;
+      "#
+    };
 
     let content_style = r#"
         margin-top: var(--size-0);
@@ -50,6 +59,22 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
       margin-top: var(--size-1);
       width: 28px;
     "#;
+
+    let message_wrapper_style = if cx.props.is_replying_for_me {
+        r#"
+        background: transparent;
+        color: var(--text-white);
+        margin: var(--size-0) 0;
+        padding: 0 var(--size-0);
+        border-left: 2px solid var(--brand);
+      "#
+    } else {
+        r#"
+        margin: var(--size-0) 0;
+        padding: 0 var(--size-0);
+        border-left: 2px solid var(--brand);
+      "#
+    };
 
     cx.render(rsx! {
       div {

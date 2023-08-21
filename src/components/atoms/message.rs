@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{components::atoms::{Avatar, header::HeaderCallOptions}, services::matrix::matrix::TimelineMessageType};
+use crate::{components::atoms::{Avatar, header::HeaderCallOptions, Icon, Close}, services::matrix::matrix::{TimelineMessageType, EventOrigin}};
 
 use super::{MessageReply, header::HeaderEvent};
 
@@ -12,6 +12,8 @@ pub struct Message {
     pub display_name: String,
     pub avatar_uri: Option<String>,
     pub reply: Option<MessageReply>,
+    pub origin: EventOrigin,
+    pub time: String
 }
 
 #[derive(Debug, Clone)]
@@ -30,10 +32,6 @@ pub struct MessageViewProps<'a> {
 pub type Messages = Vec<Message>;
 
 pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
-    let message_style = r#"
-        width: calc(100% - 30px);
-    "#;
-
     let header_style = r#"
         display: flex;
         justify-content: space-between;
@@ -41,11 +39,27 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
 
     let sender_style = r#"
         color: var(--text-1);
+        font-weight: 500;
     "#;
 
     let content_style = r#"
-        margin-top: var(--size-0);
         font-size: var(--font-size-0);
+        display: flex;
+        gap: 11px;
+        align-items: flex-end;
+        justify-content: space-between;
+    "#;
+
+    let time_style = r#"
+      color: var(--text-disabled);
+      text-align: right;
+      font-family: Inter;
+      font-size: 10px;
+      font-style: italic;
+      font-weight: 400;
+      line-height: 16px; /* 160% */
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
     "#;
 
     let content_image_style = if cx.props.is_replying { 
@@ -59,32 +73,91 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
           border-radius: var(--size-1);
           margin-top: var(--size-1);
           max-height: 100dvh;
+          max-width: 70dvw;
         "#
       };
 
+    let content_text_style =  match cx.props.message.origin {
+      EventOrigin::ME => r#"
+        color: var(--text-white);
+        font-family: Inter;
+        font-size: 16px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 20px; /* 125% */
+      "#,
+      EventOrigin::OTHER => r#"
+        color: var(--text-loud);
+        font-family: Inter;
+        font-size: 16px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 20px; /* 125% */
+      "#
+    };
+
+    let origin_message_container_style = match cx.props.message.origin {
+      EventOrigin::ME => r#"
+        border-radius: 16px;
+        border: 0.5px solid var(--border-normal-50);
+        background: var(--background-loud);
+        color: var(--text-white);
+        display: inline-block;
+        width: fit-content;
+        max-width: 80%;
+        margin: 0 var(--size-1) 0 auto;
+
+      "#,
+      EventOrigin::OTHER => r#"
+      "#
+    };
+
     cx.render(rsx! {
       div {
-        // class: "message-view",
+        style: "{origin_message_container_style}",
         class: if !cx.props.is_replying {"message-view"} else {"message-view--replying"},
-        Avatar {
-          name: "{cx.props.message.display_name}",
-          size: 36,
-          uri: cx.props.message.avatar_uri.as_ref()
+        onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })},
+        match &cx.props.message.origin {
+          EventOrigin::ME => {
+            rsx!(
+              div {}
+            )
+          },
+          EventOrigin::OTHER => {
+            rsx!(
+              Avatar {
+                name: "{cx.props.message.display_name}",
+                size: 36,
+                uri: cx.props.message.avatar_uri.as_ref()
+              }
+            )
+          }
         }
         article {
-          style: "{message_style}",
-          section {
-            style: "{header_style}",
-            span {
-              style: "{sender_style}",
-              "{cx.props.message.display_name}"
-            }
+          match cx.props.message.origin {
+            EventOrigin::OTHER => 
+              rsx!(
+                section {
+                  style: "{header_style}",
+                  span {
+                    style: "{sender_style}",
+                    "{cx.props.message.display_name}"
+                  }
+                }
+             ),
+            _ => rsx!(
+              div {}
+            )
           }
 
           if cx.props.message.reply.is_some() {
             rsx!(
               MessageReply{
-                message: cx.props.message.reply.clone().unwrap()
+                message: cx.props.message.reply.clone().unwrap(),
+                is_replying_for_me: match cx.props.message.origin { 
+                  EventOrigin::ME => true, 
+                  _ => false
+                }
               }
             )
           }
@@ -94,7 +167,14 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
               rsx!(
                 p {
                   style: "{content_style}",
-                  "{t}"
+                  span {
+                    style: "{content_text_style}",
+                    "{t}"
+                  }
+                  span {
+                    style: "{time_style}",
+                    "{cx.props.message.time}"
+                  }
                 }
               )
             },
@@ -104,10 +184,9 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                 src: "{i}"
               })
             } 
-          }
-
-          
+          }          
         }
+
         if cx.props.is_replying {
           let close_style = r#"
             cursor: pointer;
@@ -115,22 +194,13 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
             border: 1px solid transparent;
           "#;
 
-          let icon_style = r#"
-            fill: var(--text-1)
-          "#;
-
           rsx!(
             button {
               style: "{close_style}",
               onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })},
-              svg {
-                style: "{icon_style}",
-                view_box: "0 0 50 50",
-                height: 16,
-                width: 16,
-                path {
-                    d: "M 9.15625 6.3125 L 6.3125 9.15625 L 22.15625 25 L 6.21875 40.96875 L 9.03125 43.78125 L 25 27.84375 L 40.9375 43.78125 L 43.78125 40.9375 L 27.84375 25 L 43.6875 9.15625 L 40.84375 6.3125 L 25 22.15625 Z"
-                }
+              Icon {
+                stroke: "#818898",
+                icon: Close
               }
             }
           )

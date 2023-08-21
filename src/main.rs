@@ -65,6 +65,7 @@ fn App(cx: Scope) -> Element {
     use_shared_state_provider::<CurrentRoom>(cx, || CurrentRoom {
         id: String::new(),
         name: String::new(),
+        avatar_uri: None,
     });
 
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();

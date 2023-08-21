@@ -15,30 +15,37 @@
   opacity: 0.7;
 }
 
-.input {
-  height: var(--size-4);
+.input-wrapper {
+  height: 2.625rem;
   width: 100%;
-  padding: var(--size-1);
+  padding: 0.75rem 10px;
+  box-shadow: 0px 0px 0px 1px rgba(9, 25, 72, 0.13), 0px 1px 2px 0px rgba(18, 55, 105, 0.08);
+  border-radius: 2.25rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
   border: 1px solid transparent;
+  outline: none;
 }
 
 .input__message {
   width: inherit;
   display: flex;
-  position: fixed;
+  position: absolute;
   bottom: 0;
-  padding: 24px;
+  padding: 20px 0;
   background: var(--surface-1);
 }
 
-.input__t>.input {
-  flex: 5;
-  resize: none;
+.input__cta {
+  border: 1px solid transparent;
+  background: transparent;
   outline: none;
-}
-
-.input__t>.button {
-  flex: 1;
+  cursor: pointer;
 }
 
 .notification {
@@ -74,11 +81,11 @@
 .message-view {
   background: var(--surface-1);
   color: var(--text-1);
-  padding: var(--size-1) var(--size-5);
-  width: calc(100% - var(--avatar-size));
+  padding: 10px;
+  width: 100%;
   display: flex;
   align-items: flex-start;
-  gap: var(--size-1);
+  gap: 12px;
 }
 
 .message-view:hover {
@@ -120,9 +127,8 @@
   content: "Respondiendo a";
   padding: var(--size-0);
   position: absolute;
-  translate: 50% 0;
   left: 0;
-  top: 0;
+  top: calc(-2 * var(--size-0) - var(--size-1));
 }
 
 .room-view {
@@ -130,8 +136,7 @@
   border: 1px solid transparent;
   border-radius: var(--size-0);
   max-width: 100%;
-  height: var(--size-4);
-  padding: 8px;
+  padding: 0.5rem 0;
   text-align: left;
   transition: opacity 0.2s ease-out, background-color 0.2s ease-out;
   cursor: pointer;
@@ -155,6 +160,16 @@
 
 .room-view__title {
   width: 100%;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-loud);
+}
+
+.room-view__message {
+  width: 100%;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-subdued);
 }
 
 /* Page */
@@ -162,12 +177,13 @@
 .page {
   display: flex;
   height: 100vh;
+  padding: 0 1rem;
 }
 
 .chat {
   height: 100%;
   width: 100%;
-  display: flex;
+  position: relative;
 }
 
 .login .messages-list {
@@ -175,7 +191,8 @@
 }
 
 .messages-list,
-.list {
+.list,
+.rooms-list {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -185,24 +202,29 @@
   width: 100%;
 }
 
+.rooms-list {
+  padding: 0;
+  gap: 0;
+}
+
 .list {
   padding: 0;
 }
 
 .messages-list {
-  width: 75vw;
   gap: var(--size-0);
-  margin-top: 50px;
-  height: calc(100dvh - 88px - 50px);
+  margin-top: 72px;
+  padding: 0;
+  height: calc(100dvh - 72px - 62px);
   flex-direction: column-reverse;
 }
 
 .options {
   display: flex;
   flex-direction: column;
-  width: 25vw;
-  padding: var(--size-2);
-  border-right: 1px solid var(--surface-0-light);
+  /* width: 25vw; */
+  width: 100%;
+  gap: 10px ;
 }
 
 .spinner-dual-ring {
@@ -270,10 +292,13 @@
   border-radius: 5px;
 }
 
-
 /* Responsive */
 
-@media only screen and (max-width: 767px) {
+/* @media only screen and (min-width: 767px) {
+  .
+} */
+
+/* @media only screen and (max-width: 767px) {
   .chat {
     flex-direction: column;
   }
@@ -296,4 +321,4 @@
   .room-view {
     min-width: fit-content;
   }
-}
+} */

@@ -4,7 +4,7 @@ use crate::{
     components::atoms::{
         header::HeaderEvent, message::Message, Attach, MessageInput, MessageView,
     },
-    services::matrix::matrix::TimelineMessageType,
+    services::matrix::matrix::{TimelineMessageType, EventOrigin},
 };
 
 #[derive(Debug, Clone)]
@@ -18,6 +18,7 @@ pub struct ReplyingTo {
     pub content: TimelineMessageType,
     pub display_name: String,
     pub avatar_uri: Option<String>,
+    pub origin: EventOrigin,
 }
 
 #[derive(Props)]
@@ -58,6 +59,8 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                         avatar_uri: x.avatar_uri.clone(),
                         content: x.content.clone(),
                         reply: None,
+                        origin: x.origin.clone(),
+                        time: String::from(""),
                     },
                     is_replying: true,
                     on_event: move |event| {cx.props.on_event.call(event)}

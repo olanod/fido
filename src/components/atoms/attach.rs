@@ -19,7 +19,8 @@ pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
         background: var(--surface-3);
         border: none;
         border-radius: 100%;
-        width: 2.625rem;
+        max-width: 2.625rem;
+        width: 100%;
         height: 2.625rem;
     "#;
 
@@ -34,7 +35,7 @@ pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
 
             } ,
             Icon {
-                stroke: "#818898",
+                stroke: "#fff",
                 icon: Attachment
             }
         }

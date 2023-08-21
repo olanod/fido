@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use crate::components::atoms::message::{Message, Messages};
 use crate::components::molecules::input_message::FormMessageEvent;
 use crate::components::molecules::{InputMessage, List};
-use crate::services::matrix::matrix::{build_client, login, FullSession, TimelineMessageType};
+use crate::services::matrix::matrix::{
+    build_client, login, EventOrigin, FullSession, TimelineMessageType,
+};
 use dioxus::prelude::*;
 use dioxus_std::i18n::use_i18;
 use dioxus_std::translate;
@@ -86,6 +88,8 @@ pub fn IndexLogin(cx: Scope) -> Element {
             avatar_uri: None,
             content: TimelineMessageType::Text(i18n_get_key_value(&i18n_map, "homeserver-message")),
             reply: None,
+            origin: EventOrigin::OTHER,
+            time: String::from(""),
         }]
     });
 
@@ -109,6 +113,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
                         next_id.to_owned(),
                         i18n_get_key_value(&i18n_map, "actors-user"),
                         messages.to_owned(),
+                        EventOrigin::ME,
                     );
                 } else {
                     push_message(
@@ -116,6 +121,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
                         next_id.to_owned(),
                         i18n_get_key_value(&i18n_map, "actors-user"),
                         messages.to_owned(),
+                        EventOrigin::ME,
                     );
                 }
 
@@ -135,6 +141,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
                                 next_id.to_owned(),
                                 i18n_get_key_value(&i18n_map, "actors-bot"),
                                 messages.to_owned(),
+                                EventOrigin::OTHER,
                             );
 
                             homeserver_login.set(message_item.clone());
@@ -153,6 +160,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
                                     next_id.to_owned(),
                                     i18n_get_key_value(&i18n_map, "actors-bot"),
                                     messages.to_owned(),
+                                    EventOrigin::OTHER,
                                 );
                             } else {
                                 push_message(
@@ -162,6 +170,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
                                     next_id.to_owned(),
                                     i18n_get_key_value(&i18n_map, "actors-bot"),
                                     messages.to_owned(),
+                                    EventOrigin::OTHER,
                                 );
                             }
 
@@ -173,6 +182,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
                                 next_id.to_owned(),
                                 i18n_get_key_value(&i18n_map, "actors-bot"),
                                 messages.to_owned(),
+                                EventOrigin::OTHER,
                             );
                         }
                     }
@@ -187,6 +197,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
                         next_id.to_owned(),
                         i18n_get_key_value(&i18n_map, "actors-bot"),
                         messages.to_owned(),
+                        EventOrigin::OTHER,
                     );
 
                     username_login.set(message_item.clone());
@@ -200,6 +211,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
                         next_id.to_owned(),
                         i18n_get_key_value(&i18n_map, "actors-bot"),
                         messages.to_owned(),
+                        EventOrigin::OTHER,
                     );
 
                     let user = username_login.read().clone();
@@ -222,6 +234,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
                                 next_id.to_owned(),
                                 i18n_get_key_value(&i18n_map, "actors-bot"),
                                 messages.to_owned(),
+                                EventOrigin::OTHER,
                             );
 
                             let x = <LocalStorage as gloo::storage::Storage>::set(
@@ -251,6 +264,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
                                     next_id.to_owned(),
                                     i18n_get_key_value(&i18n_map, "actors-bot"),
                                     messages.to_owned(),
+                                    EventOrigin::OTHER
                                 );
                             } else {
                                 push_message(
@@ -260,6 +274,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
                                     next_id.to_owned(),
                                     i18n_get_key_value(&i18n_map, "actors-bot"),
                                     messages.to_owned(),
+                                    EventOrigin::OTHER
                                 );
                             }
 
@@ -271,6 +286,7 @@ pub fn IndexLogin(cx: Scope) -> Element {
                                 next_id.to_owned(),
                                 i18n_get_key_value(&i18n_map, "actors-bot"),
                                 messages.to_owned(),
+                                EventOrigin::OTHER,
                             );
 
                             homeserver_login.set(String::new());
@@ -309,6 +325,7 @@ pub fn push_message(
     next_id: UseRef<i64>,
     display_name: String,
     messages: UseState<Vec<Message>>,
+    origin: EventOrigin,
 ) {
     messages.with_mut(|m| {
         m.push(Message {
@@ -318,6 +335,8 @@ pub fn push_message(
             avatar_uri: None,
             content: content,
             reply: None,
+            origin: origin,
+            time: String::from(""),
         });
 
         m.rotate_right(1)

@@ -1,4 +1,7 @@
 pub mod matrix {
+    use std::time::{Duration, UNIX_EPOCH};
+
+    use chrono::{DateTime, Local, Utc};
     use log::info;
 
     use matrix_sdk::{
@@ -24,7 +27,7 @@ pub mod matrix {
                 AnyMessageLikeEvent, AnySyncMessageLikeEvent, AnySyncTimelineEvent,
                 AnyTimelineEvent, MessageLikeEvent, SyncMessageLikeEvent,
             },
-            OwnedEventId, OwnedUserId, RoomId, TransactionId, UInt,
+            MilliSecondsSinceUnixEpoch, OwnedEventId, OwnedUserId, RoomId, TransactionId, UInt,
         },
         Client, Error, HttpError,
     };
@@ -130,7 +133,7 @@ pub mod matrix {
         });
     }
 
-    pub fn list_rooms(client: &Client) -> Vec<RoomItem> {
+    pub async fn list_rooms(client: &Client) -> Vec<RoomItem> {
         let mut rooms = Vec::new();
         let x = client.joined_rooms();
 
@@ -152,6 +155,7 @@ pub mod matrix {
                     avatar_uri: avatar_uri,
                     id: room.room_id().to_string(),
                     name: name,
+                    is_public: room.is_public(),
                 })
             }
         }
@@ -206,12 +210,20 @@ pub mod matrix {
         Text(String),
     }
 
+    #[derive(PartialEq, Debug, Clone)]
+    pub enum EventOrigin {
+        OTHER,
+        ME,
+    }
+
     #[derive(Debug, Clone)]
     pub struct TimelineMessageEvent {
         pub event_id: Option<String>,
         pub sender: RoomMember,
         pub body: TimelineMessageType,
         pub reply: Option<Box<TimelineMessageEvent>>,
+        pub origin: EventOrigin,
+        pub time: String,
     }
 
     pub async fn timeline(
@@ -240,9 +252,17 @@ pub mod matrix {
             false,
         );
 
+        let user = client.whoami().await;
+        let mut me = String::from("");
+
+        if let Ok(u) = user {
+            me = u.user_id.to_string();
+        }
+
         for zz in t.events.iter() {
+            // info!("event: {:?}", zz);
             let deserialized =
-                deserialize_any_timeline_event(zz.event.deserialize().unwrap(), &room).await;
+                deserialize_any_timeline_event(zz.event.deserialize().unwrap(), &room, &me).await;
 
             if let Some(d) = deserialized {
                 messages.push(d);
@@ -255,6 +275,7 @@ pub mod matrix {
     pub async fn deserialize_any_timeline_event(
         ev: AnySyncTimelineEvent,
         room: &Room,
+        logged_user_id: &String,
     ) -> Option<TimelineMessageEvent> {
         match ev {
             AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::RoomMessage(
@@ -265,11 +286,26 @@ pub mod matrix {
 
                 let member = room_member(original.sender, &room).await;
                 let relates = &original.content.relates_to;
+                let time = original.origin_server_ts;
 
-                let message_result =
-                    format_original_any_room_message_event(&n, event, &member).await;
-                let message_result =
-                    format_reply_from_event(&n, relates, &room, message_result, &member).await;
+                let message_result = format_original_any_room_message_event(
+                    &n,
+                    event,
+                    &member,
+                    &logged_user_id,
+                    time,
+                )
+                .await;
+                let message_result = format_reply_from_event(
+                    &n,
+                    relates,
+                    &room,
+                    message_result,
+                    &member,
+                    &logged_user_id,
+                    time,
+                )
+                .await;
                 message_result
             }
             _ => None,
@@ -279,6 +315,7 @@ pub mod matrix {
     pub async fn deserialize_timeline_event(
         ev: AnyTimelineEvent,
         room: &Room,
+        logged_user_id: &String,
     ) -> Option<TimelineMessageEvent> {
         match ev {
             AnyTimelineEvent::MessageLike(AnyMessageLikeEvent::RoomMessage(
@@ -287,9 +324,16 @@ pub mod matrix {
                 let n = &original.content.msgtype;
                 let member = room_member(original.sender, &room).await;
                 let event = original.event_id;
+                let time = original.origin_server_ts;
 
-                let message_result =
-                    format_original_any_room_message_event(&n, event, &member).await;
+                let message_result = format_original_any_room_message_event(
+                    &n,
+                    event,
+                    &member,
+                    &logged_user_id,
+                    time,
+                )
+                .await;
 
                 message_result
             }
@@ -301,8 +345,17 @@ pub mod matrix {
         n: &MessageType,
         event: OwnedEventId,
         member: &RoomMember,
+        logged_user_id: &String,
+        time: MilliSecondsSinceUnixEpoch,
     ) -> Option<TimelineMessageEvent> {
         let mut message_result = None;
+
+        let timestamp = {
+            let d = UNIX_EPOCH + Duration::from_millis(time.0.into());
+
+            let datetime = DateTime::<Local>::from(d);
+            datetime.format("%H:%M").to_string()
+        };
 
         match &n {
             MessageType::Image(nm) => match &nm.source {
@@ -321,6 +374,12 @@ pub mod matrix {
                             reply: None,
                             sender: member.clone(),
                             body: TimelineMessageType::Image(uri),
+                            origin: if member.id.eq(logged_user_id) {
+                                EventOrigin::ME
+                            } else {
+                                EventOrigin::OTHER
+                            },
+                            time: timestamp,
                         });
                     }
                 }
@@ -334,6 +393,12 @@ pub mod matrix {
                     sender: member.clone(),
                     body: TimelineMessageType::Text(content.body.clone()),
                     reply: None,
+                    origin: if member.id.eq(logged_user_id) {
+                        EventOrigin::ME
+                    } else {
+                        EventOrigin::OTHER
+                    },
+                    time: timestamp,
                 });
             }
             _ => {}
@@ -348,6 +413,8 @@ pub mod matrix {
         room: &Room,
         message_result: Option<TimelineMessageEvent>,
         member: &RoomMember,
+        logged_user_id: &String,
+        time: MilliSecondsSinceUnixEpoch,
     ) -> Option<TimelineMessageEvent> {
         let mut message_result: Option<TimelineMessageEvent> = message_result;
 
@@ -355,12 +422,18 @@ pub mod matrix {
             Some(r) => match r {
                 matrix_sdk::ruma::events::room::message::Relation::Reply { in_reply_to } => {
                     let room_event = room.event(&in_reply_to.event_id).await;
+                    let timestamp = {
+                        let d = UNIX_EPOCH + Duration::from_millis(time.0.into());
+                        let datetime = DateTime::<Utc>::from(d);
+                        datetime.format("%H:%M").to_string()
+                    };
 
                     match room_event {
                         Ok(event) => {
                             let desc_event = event.event.deserialize().unwrap();
 
-                            let reply = deserialize_timeline_event(desc_event, room).await;
+                            let reply =
+                                deserialize_timeline_event(desc_event, room, &logged_user_id).await;
 
                             match reply {
                                 Some(r) => match &r.body {
@@ -385,6 +458,12 @@ pub mod matrix {
                                                 sender: member.clone(),
                                                 body: content_body,
                                                 reply: Some(Box::from(r)),
+                                                origin: if member.id.eq(logged_user_id) {
+                                                    EventOrigin::ME
+                                                } else {
+                                                    EventOrigin::OTHER
+                                                },
+                                                time: timestamp,
                                             });
                                         }
                                     }
@@ -402,6 +481,12 @@ pub mod matrix {
                                             sender: member.clone(),
                                             body: content_body,
                                             reply: Some(Box::from(r)),
+                                            origin: if member.id.eq(logged_user_id) {
+                                                EventOrigin::ME
+                                            } else {
+                                                EventOrigin::OTHER
+                                            },
+                                            time: timestamp,
                                         });
                                     }
                                 },

@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::components::atoms::{icon::Icon, Send};
+use crate::components::atoms::{icon::Icon, Search, Send};
 
 #[derive(Props)]
 pub struct MessageInputProps<'a> {
@@ -16,6 +16,20 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
     cx.render(rsx!(
         section {
             class: "input-wrapper",
+            if let Some(itype) = cx.props.itype {
+                if itype.eq("search") {
+                    rsx!(
+                    Icon {
+                        stroke: "#818898",
+                        icon: Search
+                    })
+                } else {
+                    rsx!(
+                        div{}
+                    )
+                }
+            }
+
             input {
                 r#type: cx.props.itype.unwrap_or("text"),
                 class: "input",
@@ -24,7 +38,8 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                 oninput: move |event| cx.props.on_input.call(event),
                 onkeypress: move |event| cx.props.on_keypress.call(event)
             }
-            if cx.props.message.len() > 0 {
+            
+            if cx.props.message.len() > 0 && !cx.props.itype.unwrap_or("text").eq("search"){
                 rsx!(
                     button {
                         class: "input__cta",

@@ -1,6 +1,6 @@
-use dioxus::prelude::{SvgAttributes, *};
+use dioxus::prelude::*;
 
-use crate::components::atoms::{Close, Icon};
+use crate::components::atoms::{ArrowLeft, Avatar, Icon};
 
 #[derive(Debug)]
 pub enum HeaderCallOptions {
@@ -14,6 +14,8 @@ pub struct HeaderEvent {
 
 #[derive(Props)]
 pub struct HeaderProps<'a> {
+    #[props(!optional)]
+    avatar_uri: Option<&'a String>,
     text: &'a str,
     on_event: EventHandler<'a, HeaderEvent>,
 }
@@ -22,12 +24,11 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
     let nav_style = r#"
         color: var(--text-1);
         display: flex;
-        justify-content: space-between;
+        gap: 0.5rem;
         align-items: center;
         position: absolute;
         width: inherit;
-        height: 40px;
-        padding: 0 var(--size-4);
+        padding: 1.25rem 0;
         background: var(--surface-1);
         font-weight: 600;
         top: 0;
@@ -38,21 +39,39 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
       cursor: pointer;
       background: transparent;
       border: 1px solid transparent;
+      padding: 0;
+    "#;
+
+    let title_style = r#"
+      color: var(--text-loud);
+      font-family: Inter;
+      font-size: 18px;
+      font-style: normal;
+      font-weight: 500;
+      line-height: 24px; /* 133.333% */
     "#;
 
     cx.render(rsx!(
         nav {
           style: "{nav_style}",
-          span {
-            "{cx.props.text}"
-          }
           button {
             style: "{close_style}",
             onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })},
             Icon {
-              stroke: "#818898",
-              icon: Close
+              stroke: "#000000",
+              icon: ArrowLeft,
+              height: 24,
+              width: 24
+            }
           }
+          Avatar {
+            name: cx.props.text.clone(),
+            size: 32,
+            uri: cx.props.avatar_uri
+          }
+          span {
+            style: "{title_style}",
+            "{cx.props.text}"
           }
       }
     ))

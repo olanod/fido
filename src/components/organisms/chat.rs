@@ -2,10 +2,9 @@ use std::collections::HashMap;
 use std::ops::Deref;
 
 use crate::components::atoms::header::{HeaderEvent, HeaderCallOptions};
-use crate::components::atoms::helper::{Helper, HelperData};
 use crate::components::atoms::message::{self, Message, Messages};
 use crate::components::atoms::room::RoomItem;
-use crate::components::atoms::{MessageReply, Header, Notification, RoomView, Spinner};
+use crate::components::atoms::{MessageReply, Header, Notification, Spinner, Edit, Icon};
 use crate::components::molecules::input_message::{FormMessageEvent, ReplyingTo};
 use crate::components::molecules::rooms::{CurrentRoom, FormRoomEvent};
 use crate::components::molecules::{InputMessage, RoomsList};
@@ -84,14 +83,25 @@ pub fn IndexChat(cx: Scope) -> Element {
 
     let client = matrix_client.read().client.clone().unwrap();
 
-    let rooms_vec = list_rooms(&client);
-    let rooms = use_state::<Vec<RoomItem>>(cx, || rooms_vec);
+    
+    let rooms = use_state::<Vec<RoomItem>>(cx, || Vec::new());
     let current_room = use_ref::<CurrentRoom>(cx, || CurrentRoom {
         id: String::new(),
         name: String::new(),
+        avatar_uri: None,
     });
     let replying_to = use_state::<Option<ReplyingTo>>(cx, || None);
-    let height = use_state(cx, || format!("height: calc(100% - 50px - {}px );", 88));
+    let height = use_state(cx, || format!("height: calc(100% - 72px - {}px );", 82));
+
+    use_coroutine(cx, |mut rx: UnboundedReceiver<bool>| {
+        to_owned![client, rooms];
+
+        async move {
+            let rooms_vec = list_rooms(&client).await;
+
+            rooms.set(rooms_vec);
+        }
+    });
 
     let task_timeline = use_coroutine(cx, |mut rx: UnboundedReceiver<bool>| {
         to_owned![
@@ -104,7 +114,6 @@ pub fn IndexChat(cx: Scope) -> Element {
         ];
 
         async move {
-            info!("{:?}", client.homeserver().await);
             while let Some(load_more) = rx.next().await {
                 messages_loading.set(true);
                 messages.set(Vec::new());
@@ -146,6 +155,8 @@ pub fn IndexChat(cx: Scope) -> Element {
                             content: m.body.clone(),
                             avatar_uri: m.sender.avatar_uri.clone(),
                             reply: rep.clone(),
+                            origin: m.origin.clone(),
+                            time: m.time.clone(),
                         });
                     });
 
@@ -195,6 +206,8 @@ pub fn IndexChat(cx: Scope) -> Element {
                                 content: message.body.clone(),
                                 avatar_uri: message.sender.avatar_uri.clone(),
                                 reply: reply,
+                                origin: message.origin.clone(),
+                                time: message.time.clone(),
                             });
 
                             messages.rotate_right(1);
@@ -253,18 +266,28 @@ pub fn IndexChat(cx: Scope) -> Element {
         to_owned![client, handler_added, task_sender];
 
         async move {
+            let mut me = String::from("");
+            let user = client.whoami().await;
+
+            if let Ok(u) = user {
+                me = u.user_id.to_string();
+            }
+
             if !*handler_added.read() {
                 client.add_event_handler(move |ev: OriginalSyncRoomMessageEvent, room: Room| {
                     let t = task_sender.clone();
-                    
+                    let me = me.clone();
+
                     async move {
                         let message_type = &ev.content.msgtype;
                         let event_id = ev.event_id;
                         let member = room_member(ev.sender, &room).await;
                         let relates = &ev.content.relates_to;
-                        let message_result = format_original_any_room_message_event(&message_type, event_id, &member).await;
+                        let time = ev.origin_server_ts;
+
+                        let message_result = format_original_any_room_message_event(&message_type, event_id, &member, &me, time).await;
                         let message_result =
-                        format_reply_from_event(&message_type, relates, &room, message_result, &member).await;
+                        format_reply_from_event(&message_type, relates, &room, message_result, &member, &me, time).await;
                         
                         t.send(MessageEvent {
                             room,
@@ -321,16 +344,16 @@ pub fn IndexChat(cx: Scope) -> Element {
 
     let df_value = use_state(cx, || "");
 
-    let x = move |_| {
-        cx.spawn({
-            let df_value = df_value.to_owned();
+    // let x = move |_| {
+    //     cx.spawn({
+    //         let df_value = df_value.to_owned();
             
-            async move {
-                df_value.set("!join !vaoCGcunXVlxJqWyjQ:matrix.org");
-                df_value.needs_update();
-            }
-        })
-    };
+    //         async move {
+    //             df_value.set("!join !vaoCGcunXVlxJqWyjQ:matrix.org");
+    //             df_value.needs_update();
+    //         }
+    //     })
+    // };
 
     let header_event = move |evt: HeaderEvent| {
         to_owned![current_room];
@@ -340,6 +363,7 @@ pub fn IndexChat(cx: Scope) -> Element {
                 current_room.set(CurrentRoom {
                     id: String::new(),
                     name: String::new(),
+                    avatar_uri: None
                 })
             }
         }
@@ -351,7 +375,7 @@ pub fn IndexChat(cx: Scope) -> Element {
         match evt.value {
             HeaderCallOptions::CLOSE => {
                 replying_to.set(None);
-                height.set("height: calc(100% - 50px - 88px );".to_string());
+                height.set("height: calc(100% - 72px - 82px );".to_string());
             }
         }
     };
@@ -369,30 +393,6 @@ pub fn IndexChat(cx: Scope) -> Element {
             )
         }
 
-        section {
-            class: "options",
-
-                RoomsList {
-                    rooms: rooms,
-                    on_submit: on_click_room
-                }
-
-                div {
-                    style: r#"
-                        display: flex;
-                        flex-direction:column;
-                    "#,
-                    RoomView {
-                        room_avatar_uri: None,
-                        room_name: "{i18n_get_key_value(&i18n_map, key_nav_log_out)}" ,
-                        on_click: move |_| {
-                            log_out()
-                        }
-                    }
-                }
-
-        }
-
         if current_room.read().id.len() > 0 {
             let loadmore_style = r#"
                 width: fit-content;
@@ -404,31 +404,52 @@ pub fn IndexChat(cx: Scope) -> Element {
                 box-shadow: 0px 2px 8px 0 rgba(118,131,156,.6);
                 transition: opacity 0.2s ease-out, background-color 0.2s ease-out;
                 cursor: pointer;
-                margin: 0 auto;
+                margin: 0.5rem auto 0;
             "#;
 
             rsx!{
+                Header {
+                    text: "{current_room.read().name.clone()}",
+                    avatar_uri: None,
+                    on_event: header_event
+                }
                 div {
                     style: "{height.get()}",
                     class:"messages-list",
                     // List {},
-                    Header {
-                        text: "{current_room.read().name.clone()}",
-                        on_event: header_event
-                    }
+                   
                     if !*messages_loading.get() {
                         rsx!(
                             messages.read().iter().map(|message| {
                                 let message = message.clone();
                                 let event = message.event_id.clone();
-                                info!("{message:?}");
+
                                 cx.render(rsx!(
-                                    div {
-                                        onclick: move |_| {
+                                    MessageView {
+                                        key: "{message.id}",
+                                        message: Message {
+                                            id: message.id,
+                                            event_id: message.event_id,
+                                            display_name: message.display_name.clone(),
+                                            avatar_uri: message.avatar_uri.clone(),
+                                            content: message.content.clone(),
+                                            reply: message.reply.clone(),
+                                            origin: message.origin.clone(),
+                                            time: message.time.clone()
+                                        },
+                                        is_replying: false,
+                                        on_event: move |_| {
                                             let height = height.clone();
                                             if let Some(eid) = &event {
-                                                let x = ReplyingTo { event_id: eid.clone(), content: message.content.clone(), display_name: message.display_name.clone(), avatar_uri: message.avatar_uri.clone() };
-                                                replying_to.set(Some(x));
+                                                let replying = ReplyingTo { 
+                                                    event_id: eid.clone(), 
+                                                    content: message.content.clone(), 
+                                                    display_name: message.display_name.clone(), 
+                                                    avatar_uri: message.avatar_uri.clone(),
+                                                    origin: message.origin.clone()
+                                                };
+                                                
+                                                replying_to.set(Some(replying));
                                                 
                                                 let window = web_sys::window().expect("global window does not exists");
                                                 let document = window.document().expect("expecting a document on window");
@@ -436,24 +457,11 @@ pub fn IndexChat(cx: Scope) -> Element {
                                                 
                                                 gloo::timers::callback::Timeout::new(50, move || {  
                                                     let h = val.offset_height();
-                                                    let x = format!("height: calc(100% - 50px - {}px );", h); 
+                                                    let x = format!("height: calc(100% - 72px - {}px );", h + 18); 
                                                     height.set(x);
                                                 })
                                                 .forget();
                                             }
-                                        },
-                                        MessageView {
-                                            key: "{message.id}",
-                                            message: Message {
-                                                id: message.id,
-                                                event_id: message.event_id,
-                                                display_name: message.display_name.clone(),
-                                                avatar_uri: message.avatar_uri.clone(),
-                                                content: message.content.clone(),
-                                                reply: message.reply.clone()
-                                            },
-                                            is_replying: false,
-                                            on_event: move |_| {}
                                         }
                                     }
                                 ))
@@ -474,68 +482,126 @@ pub fn IndexChat(cx: Scope) -> Element {
                             }
                         )
                     }
+                }
+                InputMessage {
+                    message_type: "text",
+                    replying_to: replying_to.get().clone(),
+                    placeholder: input_placeholder.get().as_str(), 
+                    is_attachable: true,
+                    on_submit: on_push_message,
+                    on_event: input_message_event
+                }
+                input {
+                    style: "visibility: hidden;",
+                    r#type: "file",
+                    id: "input_file",
+                    onchange: move |event: Event<FormData>| {
+                        cx.spawn({
+                            to_owned![task_push_attach, image_x];
+
+                            async move {
+                                let files = &event.files;
+
+                                if let Some(f) = &files {
+                                    let fs = f.files();
+                                    let x = f.read_file(fs.get(0).unwrap()).await;
+                                    
+                                    if let Some(xx) = x{
+                                        let y = xx.deref();
+                                        image_x.set(Some(y.to_vec()));
+                                        task_push_attach.send(y.to_vec());
+                                    }
+                                } 
+                            }
+                        })
+                    }
                     
-                    InputMessage {
-                        message_type: "text",
-                        replying_to: replying_to.get().clone(),
-                        placeholder: input_placeholder.get().as_str(), 
-                        is_attachable: true,
-                        on_submit: on_push_message,
-                        on_event: input_message_event
-                    }
-                    input {
-                        style: "visibility: hidden;",
-                        r#type: "file",
-                        id: "input_file",
-                        onchange: move |event: Event<FormData>| {
-                            cx.spawn({
-                                to_owned![task_push_attach, image_x];
-
-                                async move {
-                                    let files = &event.files;
-
-                                    if let Some(f) = &files {
-                                        let fs = f.files();
-                                        let x = f.read_file(fs.get(0).unwrap()).await;
-                                        
-                                        if let Some(xx) = x{
-                                            let y = xx.deref();
-                                            image_x.set(Some(y.to_vec()));
-                                            task_push_attach.send(y.to_vec());
-                                        }
-                                    } 
-                                }
-                            })
-                        }
-                        
-                    }
                 }
             }
         } else {
+            let header_style = r#"
+                display: flex;
+                justify-content: space-between;
+                width: 100%;
+                align-items: center;
+                margin: 20px 0;
+            "#;
+
+            let title_style = r#"
+                font-size: 18px;
+            "#;
+
+            let options_style = r#"
+                padding: 10px 0 10px;
+            "#;
+
             rsx!(
-                div {
-                    class:"messages-list",
-                    div {
-                        style: centered,
-                        Helper {
-                            helper: HelperData{
-                                title: i18n_get_key_value(&i18n_map, "join-title"),
-                                description: i18n_get_key_value(&i18n_map, "join-description"),
-                                example: String::from("!join !vaoCGcunXVlxJqWyjQ:matrix.org"),
-                            }
-                            on_click: x
+                article {
+                    section{
+                        style: "{header_style}",
+                        h2 {
+                            style: "{title_style}",
+                            "Chats"
+                        }
+                        Icon {
+                            stroke: "#818898",
+                            icon: Edit
                         }
                     }
-                    InputMessage {
-                        message_type: "text",
-                        replying_to: &None,
-                        placeholder: input_placeholder.get().as_str(), 
-                        is_attachable: false,
-                        on_submit: on_push_message,
-                        on_event: move |_| {}
+
+                    section {
+                        style: "{options_style}",
+                        class: "options",
+                           if rooms.len() > 0 {
+                            rsx!(
+                                RoomsList {
+                                    rooms: rooms,
+                                    on_submit: on_click_room
+                                }
+                            )
+                           }
+            
+                            // div {
+                            //     style: r#"
+                            //         display: flex;
+                            //         flex-direction:column;
+                            //     "#,
+                            //     RoomView {
+                            //         room_avatar_uri: None,
+                            //         room_name: "{i18n_get_key_value(&i18n_map, key_nav_log_out)}" ,
+                            //         on_click: move |_| {
+                            //             log_out()
+                            //         }
+                            //     }
+                            // }
+            
                     }
-            }
+                }
             )
+            // rsx!(
+            //     div {
+            //         class:"messages-list",
+            //         div {
+            //             style: centered,
+            //             Helper {
+            //                 helper: HelperData{
+            //                     title: i18n_get_key_value(&i18n_map, "join-title"),
+            //                     description: i18n_get_key_value(&i18n_map, "join-description"),
+            //                     example: String::from("!join !vaoCGcunXVlxJqWyjQ:matrix.org"),
+            //                 }
+            //                 on_click: x
+            //             }
+            //         }
+            //         InputMessage {
+            //             message_type: "text",
+            //             replying_to: &None,
+            //             placeholder: input_placeholder.get().as_str(), 
+            //             is_attachable: false,
+            //             on_submit: on_push_message,
+            //             on_event: move |_| {}
+            //         }
+            // }
+            // )
         }
     })
 }

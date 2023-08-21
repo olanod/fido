@@ -13,7 +13,7 @@ pub fn Avatar<'a>(cx: Scope<'a, AvatarProps<'a>>) -> Element<'a> {
         width: var(--avatar-size);
         min-width: var(--avatar-size);
         height: var(--avatar-size);
-        background: var(--surface-2);
+        background: linear-gradient(var(--accent-aqua-25), var(--accent-aqua-50));
         border-radius: 100%;
         display: flex;
         align-items: center;
@@ -23,8 +23,8 @@ pub fn Avatar<'a>(cx: Scope<'a, AvatarProps<'a>>) -> Element<'a> {
 
     
     let initial_style = r#"
-        font-size: calc(var(--avatar-size) * 0.8)px;
-        color: var(--text-1);
+        font-size: calc(var(--avatar-size) * 0.4);
+        color: var(--text-normal);
     "#;
     cx.render(rsx! {
       match cx.props.uri {

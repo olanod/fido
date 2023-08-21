@@ -8,19 +8,27 @@
   <meta charset="UTF-8" />
 
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
     * {
       box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    p {
+      font-family: 'Inter', sans-serif;
     }
 
     :where(html) {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
       /* colors */
+      --border-light: #224;
+      --border-dark: #ddf;
       --text-1-light: #224;
       --text-1-dark: #ddf;
       --text-2-light: #668;
       --text-2-dark: #aac;
       --brand-light: #88d;
-      --brand-dark: #77a; 
+      --brand-dark: #77a;
       --alt-light: #66a;
       --alt-dark: #558;
       --surface-0-light: #fafaff;
@@ -28,7 +36,7 @@
       --surface-1-dark: #223;
       --surface-2-light: #dde;
       --surface-2-dark: #334;
-      --surface-3-light: #558;
+      --surface-3-light: #0D0D12;
       --surface-3-dark: #112;
       /* sizes */
       --size-0: clamp(.25rem, .5vw, 1rem);
@@ -56,6 +64,112 @@
       --ratio-widescreen: 16/9;
       --ratio-ultrawide: 18/5;
       --ratio-golden: 1.618/1;
+
+      /* Vars figma */
+
+      /* Neutral/Solid */
+      --neutral-solid-0: #F8F9FB;
+      --neutral-solid-25: #F6F8FA;
+      --neutral-solid-50: #ECEFF3;
+      --neutral-solid-100: #DFE1E6;
+      --neutral-solid-200: #C1C7CF;
+      --neutral-solid-300: #A4ABB8;
+      --neutral-solid-400: #808897;
+      --neutral-solid-500: #666D80;
+      --neutral-solid-600: #353849;
+      --neutral-solid-700: #272835;
+      --neutral-solid-800: #1A1B25;
+      --neutral-solid-900: #0D0D12;
+
+      /* Neutral/Alpha */
+      --neutral-alpha-0: #16587908;
+      --neutral-alpha-25: #1D4F810A;
+      --neutral-alpha-50: #12376914;
+      --neutral-alpha-100: #09194821;
+      --neutral-alpha-200: #07204540;
+      --neutral-alpha-300: #02173B5C;
+      --neutral-alpha-400: #03103080;
+      --neutral-alpha-500: #000C2999;
+      --neutral-alpha-600: #010419C9;
+      --neutral-alpha-700: #010213D9;
+      --neutral-alpha-800: #01020EE5;
+      --neutral-alpha-900: #000005F2;
+
+      /* Background */
+
+      --background-white: #FFFFFF;
+      --background-disabled: #F8F9FB;
+      --background-normal: #F6F8FA;
+      --background-hover: #ECEFF3;
+      --background-pressed: #DFE1E6;
+      --background-loud: #0D0D12;
+
+      /* Border */
+
+      --border-white: #FFFFFF;
+      --border-disabled: #F6F8FA;
+      --border-normal: #ECEFF3;
+      --border-hover: #DFE1E6;
+      --border-pressed: #C1C7CF;
+
+      /* Icon */
+
+      --background-white: #FFFFFF;
+      --background-disabled: #A4ABB8;
+      --background-subdued: #818898;
+      --background-normal: #666D80;
+      --background-muted: #353849;
+      --background-loud: #0D0D12;
+
+      /* Text */
+
+      --text-white: #FFFFFF;
+      --text-disabled: #A4ABB8;
+      --text-subdued: #818898;
+      --text-normal: #666D80;
+      --text-muted: #353849;
+      --text-loud: #0D0D12;
+
+      /* Primary */
+      --primary-0: #F0EFFF;
+      --primary-25: #E5E4FB;
+      --primary-50: #A19CF0;
+      --primary-100: #5E56FF;
+      --primary-200: #312BA0;
+      --primary-300: #201C6C;
+
+      /* Accent/Aqua */
+      --accent-aqua-0: #EFFBFF;
+      --accent-aqua-25: #D1F0F9;
+      --accent-aqua-50: #7EDCF1;
+      --accent-aqua-100: #33CFFF;
+      --accent-aqua-200: #106A97;
+      --accent-aqua-300: #0C4D6E;
+
+      /* Secondary/Red */
+      --secondary-red-0: #FEEFF2;
+      --secondary-red-25: #FADAE1;
+      --secondary-red-50: #ED8296;
+      --secondary-red-100: #DF1C41;
+      --secondary-red-200: #95122B;
+      --secondary-red-300: #710E21;
+
+      /* Secondary/Yellow */
+      --secondary-yellow-0: #FFF6E0;
+      --secondary-yellow-25: #F9ECCB;
+      --secondary-yellow-50: #FBD982;
+      --secondary-yellow-100: #FFBD4C;
+      --secondary-yellow-200: #956321;
+      --secondary-yellow-300: #5B3D1E;
+
+      /* Secondary-green */
+      --secondary-green-0: #EFFEFA;
+      --secondary-green-25: #DDF2EE;
+      --secondary-green-50: #9DE0D3;
+      --secondary-green-100: #40C4AA;
+      --secondary-green-200: #287F6E;
+      --secondary-green-300: #174E43  ;
+
     }
 
     :root {
@@ -69,6 +183,7 @@
       --surface-2: var(--surface-2-light);
       --surface-3: var(--surface-3-light);
       --avatar-size: var(--avatar-default-size);
+      --text-loud: var(--text-loud-900)
     }
 
     @media (prefers-color-scheme: dark) {
@@ -78,7 +193,7 @@
         --text-alt: var(--text-1-light);
         --brand: var(--brand-dark);
         --alt: var(--alt-dark);
-        --surface-0: var(--surface-3-dark);
+        --surface-0: var(--surface-0-dark);
         --surface-1: var(--surface-1-dark);
         --surface-2: var(--surface-2-dark);
         --surface-3: var(--surface-3-dark);
