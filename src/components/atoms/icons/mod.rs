@@ -1,19 +1,27 @@
 pub mod arrow_left;
 pub mod attachment;
+pub mod chat_conversation;
 pub mod close;
 pub mod edit;
 pub mod group;
 pub mod icon;
+pub mod log_out;
+pub mod menu_hamburguer;
 pub mod new_chat;
 pub mod search;
 pub mod send;
+pub mod user_circle;
 
 pub use arrow_left::ArrowLeft;
 pub use attachment::Attachment;
+pub use chat_conversation::ChatConversation;
 pub use close::Close;
 pub use edit::Edit;
 pub use group::Group;
 pub use icon::Icon;
+pub use log_out::LogOut;
+pub use menu_hamburguer::MenuHamburger;
 pub use new_chat::NewChat;
 pub use search::Search;
 pub use send::Send;
+pub use user_circle::UserCircle;

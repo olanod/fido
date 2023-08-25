@@ -23,15 +23,25 @@ pub struct IconProps<'a, T: IconShape> {
 }
 
 pub fn Icon<'a, T: IconShape>(cx: Scope<'a, IconProps<'a, T>>) -> Element<'a> {
+    let icon_style = format!(
+        r#"
+        width: 100%;
+        max-width: {}px;
+    "#,
+        cx.props.width
+    );
+
     cx.render(rsx! {
         svg {
+            style: "{icon_style}",
             stroke: cx.props.stroke,
             stroke_width: cx.props.stroke_width,
             class: format_args!("{}", cx.props.class),
             height: format_args!("{}", cx.props.height),
-            width: format_args!("{}", cx.props.width),
             fill: format_args!("{}", cx.props.fill),
             view_box: format_args!("{}", cx.props.icon.view_box()),
+            stroke_linecap: "round",
+            stroke_linejoin: "round",
             cx.props.icon.child_elements()
         }
     })
