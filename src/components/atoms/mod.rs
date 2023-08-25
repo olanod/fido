@@ -1,5 +1,5 @@
-pub mod avatar;
 pub mod attach;
+pub mod avatar;
 pub mod button;
 pub mod header;
 pub mod helper;
@@ -9,6 +9,7 @@ pub mod message_reply;
 pub mod notification;
 pub mod room;
 pub mod spinner;
+pub mod icons;
 
 pub use attach::Attach;
 pub use avatar::Avatar;
@@ -21,3 +22,4 @@ pub use message_reply::MessageReply;
 pub use notification::Notification;
 pub use room::RoomView;
 pub use spinner::Spinner;
+pub use icons::*;

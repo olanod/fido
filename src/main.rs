@@ -65,6 +65,7 @@ fn App(cx: Scope) -> Element {
     use_shared_state_provider::<CurrentRoom>(cx, || CurrentRoom {
         id: String::new(),
         name: String::new(),
+        avatar_uri: None,
     });
 
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
@@ -145,7 +146,6 @@ pub async fn sync(
     loop {
         match client.sync_once(sync_settings.clone()).await {
             Ok(response) => {
-                sync_settings = sync_settings.token(response.next_batch.clone());
                 persist_sync_token(response.next_batch).await?;
                 break;
             }

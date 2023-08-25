@@ -2,9 +2,9 @@ use dioxus::{html::input_data::keyboard_types, prelude::*};
 
 use crate::{
     components::atoms::{
-        header::HeaderEvent, message::Message, Attach, Button, MessageInput, MessageView,
+        header::HeaderEvent, message::Message, Attach, MessageInput, MessageView,
     },
-    services::matrix::matrix::TimelineMessageType,
+    services::matrix::matrix::{TimelineMessageType, EventOrigin},
 };
 
 #[derive(Debug, Clone)]
@@ -18,11 +18,13 @@ pub struct ReplyingTo {
     pub content: TimelineMessageType,
     pub display_name: String,
     pub avatar_uri: Option<String>,
+    pub origin: EventOrigin,
 }
 
 #[derive(Props)]
 pub struct InputMessageProps<'a> {
     message_type: &'a str,
+    placeholder: &'a str,
     #[props(!optional)]
     replying_to: &'a Option<ReplyingTo>,
     is_attachable: bool,
@@ -39,6 +41,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
 
     let container_style = r#"
         display: flex;
+        gap: 0.75rem;
     "#;
     cx.render(rsx! {
       div {
@@ -56,6 +59,8 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                         avatar_uri: x.avatar_uri.clone(),
                         content: x.content.clone(),
                         reply: None,
+                        origin: x.origin.clone(),
+                        time: String::from(""),
                     },
                     is_replying: true,
                     on_event: move |event| {cx.props.on_event.call(event)}
@@ -64,7 +69,6 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
         }
         div {
             style: "{container_style}", 
-            class: "input__t",
             if cx.props.is_attachable {
                 rsx!(
                     Attach {
@@ -74,7 +78,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
             }
             MessageInput {
                 message: "{message_field}",
-                placeholder: "Escribe...",
+                placeholder: cx.props.placeholder,
                 itype: cx.props.message_type,
                 on_input: move |event: FormEvent| {
                     message_field.set(event.value.clone());
@@ -84,19 +88,13 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                         cx.props.on_submit.call(FormMessageEvent { value: message_field.get().clone() });
                         message_field.set(String::new());
                     }
+                },
+                on_click: move |_| {
+                    cx.props.on_submit.call(FormMessageEvent { value: message_field.get().clone() });
+                    message_field.set(String::new());
                 }
             }
-            if message_field.get().len() > 0 {
-                rsx!(
-                    Button {
-                        text: "Enviar",
-                        on_click: move |_| {
-                            cx.props.on_submit.call(FormMessageEvent { value: message_field.get().clone() });
-                            message_field.set(String::new());
-                        }
-                    }
-                )
-            }
+            
         }
       }
     })

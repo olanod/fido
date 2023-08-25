@@ -23,7 +23,9 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                         content: message.content.clone(),
                         avatar_uri: message.avatar_uri.clone(),
                         reply: None,
-                        event_id: None
+                        event_id: None,
+                        origin: message.origin.clone(),
+                        time: message.time.clone(),
                     },
                     is_replying: false,
                     on_event: move |_| {}

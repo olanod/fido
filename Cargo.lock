@@ -409,6 +409,7 @@ name = "chat"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "console_log",
  "dioxus 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dioxus-core 0.3.3 (git+https://github.com/DioxusLabs/dioxus.git?branch=master)",
