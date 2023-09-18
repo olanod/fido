@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
 use crate::components::atoms::message::{Message, Messages};
-use crate::components::molecules::input_message::FormMessageEvent;
+use crate::components::molecules::input_message::{FormMessageEvent, ReplyingTo};
 use crate::components::molecules::{InputMessage, List};
 use crate::services::matrix::matrix::{
     build_client, login, EventOrigin, FullSession, TimelineMessageType,
 };
+use crate::utils::i18n_get_key_value::i18n_get_key_value;
 use dioxus::prelude::*;
 use dioxus_std::i18n::use_i18;
 use dioxus_std::translate;
@@ -69,6 +70,8 @@ pub fn IndexLogin(cx: Scope) -> Element {
             translate!(i18, "login.chat_errors.invalid_username_password"),
         ),
     ]);
+
+    use_shared_state_provider::<Option<ReplyingTo>>(cx, || None);
 
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
 
@@ -305,15 +308,13 @@ pub fn IndexLogin(cx: Scope) -> Element {
     cx.render(rsx! {
         div {
             class:"chat",
-            List {
-                messages: messages
-            }
+            // List {
+            //     messages: messages
+            // }
             InputMessage {
                 message_type: input_type.get().as_str(),
-                replying_to: &None,
                 placeholder: input_placeholder.get().as_str(),
-                is_attachable: false,
-                on_submit: search
+                on_submit: search,
                 on_event: move |_| {}
             }
         }
@@ -344,10 +345,6 @@ pub fn push_message(
 
     let current_id = *next_id.read();
     next_id.set(current_id + 1);
-}
-
-pub fn i18n_get_key_value(i18n_map: &HashMap<&str, String>, key: &str) -> String {
-    i18n_map.get_key_value(key).unwrap().1.clone()
 }
 
 pub async fn sync(client: Client, initial_sync_token: Option<String>) -> anyhow::Result<()> {

@@ -1,16 +1,8 @@
 use dioxus::prelude::*;
 
-use crate::components::atoms::{ArrowLeft, Avatar, Icon};
+use crate::components::atoms::{ArrowLeft, Avatar, Icon, header_main::HeaderCallOptions};
 
-#[derive(Debug)]
-pub enum HeaderCallOptions {
-    CLOSE,
-}
-
-#[derive(Debug)]
-pub struct HeaderEvent {
-    pub value: HeaderCallOptions,
-}
+use super::header_main::HeaderEvent;
 
 #[derive(Props)]
 pub struct HeaderProps<'a> {

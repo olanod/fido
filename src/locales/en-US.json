@@ -40,9 +40,6 @@
             }
         },
         "chat": {
-            "nav": {
-                "log_out": "Log Out"
-            },
             "helpers": {
                 "join": {
                     "title": "Join a room",
@@ -58,6 +55,11 @@
             "message_list": {
                 "see_more": "See more"
             }
+        },
+        "menu": {
+            "profile": "Profile",
+            "chats": "Chats",
+            "log_out": "Log Out"
         }
     }
 }

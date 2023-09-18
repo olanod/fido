@@ -1,18 +1,17 @@
 #![allow(non_snake_case)]
 use chat::components::atoms::Spinner;
-use chat::components::organisms::login_old::LoggedIn;
-use chat::pages::login::Login;
-use chat::pages::route::Route;
+use chat::components::molecules::rooms::CurrentRoom;
+use chat::components::organisms::login::LoggedIn;
 use chat::MatrixClientState;
 use dioxus::prelude::*;
-use dioxus_router::prelude::Router;
 use gloo::storage::errors::StorageError;
 use gloo::storage::LocalStorage;
 use log::{info, LevelFilter};
 
-use chat::components::organisms::IndexLogin;
+use chat::components::organisms::{IndexChat, IndexLogin};
 use chat::services::matrix::matrix::*;
-use dioxus_std::{i18n::*, translate};
+use dioxus_std::i18n::*;
+use dioxus_std::translate;
 use matrix_sdk::config::SyncSettings;
 use matrix_sdk::ruma::exports::serde_json;
 use matrix_sdk::Client;
@@ -63,6 +62,11 @@ fn App(cx: Scope) -> Element {
         is_logged_in: false,
     });
     use_shared_state_provider::<MatrixClientState>(cx, || MatrixClientState { client: None });
+    use_shared_state_provider::<CurrentRoom>(cx, || CurrentRoom {
+        id: String::new(),
+        name: String::new(),
+        avatar_uri: None,
+    });
 
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
     let matrix_client = use_shared_state::<MatrixClientState>(cx).unwrap();
@@ -94,44 +98,38 @@ fn App(cx: Scope) -> Element {
         }
     });
 
-    render! {
-        match &matrix_client.read().client {
-            Some(_) => {
-                rsx!(div {
-                    class: "page",
-                    if logged_in.read().is_logged_in {
-                        rsx!(
-                            section {
-                                class: "chat",
-                                Router::<Route> {}
-                            }
-                        )
-                    } else if *restoring_session.read() {
-                        rsx!(
-                            Restoring {}
-                        )
-                    } else {
-                        rsx!(
-                            section {
-                                class: "login",
-                                style: "
-                                    width: 100%;
-                                ",
-                                // IndexLogin {}
-                                Login {}
-                            }
-                        )
-                    }
-                })
-            }
-            None => rsx!(
-                div {
-                    class: "spinner-dual-ring--center",
-                    Spinner {}
+    cx.render(match &matrix_client.read().client {
+        Some(_) => {
+            rsx!(div {
+                class: "page",
+                if logged_in.read().is_logged_in {
+                    rsx!(
+                        section {
+                            class: "chat",
+                            IndexChat {}
+                        }
+                    )
+                } else if *restoring_session.read() {
+                    rsx!(
+                        Restoring {}
+                    )
+                } else {
+                    rsx!(
+                        section {
+                            class: "login",
+                            IndexLogin {}
+                        }
+                    )
                 }
-            ),
+            })
         }
-    }
+        None => rsx!(
+            div {
+                class: "spinner-dual-ring--center",
+                Spinner {}
+            }
+        ),
+    })
 }
 
 pub async fn sync(

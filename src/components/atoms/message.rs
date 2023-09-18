@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
 
-use crate::{components::atoms::{Avatar, header::HeaderCallOptions, Icon, Close}, services::matrix::matrix::{TimelineMessageType, EventOrigin}};
+use crate::{components::atoms::{Avatar, Icon, Close, header_main::HeaderCallOptions}, services::matrix::matrix::{TimelineMessageType, EventOrigin}};
 
-use super::{MessageReply, header::HeaderEvent};
+use super::{MessageReply, header_main::HeaderEvent};
 
 #[derive(PartialEq, Props, Debug, Clone)]
 pub struct Message {

@@ -6,7 +6,7 @@ pub struct RoomItem {
     pub avatar_uri: Option<String>,
     pub id: String,
     pub name: String,
-    pub is_public: bool,
+    pub is_public: bool
 }
 
 #[derive(Props)]

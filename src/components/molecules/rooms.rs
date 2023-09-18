@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 
 use crate::components::atoms::{room::RoomItem, MessageInput, RoomView};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CurrentRoom {
     pub id: String,
     pub name: String,
@@ -26,7 +26,7 @@ pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
         cx.props
             .rooms
             .iter()
-            .filter(|r| r.is_public)
+            // .filter(|r| r.is_public)
             .cloned()
             .collect::<Vec<_>>()
     });
@@ -44,6 +44,7 @@ pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
                 message: "{pattern}",
                 placeholder: "Buscar",
                 itype: "search",
+                error: None,
                 on_input: move |event: FormEvent| {
                     pattern.set(event.value.clone());
 

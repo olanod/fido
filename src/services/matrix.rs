@@ -204,6 +204,47 @@ pub mod matrix {
         }
     }
 
+    pub struct AccountInfo {
+        pub name: String,
+        pub avatar_uri: Option<String>,
+    }
+
+    pub async fn account(client: &Client) -> AccountInfo {
+        let avatar = client.account().get_avatar_url().await;
+        let display_name = client.account().get_display_name().await;
+
+        let avatar_uri = match avatar {
+            Ok(uri) => {
+                if let Some(avatar) = uri {
+                    let avatar = &*avatar;
+                    let (server, id) = avatar.parts().unwrap();
+                    let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=24&height=24&method=crop", server, id);
+
+                    Some(String::from(uri))
+                } else {
+                    None
+                }
+            }
+            Err(_) => None,
+        };
+
+        let name = match display_name {
+            Ok(name) => {
+                if let Some(n) = name {
+                    n
+                } else {
+                    String::from("")
+                }
+            },
+            Err(_) => String::from("XXXXXXX")
+        };
+
+        AccountInfo {
+            name,
+            avatar_uri,
+        }
+    }
+
     #[derive(PartialEq, Debug, Clone)]
     pub enum TimelineMessageType {
         Image(String),
@@ -308,6 +349,10 @@ pub mod matrix {
                 .await;
                 message_result
             }
+            // AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::RoomEncrypted(xxx)) => {
+            //     let nnn = xxx.as_original().unwrap();
+            //     nnn.content
+            // }
             _ => None,
         }
     }

@@ -1,7 +1,6 @@
 use dioxus::prelude::*;
-use wasm_bindgen::JsCast;
 
-use crate::components::atoms::{Attachment, Icon};
+use crate::{components::atoms::{Attachment, Icon}, utils::get_element::GetElement};
 
 #[derive(Debug)]
 pub struct AttachEvent {
@@ -10,7 +9,7 @@ pub struct AttachEvent {
 
 #[derive(Props)]
 pub struct AttachProps<'a> {
-    on_click: EventHandler<'a, AttachEvent>,
+    on_click: EventHandler<'a, Event<FormData>>,
 }
 
 pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
@@ -24,20 +23,32 @@ pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
         height: 2.625rem;
     "#;
 
+    let input_attach_style = r#"
+        visibility: hidden;
+        width: 0;
+    "#;
+
+    let on_handle_attach = move |_| {
+        let element = GetElement::<web_sys::HtmlInputElement>::get_element_by_id("input_file");
+
+        element.click();
+    };
+
     cx.render(rsx!(
         button {
             style: "{button_style}",
-            onclick: move |_| {
-                let window = web_sys::window().expect("global window does not exists");
-                let document = window.document().expect("expecting a document on window");
-                let val = document.get_element_by_id("input_file").unwrap().dyn_into::<web_sys::HtmlInputElement>().unwrap(); 
-                val.click();
-
-            } ,
+            onclick: on_handle_attach,
             Icon {
                 stroke: "#fff",
                 icon: Attachment
             }
+        }
+
+        input {
+            style: "{input_attach_style}",
+            r#type: "file",
+            id: "input_file",
+            oninput: move |event| cx.props.on_click.call(event)
         }
     ))
 }

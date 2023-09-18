@@ -40,9 +40,6 @@
             }
         },
         "chat": {
-            "nav": {
-                "log_out": "Cerrar sesión"
-            },
             "helpers": {
                 "join": {
                     "title": "Unirse a un room",
@@ -58,6 +55,11 @@
             "message_list": {
                 "see_more": "Ver más"
             }
+        },
+        "menu": {
+            "profile": "Perfil",
+            "chats": "Chats",
+            "log_out": "Cerrar sesión"
         }
     }
 }
