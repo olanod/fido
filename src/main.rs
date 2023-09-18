@@ -1,7 +1,6 @@
 #![allow(non_snake_case)]
 use chat::components::atoms::Spinner;
-use chat::components::organisms::login_old::LoggedIn;
-use chat::pages::login::Login;
+use chat::pages::login::{Login, LoggedIn};
 use chat::pages::route::Route;
 use chat::MatrixClientState;
 use dioxus::prelude::*;
@@ -10,7 +9,6 @@ use gloo::storage::errors::StorageError;
 use gloo::storage::LocalStorage;
 use log::{info, LevelFilter};
 
-use chat::components::organisms::IndexLogin;
 use chat::services::matrix::matrix::*;
 use dioxus_std::{i18n::*, translate};
 use matrix_sdk::config::SyncSettings;
@@ -117,7 +115,6 @@ fn App(cx: Scope) -> Element {
                                 style: "
                                     width: 100%;
                                 ",
-                                // IndexLogin {}
                                 Login {}
                             }
                         )

@@ -3,7 +3,7 @@ use std::ops::Deref;
 use dioxus::prelude::*;
 use matrix_sdk::Client;
 
-use crate::{components::organisms::login_old::LoggedIn, MatrixClientState};
+use crate::{ MatrixClientState, pages::login::LoggedIn};
 
 #[allow(clippy::needless_return)]
 pub fn use_init_app(cx: &ScopeState) {

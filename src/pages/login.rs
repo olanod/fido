@@ -9,7 +9,7 @@ use matrix_sdk::{Client, config::SyncSettings};
 use crate::{
     components::{
         atoms::MessageInput,
-        organisms::{login_form::FormLoginEvent, LoginForm, login_old::LoggedIn},
+        organisms::{login_form::FormLoginEvent, LoginForm},
     },
     utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::{login, FullSession},
 };
@@ -19,6 +19,10 @@ pub struct LoginInfo {
     homeserver: String,
     username: String,
     password: String,
+}
+
+pub struct LoggedIn {
+    pub is_logged_in: bool,
 }
 
 pub fn Login(cx: Scope) -> Element {
