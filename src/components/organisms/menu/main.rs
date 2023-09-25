@@ -6,8 +6,6 @@ use matrix_sdk::ruma::{
         create_room::{self},
         Visibility,
     },
-    events::AnyInitialStateEvent,
-    user_id, OwnedUserId, UserId,
 };
 
 use crate::{
@@ -22,8 +20,9 @@ use crate::{
             Menu, Modal,
         },
     },
-    hooks::use_client::use_client,
+    hooks::{use_client::use_client, use_modal::use_modal},
     pages::route::Route,
+    services::matrix::matrix::{account, AccountInfo},
 };
 
 pub fn IndexMenu(cx: Scope) -> Element {
@@ -33,12 +32,27 @@ pub fn IndexMenu(cx: Scope) -> Element {
         avatar_uri: None,
     });
 
+    let profile = use_state::<AccountInfo>(cx, || AccountInfo {
+        name: String::from(""),
+        avatar_uri: None,
+    });
+
+    let modal = use_modal(cx);
     let show_menu = use_ref(cx, || false);
-    let show_modal = use_ref(cx, || false);
     let client = use_client(cx);
 
+    use_coroutine(cx, |_: UnboundedReceiver<bool>| {
+        to_owned![client, profile];
+
+        async move {
+            let data = account(&client.get()).await;
+
+            profile.set(data);
+        }
+    });
+
     let header_event = move |evt: HeaderEvent| {
-        to_owned![show_menu];
+        to_owned![show_menu, modal];
 
         match evt.value {
             HeaderCallOptions::CLOSE => {
@@ -46,8 +60,8 @@ pub fn IndexMenu(cx: Scope) -> Element {
                 show_menu.set(!current_value);
             }
             HeaderCallOptions::EDIT => {
-                let current_value = *show_modal.read();
-                show_modal.set(!current_value);
+                modal.set_header(Some(profile.get().clone()));
+                modal.show();
             }
         }
     };
@@ -56,9 +70,7 @@ pub fn IndexMenu(cx: Scope) -> Element {
         cx.spawn({
             to_owned![client];
 
-            async move {
-                
-            }
+            async move {}
         })
     };
 
@@ -74,26 +86,6 @@ pub fn IndexMenu(cx: Scope) -> Element {
                         on_click:move |_|{
                             let current_value = *show_menu.read();
                             show_menu.set(!current_value);
-                        }
-                    }
-                )
-            }
-
-            if *show_modal.read() {
-                rsx!(
-                    Modal {
-                        on_click: move |event: ModalForm| {
-                            match event.value {
-                                RoomType::CHAT => {
-                                    handle()
-                                },
-                                RoomType::GROUP => {},
-                                RoomType::CHANNEL => {}
-                            }
-                        },
-                        on_close:move |_|{
-                            let current_value = *show_modal.read();
-                            show_modal.set(!current_value);
                         }
                     }
                 )

@@ -1,9 +1,8 @@
-use std::ops::Deref;
-
 use dioxus::prelude::*;
-use matrix_sdk::Client;
 
-use crate::{ MatrixClientState, pages::login::LoggedIn};
+use crate::{pages::login::LoggedIn, MatrixClientState};
+
+use super::use_modal::ModalState;
 
 #[allow(clippy::needless_return)]
 pub fn use_init_app(cx: &ScopeState) {
@@ -11,20 +10,8 @@ pub fn use_init_app(cx: &ScopeState) {
         is_logged_in: false,
     });
     use_shared_state_provider::<MatrixClientState>(cx, || MatrixClientState { client: None });
-}
-
-#[derive(Clone)]
-pub struct UseClientState {
-    inner: UseSharedState<MatrixClientState>,
-}
-
-impl UseClientState {
-    pub fn get(&self) -> Client {
-        self.inner.read().deref().client.clone().unwrap()
-    }
-
-    pub fn set(&self, client: MatrixClientState) {
-        let mut inner = self.inner.write();
-        *inner = client;
-    }
+    use_shared_state_provider::<ModalState>(cx, || ModalState {
+        show: false,
+        account: None,
+    });
 }

@@ -13,6 +13,7 @@ pub mod message_reply;
 pub mod notification;
 pub mod room;
 pub mod spinner;
+pub mod user;
 
 pub use attach::Attach;
 pub use avatar::Avatar;
@@ -29,3 +30,4 @@ pub use message_reply::MessageReply;
 pub use notification::Notification;
 pub use room::RoomView;
 pub use spinner::Spinner;
+pub use user::UserProfile;

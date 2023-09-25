@@ -70,8 +70,9 @@ pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
                 rooms_filtered.get().iter().map(|room| {
                     rsx!(RoomView {
                         key: "{room.id}",
-                        room_avatar_uri: room.avatar_uri.as_ref(),
-                        room_name: room.name.as_str(),
+                        displayname: room.name.as_str(),
+                        avatar_uri: room.avatar_uri.as_ref(),
+                        description: "",
                         on_click: move |_| {
                             cx.props.on_submit.call(FormRoomEvent {
                                 room: CurrentRoom {

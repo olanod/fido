@@ -9,6 +9,7 @@ pub struct MessageInputProps<'a> {
     placeholder: &'a str,
     #[props(!optional)]
     error: Option<&'a String>,
+    label: Option<&'a str>,
     on_input: EventHandler<'a, FormEvent>,
     on_keypress: EventHandler<'a, KeyboardEvent>,
     on_click: EventHandler<'a, MouseEvent>,
@@ -25,6 +26,19 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
 
     cx.render(rsx!(
         section {
+            style: r#"
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                width: 100%
+            "#,
+            if let Some(value) = cx.props.label {
+                rsx!(
+                    label {
+                        "{value}"
+                    }
+                )
+            }
             div {
                 style: "{error_container_style}",
                 class: "input-wrapper",

@@ -6,36 +6,37 @@ pub struct RoomItem {
     pub avatar_uri: Option<String>,
     pub id: String,
     pub name: String,
-    pub is_public: bool
+    pub is_public: bool,
 }
 
 #[derive(Props)]
 pub struct RoomViewProps<'a> {
+    displayname: &'a str,
     #[props(!optional)]
-    room_avatar_uri: Option<&'a String>,
-    room_name: &'a str,
+    avatar_uri: Option<&'a String>,
+    description: Option<&'a str>,
     on_click: EventHandler<'a, MouseEvent>,
 }
 
 pub fn RoomView<'a>(cx: Scope<'a, RoomViewProps<'a>>) -> Element<'a> {
     cx.render(rsx! {
-      button {
+      div {
         class: "room-view",
         onclick: move |event| cx.props.on_click.call(event),
 
         Avatar {
-          name: cx.props.room_name.clone(),
+          name: cx.props.displayname.clone(),
           size: 60,
-          uri: cx.props.room_avatar_uri
+          uri: cx.props.avatar_uri
         }
         article {
           p {
             class: "room-view__title",
-            "{cx.props.room_name}"
+            "{cx.props.displayname}"
           }
           p {
             class: "room-view__message",
-            ""
+            "{cx.props.description.unwrap_or(&String::new())}"
           }
         }
       }

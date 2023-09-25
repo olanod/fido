@@ -1,10 +1,9 @@
-use dioxus::prelude::*;
-
 use crate::{
-    components::atoms::{copy::CopyIcon, Avatar, ChatConversation, Close, Group, Icon, NewChat},
-    hooks::use_client::use_client,
-    services::matrix::matrix::{account, AccountInfo},
+    components::atoms::{Avatar, ChatConversation, Close, Group, Icon, NewChat},
+    hooks::use_modal::use_modal,
 };
+use dioxus::prelude::*;
+use dioxus_router::prelude::use_navigator;
 
 pub struct ModalForm {
     pub value: RoomType,
@@ -12,6 +11,7 @@ pub struct ModalForm {
 
 #[derive(Props)]
 pub struct ModalProps<'a> {
+    // account: &'a AccountInfo,
     on_click: EventHandler<'a, ModalForm>,
     on_close: EventHandler<'a, MouseEvent>,
 }
@@ -23,18 +23,22 @@ pub enum RoomType {
 }
 
 pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
-    let client = use_client(cx);
-    let profile = use_state::<AccountInfo>(cx, || AccountInfo {
-        name: String::from("XXXXXXXXX"),
-        avatar_uri: None,
-    });
+    let modal = use_modal(cx);
 
     let container_style = r#"
-        position: absolute;
-        background: var(--light-modal-backdrop, rgba(0, 0, 0, 0.30));
+        position: fixed;
         height: 100vh;
         width: 100vw;
         top: 0;
+        left: 0;
+    "#;
+
+    let shadow_style = r#"
+        position: absolute;
+        background: var(--light-modal-backdrop, rgba(0, 0, 0, 0.30));
+        height: 100%;
+        width: 100%;
+        z-index: 10;
     "#;
 
     let modal_style = r#"
@@ -42,7 +46,9 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
         bottom: 0;
         width: 100%;
         background: white;
-        padding: 24px 18px;
+        padding: 24px 18px 32px;
+        border-radius: 28px 28px 0px 0px;
+        z-index: 20;
     "#;
 
     let title_container_style = r#"
@@ -70,16 +76,11 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
 
     let message_style = r#"
         color: var(--light-modal-text-secondary, rgba(60, 66, 66, 0.60));
-        text-align: center;
-        font-variant-numeric: lining-nums proportional-nums;
         
-        /* 14/14 - Semibold */
-        font-family: SF Pro Rounded;
         font-size: 14px;
         font-style: normal;
         font-weight: 600;
         line-height: 18px; /* 128.571% */
-        letter-spacing: 0.6px;
         text-align: left;
     "#;
 
@@ -111,6 +112,8 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
         flex-direction: column;
         padding: 2px;
         align-items: center;
+        border: 1px solid transparent;
+        cursor: pointer;
     "#;
 
     let cta_title_style = r#"
@@ -125,42 +128,45 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
         font-size: 12px;
         font-style: normal;
         font-weight: 500;
-        line-height: 16px; /* 133.333% */
+        line-height: 18px; /* 133.333% */
     "#;
-
-    use_coroutine(cx, |_: UnboundedReceiver<bool>| {
-        to_owned![client, profile];
-
-        async move {
-            let data = account(&client.get()).await;
-
-            profile.set(data);
-        }
-    });
 
     cx.render(rsx! {
         section {
             style: "{container_style}",
             div {
+                style: "{shadow_style}",
+                onclick: move |event| {
+                    cx.props.on_close.call(event)
+                },
+            }
+            div {
                 style: "{modal_style}",
+                class: "fadeIn",
                 article {
                     style: "{title_container_style}",
                     div {
                         style: "{account_style}",
-                        Avatar {
-                            name: "{profile.get().name}",
-                            size: 36,
-                            uri: profile.get().avatar_uri.as_ref()
-                        }
-                        div {
-                            p {
-                                style: "{username_style}",
-                                "{profile.get().name}, Take the leap"
-                            }
-                            p {
-                                style: "{message_style}",
-                                "All it takes is a click :)"
-                            }
+
+                        if let Some(account) = modal.get().account {
+
+                            rsx!(
+                                Avatar {
+                                    name: "{account.name}",
+                                    size: 42,
+                                    uri: None
+                                }
+                                div {
+                                    p {
+                                        style: "{username_style}",
+                                        "{account.name}, Take the leap"
+                                    }
+                                    p {
+                                        style: "{message_style}",
+                                        "All it takes is a click :)"
+                                    }
+                                }
+                            )
                         }
                     }
                     button {

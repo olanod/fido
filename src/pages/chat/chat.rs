@@ -1,7 +1,10 @@
 use dioxus::prelude::*;
 use dioxus_router::prelude::*;
 
+use crate::components::molecules::modal::{ModalForm, RoomType};
+use crate::components::molecules::Modal;
 use crate::hooks::use_listen_message::use_listen_message;
+use crate::hooks::use_modal::use_modal;
 use crate::hooks::use_notification::use_notification;
 use crate::pages::route::Route;
 
@@ -69,6 +72,9 @@ pub fn Chat(cx: Scope) -> Element {
         align-items: center;
     "#;
 
+    let modal = use_modal(cx);
+    let navigator = use_navigator(cx);
+
     render! {
         if notification.get().show {
             rsx!(
@@ -76,6 +82,30 @@ pub fn Chat(cx: Scope) -> Element {
                     title: "{notification.get().title}",
                     body: "{notification.get().body}",
                     on_click: move |_| info!("click notification")
+                }
+            )
+        }
+        if modal.get().show {
+            rsx!(
+                Modal {
+                    on_click: move |event: ModalForm| {
+                        match event.value {
+                            RoomType::CHAT => {
+                                modal.hide();
+                                navigator.push(Route::RoomNew {});
+                            },
+                            RoomType::GROUP => {
+                                modal.hide();
+                                navigator.push(Route::RoomGroup {});
+                            },
+                            RoomType::CHANNEL => {
+                                modal.hide()
+                            },
+                        }
+                    },
+                    on_close:move |_|{
+                        modal.hide()
+                    }
                 }
             )
         }

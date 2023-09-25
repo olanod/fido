@@ -1,13 +1,12 @@
 use dioxus::prelude::*;
 
-use crate::components::atoms::{ArrowLeft, Avatar, Icon, header_main::HeaderCallOptions};
+use crate::components::atoms::{header_main::HeaderCallOptions, ArrowLeft, Avatar, Icon};
 
 use super::header_main::HeaderEvent;
 
 #[derive(Props)]
 pub struct HeaderProps<'a> {
-    #[props(!optional)]
-    avatar_uri: Option<&'a String>,
+    avatar_element: Option<Element<'a>>,
     text: &'a str,
     on_event: EventHandler<'a, HeaderEvent>,
 }
@@ -19,7 +18,7 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
         gap: 0.5rem;
         align-items: center;
         position: absolute;
-        width: inherit;
+        width: 100%;
         padding: 1.25rem 0;
         background: var(--surface-1);
         font-weight: 600;
@@ -56,10 +55,10 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
               width: 24
             }
           }
-          Avatar {
-            name: cx.props.text.clone(),
-            size: 32,
-            uri: cx.props.avatar_uri
+          if let Some(element) = &cx.props.avatar_element {
+            rsx!(
+              element
+            )
           }
           span {
             style: "{title_style}",

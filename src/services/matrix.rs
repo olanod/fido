@@ -1,5 +1,8 @@
 pub mod matrix {
-    use std::time::{Duration, UNIX_EPOCH};
+    use std::{
+        ops::Deref,
+        time::{Duration, UNIX_EPOCH},
+    };
 
     use chrono::{DateTime, Local, Utc};
     use log::info;
@@ -12,7 +15,11 @@ pub mod matrix {
         room::{MessagesOptions, Room},
         ruma::{
             api::{
-                client::filter::{LazyLoadOptions, RoomEventFilter},
+                self,
+                client::{
+                    filter::{LazyLoadOptions, RoomEventFilter},
+                    room::{create_room::v3::RoomPreset, Visibility},
+                },
                 error::{FromHttpResponseError, ServerError},
             },
             assign,
@@ -29,7 +36,7 @@ pub mod matrix {
             },
             MilliSecondsSinceUnixEpoch, OwnedEventId, OwnedUserId, RoomId, TransactionId, UInt,
         },
-        Client, Error, HttpError,
+        Client, Error, HttpError, HttpResult,
     };
     use url::Url;
 
@@ -138,25 +145,45 @@ pub mod matrix {
         let x = client.joined_rooms();
 
         info!("{x:?}");
-        for room in client.rooms() {
+        for room in client.joined_rooms() {
             let x = room.avatar_url();
 
-            if let Some(name) = room.name() {
-                let avatar_uri: Option<String> = match x {
-                    Some(avatar) => {
-                        let (server, id) = avatar.parts().unwrap();
-                        let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=24&height=24&method=crop", server, id);
-                        Some(String::from(uri))
-                    }
-                    None => None,
-                };
+            let avatar_uri: Option<String> = match x {
+                Some(avatar) => {
+                    let (server, id) = avatar.parts().unwrap();
+                    let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=48&height=48&method=crop", server, id);
+                    Some(String::from(uri))
+                }
+                None => None,
+            };
 
+            if let Some(name) = room.name() {
                 rooms.push(RoomItem {
                     avatar_uri: avatar_uri,
                     id: room.room_id().to_string(),
                     name: name,
                     is_public: room.is_public(),
                 })
+            } else {
+                let me = client.whoami().await.unwrap();
+                let users = room.members().await;
+
+                if let Ok(members) = users {
+                    let member = members
+                        .into_iter()
+                        .find(|member| !member.user_id().eq(&me.user_id));
+
+                    if let Some(m) = member {
+                        let name = m.name();
+
+                        rooms.push(RoomItem {
+                            avatar_uri: avatar_uri,
+                            id: room.room_id().to_string(),
+                            name: String::from(name),
+                            is_public: room.is_public(),
+                        })
+                    }
+                }
             }
         }
 
@@ -181,7 +208,7 @@ pub mod matrix {
                     let avatar_uri: Option<String> = match avatar {
                         Some(avatar) => {
                             let (server, id) = avatar.parts().unwrap();
-                            let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=24&height=24&method=crop", server, id);
+                            let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=48&height=48&method=crop", server, id);
                             Some(String::from(uri))
                         }
                         None => None,
@@ -204,6 +231,7 @@ pub mod matrix {
         }
     }
 
+    #[derive(Clone)]
     pub struct AccountInfo {
         pub name: String,
         pub avatar_uri: Option<String>,
@@ -218,9 +246,9 @@ pub mod matrix {
                 if let Some(avatar) = uri {
                     let avatar = &*avatar;
                     let (server, id) = avatar.parts().unwrap();
-                    let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=24&height=24&method=crop", server, id);
+                    let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=48&height=48&method=crop", server, id);
 
-                    Some(String::from(uri))
+                    Some(String::from(uri).to_owned())
                 } else {
                     None
                 }
@@ -235,14 +263,32 @@ pub mod matrix {
                 } else {
                     String::from("")
                 }
-            },
-            Err(_) => String::from("XXXXXXX")
+            }
+            Err(_) => String::from(""),
         };
 
-        AccountInfo {
-            name,
-            avatar_uri,
+        AccountInfo { name, avatar_uri }
+    }
+
+    pub async fn create_room(
+        client: &Client,
+        is_dm: bool,
+        users: &[OwnedUserId],
+        name: Option<String>,
+    ) -> HttpResult<api::client::room::create_room::v3::Response> {
+        let mut request = api::client::room::create_room::v3::Request::new();
+
+        request.name = name.as_deref();
+        request.is_direct = is_dm;
+
+        let vis = Visibility::Private;
+        if is_dm {
+            request.invite = users;
+            request.visibility = vis.clone();
+            request.preset = Some(RoomPreset::PrivateChat);
         }
+
+        client.create_room(request).await
     }
 
     #[derive(PartialEq, Debug, Clone)]

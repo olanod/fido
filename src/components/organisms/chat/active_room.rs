@@ -8,7 +8,7 @@ use crate::{
     components::{
         atoms::{
             header_main::{HeaderCallOptions, HeaderEvent},
-            Header,
+            Avatar, Header,
         },
         molecules::{
             input_message::{FormMessageEvent, ReplyingTo},
@@ -109,7 +109,13 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     cx.render(rsx! {
         Header {
             text: "{room.get().name.clone()}",
-            avatar_uri: None,
+            avatar_element: render!(rsx!(
+                Avatar {
+                    name: "{room.get().name}",
+                    size: 32,
+                    uri: None
+                  }
+            )),
             on_event: header_event
         }
         List {},

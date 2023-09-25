@@ -11,6 +11,7 @@ pub mod menu_hamburguer;
 pub mod new_chat;
 pub mod search;
 pub mod send;
+pub mod trash;
 pub mod user_circle;
 pub mod warning;
 
@@ -27,5 +28,6 @@ pub use menu_hamburguer::MenuHamburger;
 pub use new_chat::NewChat;
 pub use search::Search;
 pub use send::Send;
+pub use trash::Trash;
 pub use user_circle::UserCircle;
 pub use warning::Warning;
