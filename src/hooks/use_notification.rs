@@ -2,12 +2,9 @@ use dioxus::prelude::*;
 
 use crate::pages::chat::chat::NotificationItem;
 
-
-
 #[allow(clippy::needless_return)]
 pub fn use_notification(cx: &ScopeState) -> &UseNotificationState {
-    let notification =
-        use_shared_state::<NotificationItem>(cx).expect("Matrix client not provided");
+    let notification = use_shared_state::<NotificationItem>(cx).expect("Notification not provided");
 
     cx.use_hook(move || UseNotificationState {
         inner: notification.clone(),

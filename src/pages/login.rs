@@ -8,10 +8,10 @@ use matrix_sdk::{Client, config::SyncSettings};
 
 use crate::{
     components::{
-        atoms::MessageInput,
+        atoms::{MessageInput, input::InputType, Spinner},
         organisms::{login_form::FormLoginEvent, LoginForm},
     },
-    utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::{login, FullSession},
+    utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::{login, FullSession}, hooks::use_client::use_client,
 };
 
 #[derive(Debug, Clone)]
@@ -25,58 +25,96 @@ pub struct LoggedIn {
     pub is_logged_in: bool,
 }
 
+pub enum LoggedInStatus {
+    Start,
+    Loading,
+    Done,
+    Persisting,
+    LoggedAs(String)
+}
+
+#[inline_props]
+fn LoadingStatus(cx: Scope, text: String) -> Element {
+    cx.render({
+        rsx!(
+            div {
+                class: "column spinner-dual-ring--center",
+                Spinner {}
+
+                p {
+                    style: "color: (--text-1)",
+                    "{text}"
+                }
+            }
+        )
+    })
+}
+
 pub fn Login(cx: Scope) -> Element {
     let i18 = use_i18(cx);
 
-    let i18n_map = HashMap::from([
-        ("actors-bot", translate!(i18, "login.actors.bot")),
-        ("actors-user", translate!(i18, "login.actors.user")),
-        (
-            "homeserver-message",
-            translate!(i18, "login.chat_steps.homeserver.message"),
-        ),
-        (
-            "homeserver-placeholder",
-            translate!(i18, "login.chat_steps.homeserver.placeholder"),
-        ),
-        (
-            "username-message",
-            translate!(i18, "login.chat_steps.username.message"),
-        ),
-        (
-            "username-placeholder",
-            translate!(i18, "login.chat_steps.username.placeholder"),
-        ),
-        (
-            "password-message",
-            translate!(i18, "login.chat_steps.password.message"),
-        ),
-        (
-            "password-placeholder",
-            translate!(i18, "login.chat_steps.password.placeholder"),
-        ),
-        (
-            "messages-validating",
-            translate!(i18, "login.chat_steps.messages.validating"),
-        ),
-        (
-            "messages-welcome",
-            translate!(i18, "login.chat_steps.messages.welcome"),
-        ),
-        (
-            "invalid-url",
-            translate!(i18, "login.chat_errors.invalid_url"),
-        ),
-        ("unknown", translate!(i18, "login.chat_errors.unknown")),
-        (
-            "invalid_username_password",
-            translate!(i18, "login.chat_errors.invalid_username_password"),
-        ),
-    ]);
+    // Claves para el fragmento "chat_steps" dentro de "login"
+let key_login_chat_homeserver_message = "login-chat-homeserver-message";
+let key_login_chat_homeserver_description = "login-chat-homeserver-description";
+let key_login_chat_homeserver_placeholder = "login-chat-homeserver-placeholder";
+let key_login_chat_homeserver_cta = "login-chat-homeserver-cta";
 
-    let homeserver = use_state(cx, || String::from(""));
-    let username = use_state(cx, || String::from(""));
-    let password = use_state(cx, || String::from(""));
+let key_login_chat_credentials_description = "login-chat-credentials-description";
+let key_login_chat_credentials_title = "login-chat-credentials-title";
+
+// Claves para el fragmento "username" dentro de "chat_steps.credentials"
+let key_login_chat_credentials_username_message = "login-chat-credentials-username-message";
+let key_login_chat_credentials_username_placeholder = "login-chat-credentials-username-placeholder";
+
+// Claves para el fragmento "password" dentro de "chat_steps.credentials"
+let key_login_chat_credentials_password_message = "login-chat-credentials-password-message";
+let key_login_chat_credentials_password_placeholder = "login-chat-credentials-password-placeholder";
+
+let key_login_chat_credentials_cta = "login-chat-credentials-cta";
+
+// Claves para el fragmento "messages" dentro de "chat_steps"
+let key_login_chat_messages_validating = "login-chat-messages-validating";
+let key_login_chat_messages_welcome = "login-chat-messages-welcome";
+
+// Claves para el fragmento "chat_errors" dentro de "login"
+let key_login_chat_errors_invalid_url = "login-chat-errors-invalid-url";
+let key_login_chat_errors_unknown = "login-chat-errors-unknown";
+let key_login_chat_errors_invalid_username_password = "login-chat-errors-invalid-username-password";
+
+let i18n_map = HashMap::from([
+    // Traducciones para el fragmento "chat_steps.homeserver" dentro de "login"
+    (key_login_chat_homeserver_message, translate!(i18, "login.chat_steps.homeserver.message")),
+    (key_login_chat_homeserver_description, translate!(i18, "login.chat_steps.homeserver.description")),
+    (key_login_chat_homeserver_placeholder, translate!(i18, "login.chat_steps.homeserver.placeholder")),
+    (key_login_chat_homeserver_cta, translate!(i18, "login.chat_steps.homeserver.cta")),
+
+    (key_login_chat_credentials_title, translate!(i18, "login.chat_steps.credentials.title")),
+    // Traducciones para el fragmento "chat_steps.credentials" dentro de "login"
+    (key_login_chat_credentials_description, translate!(i18, "login.chat_steps.credentials.description")),
+
+    // Traducciones para el fragmento "username" dentro de "chat_steps.credentials"
+    (key_login_chat_credentials_username_message, translate!(i18, "login.chat_steps.credentials.username.message")),
+    (key_login_chat_credentials_username_placeholder, translate!(i18, "login.chat_steps.credentials.username.placeholder")),
+
+    // Traducciones para el fragmento "password" dentro de "chat_steps.credentials"
+    (key_login_chat_credentials_password_message, translate!(i18, "login.chat_steps.credentials.password.message")),
+    (key_login_chat_credentials_password_placeholder, translate!(i18, "login.chat_steps.credentials.password.placeholder")),
+    (key_login_chat_credentials_cta, translate!(i18, "login.chat_steps.credentials.cta")),
+
+    // Traducciones para el fragmento "messages" dentro de "chat_steps"
+    (key_login_chat_messages_validating, translate!(i18, "login.chat_steps.messages.validating")),
+    (key_login_chat_messages_welcome, translate!(i18, "login.chat_steps.messages.welcome")),
+
+    // Traducciones para el fragmento "chat_errors" dentro de "login"
+    (key_login_chat_errors_invalid_url, translate!(i18, "login.chat_errors.invalid_url")),
+    (key_login_chat_errors_unknown, translate!(i18, "login.chat_errors.unknown")),
+    (key_login_chat_errors_invalid_username_password, translate!(i18, "login.chat_errors.invalid_username_password")),
+]);
+
+    let client = use_client(cx);
+    let homeserver = use_state(cx, || String::from("https://matrix.org"));
+    let username = use_state(cx, || String::from("@bob-test-1:matrix.org"));
+    let password = use_state(cx, || String::from("Theguardian#1"));
     let error = use_state(cx, || None);
 
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
@@ -87,16 +125,18 @@ pub fn Login(cx: Scope) -> Element {
         password: String::from(""),
     });
 
+    let is_loading_loggedin = use_ref::<LoggedInStatus>(cx, || LoggedInStatus::Start);
+
     let on_update_homeserver = move || {
         cx.spawn({
-            to_owned![login_info, homeserver, error];
+            to_owned![login_info, homeserver, error, is_loading_loggedin];
 
             async move {
                 let response = Client::builder()
                     .homeserver_url(&homeserver.get().clone())
                     .build()
                     .await;
-
+                
                 match response {
                     Ok(client) => {
                         login_info.with_mut(|info| info.homeserver = homeserver.get().clone());
@@ -117,11 +157,12 @@ pub fn Login(cx: Scope) -> Element {
         login_info.with_mut(|info| info.password = password.get().clone());
 
         cx.spawn({
-            to_owned![logged_in, login_info, i18n_map, username, password, error];
+            to_owned![logged_in, login_info, username, password, is_loading_loggedin, client];
 
             info!("{:?}",login_info.read());
 
             async move {
+                is_loading_loggedin.set(LoggedInStatus::Loading);
                 let response = login(
                     login_info.read().homeserver.clone(),
                     login_info.read().username.clone(),
@@ -130,34 +171,45 @@ pub fn Login(cx: Scope) -> Element {
                 .await;
         
                 match response {
-                    Ok((client, serialized_session)) => {
+                    Ok((c, serialized_session)) => {
+                        is_loading_loggedin.set(LoggedInStatus::Done);
                         let x = <LocalStorage as gloo::storage::Storage>::set(
                             "session_file",
                             serialized_session,
                         );
+
+                        is_loading_loggedin.set(LoggedInStatus::Persisting);
         
                         info!("Session persisted in {:?}", x);
         
-                        let x = sync(client.clone(), None).await;
+                        let x = sync(c.clone(), None).await;
         
                         info!("new session {:?}", x);
         
+                        
+                        let x = c.whoami().await;
+                        info!("whoami {:?}", x);
+
+                        client.set(crate::MatrixClientState { client: Some(c.clone()) });
+                        is_loading_loggedin.set(LoggedInStatus::LoggedAs(c.user_id().unwrap().to_string()));
+
                         logged_in.write().is_logged_in = true;
                     }
                     Err(err) => {
                         info!("{:?}", err.to_string());
+                        is_loading_loggedin.set(LoggedInStatus::Start);
                         if err
                             .to_string()
                             .eq("the server returned an error: [403 / M_FORBIDDEN] Invalid username or password")
                         {
-                            error.set(Some(i18n_get_key_value(
-                                &i18n_map,
-                                "invalid_username_password",
-                            )))
+                            // error.set(Some(i18n_get_key_value(
+                            //     &i18n_map,
+                            //     key_login_chat_errors_invalid_username_password,
+                            // )))
                         } else {
-                            error.set(Some(i18n_get_key_value(
-                                &i18n_map, "unknown",
-                            )))
+                            // error.set(Some(i18n_get_key_value(
+                            //     &i18n_map, key_login_chat_errors_unknown,
+                            // )))
                         }
         
                         username.set(String::from(""));
@@ -174,90 +226,120 @@ pub fn Login(cx: Scope) -> Element {
         })
     };
 
-    render!(if login_info.read().homeserver.len() == 0 {
-        rsx!(LoginForm {
-            title: "Pick a homerserver",
-            description: "Join a server, by default we use https://matrix.org",
-            button_text: "Confirm server",
-            emoji: "🛰️",
-            on_handle: move |_| { on_update_homeserver() },
-            body: render!(rsx!(
-                div {
-                    MessageInput {
-                        itype: "text",
-                        message: "{homeserver.get()}",
-                        placeholder: "https://matrix.org",
-                        error: if homeserver.get().len() > 0 {error.get().as_ref()}else {None},
-                        on_input: move |event: FormEvent| {
-                            homeserver.set(event.value.clone())
-                        },
-                        on_keypress: move |event: KeyboardEvent| {
-                            info!("{:?}", event.code());
-                            if event.code() == keyboard_types::Code::Enter && homeserver.get().len() > 0 {
-                                on_update_homeserver()
+    render!(
+        if login_info.read().homeserver.len() == 0 {
+            rsx!(
+                LoginForm {
+                    title: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_message)}",
+                    description: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_description)}",
+                    button_text: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_cta)}",
+                    emoji: "🛰️",
+                    on_handle: move |_| { on_update_homeserver() },
+                    body: render!(rsx!(
+                        div {
+                            MessageInput {
+                                message: "{homeserver.get()}",
+                                placeholder: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_placeholder)}",
+                                error: if homeserver.get().len() > 0 {error.get().as_ref()}else {None},
+                                on_input: move |event: FormEvent| {
+                                    homeserver.set(event.value.clone())
+                                },
+                                on_keypress: move |event: KeyboardEvent| {
+                                    info!("{:?}", event.code());
+                                    if event.code() == keyboard_types::Code::Enter && homeserver.get().len() > 0 {
+                                        on_update_homeserver()
+                                    }
+                                },
+                                on_click: move |_| {
+                                    on_update_homeserver()
+                                }
                             }
-                        },
-                        on_click: move |_| {
-                            on_update_homeserver()
                         }
-                    }
+                    ))
                 }
-            ))
-        })
-    } else if login_info.read().username.len() == 0 || login_info.read().password.len() == 0 {
-        rsx!(LoginForm {
-            title: "Complete your info",
-            description: "Make your world, build your future",
-            button_text: "Unlock app",
-            emoji: "👋",
-            on_handle: move |event: FormLoginEvent| {
-                on_handle_login()
-            },
-            body: render!(rsx!(
-                div {
-                    MessageInput {
-                        itype: "text",
-                        message: "{username.get()}",
-                        placeholder: "username",
-                        error: if username.get().len() > 0 {error.get().as_ref()}else {None},
-                        on_input: move |event: FormEvent| {
-                            info!("alksdjf");
-                            username.set(event.value.clone())
-                        },
-                        on_keypress: move |event: KeyboardEvent| {
-                            if event.code() == keyboard_types::Code::Enter && username.get().len() > 0 {
-                                login_info.with_mut(|info| info.username = username.get().clone());
+            )
+        } else if login_info.read().username.len() == 0 || login_info.read().password.len() == 0 {
+            rsx!(
+                LoginForm {
+                    title: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_title)}",
+                    description: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_description)}",
+                    button_text: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_cta)}",
+                    emoji: "👋",
+                    on_handle: move |_: FormLoginEvent| {
+                        on_handle_login()
+                    },
+                    body: render!(rsx!(
+                        div {
+                            MessageInput {
+                                message: "{username.get()}",
+                                placeholder: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_username_placeholder)}",
+                                error: if username.get().len() > 0 {error.get().as_ref()}else {None},
+                                on_input: move |event: FormEvent| {
+                                    username.set(event.value.clone())
+                                },
+                                on_keypress: move |event: KeyboardEvent| {
+                                    if event.code() == keyboard_types::Code::Enter && username.get().len() > 0 {
+                                        login_info.with_mut(|info| info.username = username.get().clone());
+                                    }
+                                },
+                                on_click: move |_| {
+                                    login_info.with_mut(|info| info.username = username.get().clone());
+                                }
                             }
-                        },
-                        on_click: move |_| {
-                            login_info.with_mut(|info| info.username = username.get().clone());
                         }
-                    }
-                }
 
-                div {
-                    MessageInput {
-                        itype: "password",
-                        message: "{password.get()}",
-                        placeholder: "password",
-                        error: if password.get().len() > 0 {error.get().as_ref()}else {None},
-                        on_input: move |event: FormEvent| {
-                            password.set(event.value.clone())
-                        },
-                        on_keypress: move |event: KeyboardEvent| {
-                            if event.code() == keyboard_types::Code::Enter && username.get().len() > 0 && password.get().len() > 0 {
-                                login_info.with_mut(|info| info.password = password.get().clone());
+                        div {
+                            MessageInput {
+                                itype: InputType::Password,
+                                message: "{password.get()}",
+                                placeholder: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_password_placeholder)}",
+                                error: if password.get().len() > 0 {error.get().as_ref()}else {None},
+                                on_input: move |event: FormEvent| {
+                                    password.set(event.value.clone())
+                                },
+                                on_keypress: move |event: KeyboardEvent| {
+                                    if event.code() == keyboard_types::Code::Enter && username.get().len() > 0 && password.get().len() > 0 {
+                                        login_info.with_mut(|info| info.password = password.get().clone());
 
+                                    }
+                                },
+                                on_click: move |_| {
+                                    login_info.with_mut(|info| info.password = password.get().clone());
+                                }
                             }
-                        },
-                        on_click: move |_| {
-                            login_info.with_mut(|info| info.password = password.get().clone());
                         }
-                    }
+                    ))
                 }
-            ))
-        })
-    })
+            )
+        } else {
+            match &*is_loading_loggedin.read() {
+                LoggedInStatus::Loading => {
+                    rsx!(
+                        LoadingStatus {text: "Estamos verificando tus datos".to_string()}
+                    )
+                }
+                LoggedInStatus::LoggedAs(user) => {
+                    rsx!(
+                        LoadingStatus {text: "Te damos la bienvenida {user}".to_string()}
+                    )
+                },
+                LoggedInStatus::Done => {
+                    rsx!(
+                        LoadingStatus {text: "Te damos la bienvenida ".to_string()}
+                    )
+                }
+                LoggedInStatus::Persisting => {
+                    rsx!(
+                        LoadingStatus {text: "Guardando tu sesion".to_string()}
+                    )
+                }
+                _ => {
+                    rsx!(div{})
+                }
+                
+            }
+        }
+    )
 }
 
 pub async fn sync(client: Client, initial_sync_token: Option<String>) -> anyhow::Result<()> {
@@ -275,7 +357,7 @@ pub async fn sync(client: Client, initial_sync_token: Option<String>) -> anyhow:
             }
             Err(error) => {
                 info!("An error occurred during initial sync: {error}");
-                info!("Trying again…");
+                info!("Trying again from login…");
             }
         }
     }

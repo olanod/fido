@@ -1,12 +1,5 @@
 use dioxus::prelude::*;
 use dioxus_router::prelude::Outlet;
-use log::info;
-use matrix_sdk::ruma::{
-    api::client::room::{
-        create_room::{self},
-        Visibility,
-    },
-};
 
 use crate::{
     components::{
@@ -14,11 +7,7 @@ use crate::{
             header_main::{HeaderCallOptions, HeaderEvent},
             HeaderMain,
         },
-        molecules::{
-            modal::{ModalForm, RoomType},
-            rooms::CurrentRoom,
-            Menu, Modal,
-        },
+        molecules::{rooms::CurrentRoom, Menu},
     },
     hooks::{use_client::use_client, use_modal::use_modal},
     pages::route::Route,
@@ -65,15 +54,7 @@ pub fn IndexMenu(cx: Scope) -> Element {
             }
         }
     };
-
-    let handle = move || {
-        cx.spawn({
-            to_owned![client];
-
-            async move {}
-        })
-    };
-
+    
     cx.render(rsx!(
         article {
             HeaderMain{

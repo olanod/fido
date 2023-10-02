@@ -18,6 +18,7 @@ pub mod hooks {
     pub mod use_room;
     pub mod use_send_attach;
     pub mod use_send_message;
+    pub mod use_listen_verification;
 }
 
 pub mod services {

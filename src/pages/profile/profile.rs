@@ -1,6 +1,9 @@
 use dioxus::prelude::*;
+use dioxus_router::prelude::use_navigator;
+use dioxus_std::{i18n::use_i18, translate};
 use log::info;
-use std::ops::Deref;
+use matrix_sdk::ruma::UserId;
+use std::{collections::HashMap, ops::Deref};
 
 use crate::{
     components::atoms::{attach::AttachType, Attach, Avatar, Button, MessageInput, Spinner},
@@ -8,6 +11,8 @@ use crate::{
         use_attach::{use_attach, AttachFile},
         use_client::use_client,
     },
+    pages::route::Route,
+    utils::i18n_get_key_value::i18n_get_key_value,
 };
 
 #[derive(Clone)]
@@ -16,11 +21,62 @@ pub struct Profile {
     avatar: Option<String>,
 }
 
+#[derive(Clone)]
+pub struct SessionStatus {
+    device_id: String,
+    is_verified: bool,
+}
+
+#[derive(Clone)]
+pub struct AdvancedInfo {
+    homeserver: String,
+    user_id: String,
+    session: SessionStatus,
+}
+
 pub fn Profile(cx: Scope) -> Element {
+    let i18 = use_i18(cx);
+
+    let key_username_label = "username-label";
+    let key_username_placeholder = "username-placeholder";
+    let key_username_cta_update = "username-cta_update";
+    let key_management_title = "management-title";
+    let key_management_deactivate_label = "management-deactivate-label";
+    let key_management_deactivate_cta_deactivate = "management-deactivate-cta_deactivate";
+
+    let i18n_map = HashMap::from([
+        (
+            key_username_label,
+            translate!(i18, "profile.username.label"),
+        ),
+        (
+            key_username_placeholder,
+            translate!(i18, "profile.username.placeholder"),
+        ),
+        (
+            key_username_cta_update,
+            translate!(i18, "profile.username.cta_update"),
+        ),
+        (
+            key_management_title,
+            translate!(i18, "profile.management.title"),
+        ),
+        (
+            key_management_deactivate_label,
+            translate!(i18, "profile.management.deactivate.label"),
+        ),
+        (
+            key_management_deactivate_cta_deactivate,
+            translate!(i18, "profile.management.deactivate.cta_deactivate"),
+        ),
+    ]);
+
     use_shared_state_provider::<Option<AttachFile>>(cx, || None);
 
     let client = use_client(cx);
     let attach = use_attach(cx);
+    let navigator = use_navigator(cx);
+
     let original_profile = use_ref::<Profile>(cx, || Profile {
         displayname: String::from(""),
         avatar: None,
@@ -30,18 +86,27 @@ pub fn Profile(cx: Scope) -> Element {
         avatar: None,
     });
     let is_loading_profile = use_ref::<bool>(cx, || true);
+    let advanced_info = use_ref::<AdvancedInfo>(cx, || AdvancedInfo {
+        homeserver: String::from(""),
+        user_id: String::from(""),
+        session: SessionStatus {
+            device_id: String::from(""),
+            is_verified: true,
+        },
+    });
 
     use_coroutine(cx, |mut _rx: UnboundedReceiver<String>| {
         to_owned![
             client,
             original_profile,
             current_profile,
-            is_loading_profile
+            is_loading_profile,
+            advanced_info
         ];
 
         async move {
             let account_profile = client.get().account().get_profile().await.unwrap();
-            info!("{account_profile:?}");
+
             let avatar_uri: Option<String> = match account_profile.avatar_url {
                 Some(avatar) => {
                     let (server, id) = avatar.parts().unwrap();
@@ -57,6 +122,48 @@ pub fn Profile(cx: Scope) -> Element {
             });
 
             current_profile.set(original_profile.read().deref().clone());
+
+            let client = client.get();
+
+            let homeserver = client.homeserver().await;
+            let user_id = client.user_id();
+            let device_id = client.session().unwrap().device_id;
+            let mut is_session_verified = false;
+
+            if let Ok(result) = client
+                .encryption()
+                .get_device(user_id.unwrap(), &device_id)
+                .await
+            {
+                if let Some(device) = result {
+                    is_session_verified = device.is_verified();
+                }
+            }
+
+            for device in client
+                .encryption()
+                .get_user_devices(&user_id.unwrap())
+                .await
+                .unwrap()
+                .devices()
+            {
+                info!(
+                    "   {:<10} {:<30} {:<}",
+                    device.device_id(),
+                    device.display_name().unwrap_or("-"),
+                    device.is_verified()
+                );
+            }
+
+            advanced_info.set(AdvancedInfo {
+                homeserver: String::from(homeserver),
+                user_id: String::from(user_id.unwrap().to_string()),
+                session: SessionStatus {
+                    device_id: device_id.to_string(),
+                    is_verified: is_session_verified,
+                },
+            });
+
             is_loading_profile.set(false);
         }
     });
@@ -85,6 +192,7 @@ pub fn Profile(cx: Scope) -> Element {
                     if let Some(content) = file {
                         let blob = gloo::file::Blob::new(content.deref());
                         let object_url = gloo::file::ObjectUrl::from(blob);
+
                         attach.set(Some(AttachFile {
                             name: fs.get(0).unwrap().to_string(),
                             preview_url: object_url,
@@ -95,6 +203,9 @@ pub fn Profile(cx: Scope) -> Element {
             }
         });
     };
+
+    let displayname = current_profile.read().deref().displayname.clone();
+    let avatar = current_profile.read().avatar.clone();
 
     render! {
         if *is_loading_profile.read() {
@@ -113,16 +224,13 @@ pub fn Profile(cx: Scope) -> Element {
                     }
                 ))
             } else {
-                let displayname = current_profile.read().deref().displayname.clone();
-                let avatar = current_profile.read().avatar.clone();
-                let x = avatar.as_deref();
 
                 render!(
                     rsx!(
                         Avatar {
-                          name: "{displayname}",
+                          name: displayname,
                           size: 80,
-                          uri: None
+                          uri: avatar
                         }
                     )
                 )
@@ -131,94 +239,168 @@ pub fn Profile(cx: Scope) -> Element {
             let message = current_profile.read().deref().displayname.clone();
 
             rsx!(
-                Attach {
-                    atype: AttachType::Avatar(element),
-                    on_click: on_handle_attach
-                }
+                section {
+                    Attach {
+                        atype: AttachType::Avatar(element),
+                        on_click: on_handle_attach
+                    }
 
-                MessageInput{
-                    itype: "text",
-                    message: "{message}",
-                    placeholder: "eg: Uniqueorns",
-                    label: "Name the group",
-                    error: None,
-                    on_input: move |event: Event<FormData>| {
-                        current_profile.with_mut(|p| p.displayname = event.value.clone() );
-                    },
-                    on_keypress: move |_| {
-                    },
-                    on_click: move |_| {
+                    div {
+                        style: "
+                            margin-top: 12px
+                        ",
+                        MessageInput{
+                            message: "{message}",
+                            placeholder: "{i18n_get_key_value(&i18n_map, key_username_placeholder)}",
+                            label: "{i18n_get_key_value(&i18n_map, key_username_label)}",
+                            error: None,
+                            on_input: move |event: Event<FormData>| {
+                                current_profile.with_mut(|p| p.displayname = event.value.clone() );
+                            },
+                            on_keypress: move |_| {
+                            },
+                            on_click: move |_| {
 
-                    },
-                }
-                div {
-                    style: "
-                        margin-top: 24px
-                    ",
-                    Button {
-                        text: "Modificar perfil",
-                        on_click: move |_| {
-                            cx.spawn({
-                                to_owned![client, original_profile, current_profile, attach];
+                            },
+                        }
+                    }
+                    div {
+                        style: "
+                            margin-top: 24px
+                        ",
+                        Button {
+                            text: "{i18n_get_key_value(&i18n_map, key_username_cta_update)}",
+                            on_click: move |_| {
+                                cx.spawn({
+                                    to_owned![client, original_profile, current_profile, attach];
 
-                                async move {
-                                    if !original_profile.read().displayname.eq(&current_profile.read().displayname) {
-                                        let x = client.get().account().set_display_name(Some(current_profile.read().displayname.as_str())).await;
-                                        info!("{x:?}");
-                                        match x {
-                                            Ok(_)=> {}
-                                            Err(_)=> {}
-                                        }
-                                    }
-
-                                    if let Some(y) = attach.get() {
-                                        let x = client.get().account().upload_avatar(&mime::IMAGE_PNG, &y.data).await;
-                                        info!("{x:?}");
-                                        match x {
-                                            Ok(url)=> {
-                                                let x = client.get().account().set_avatar_url(Some(&url)).await;
-                                                info!("{x:?}");
+                                    async move {
+                                        if !original_profile.read().displayname.eq(&current_profile.read().displayname) {
+                                            let x = client.get().account().set_display_name(Some(current_profile.read().displayname.as_str())).await;
+                                            info!("{x:?}");
+                                            match x {
+                                                Ok(_)=> {}
+                                                Err(_)=> {}
                                             }
-                                            Err(_)=> {}
+                                        }
+
+                                        if let Some(y) = attach.get() {
+                                            let x = client.get().account().upload_avatar(&mime::IMAGE_PNG, &y.data).await;
+                                            info!("{x:?}");
+                                            match x {
+                                                Ok(url)=> {
+                                                    let x = client.get().account().set_avatar_url(Some(&url)).await;
+                                                    info!("{x:?}");
+                                                }
+                                                Err(_)=> {}
+                                            }
                                         }
                                     }
-                                }
-                            })
+                                })
+                            }
                         }
                     }
                 }
 
-                h2 {
+                section {
                     style: r#"
                         margin-top: 40px;
                     "#,
-                    "Account management"
-                }
+                    h2 {
+                        "Informacion de la cuenta"
+                    }
 
-                p {
-                    style: r#"
-                        margin-top: 12px;
-                    "#,
-                    "Desactivar cuenta"
-                }
-                div {
-                    style: "
-                        margin-top: 24px
-                    ",
-                    Button {
-                        text: "Desactivar",
-                        on_click: move |_| {
-                            // cx.spawn({
-                            //     to_owned!(client);
+                    h4 {
+                        style: r#"
+                            margin-top: 24px;
+                        "#,
+                        "Servidor"
+                    }
 
-                            //     async move {
-                            //         client.accoutn
-                            //     }
-                            // })
-                        }
+                    p {
+                        style: r#"
+                            margin-top: 12px;
+                        "#,
+                        "{advanced_info.read().homeserver.deref()}"
+                    }
+
+                    h4 {
+                        style: r#"
+                            margin-top: 24px;
+                        "#,
+                        "ID del usuario de Matrix"
+                    }
+
+                    p {
+                        style: r#"
+                            margin-top: 12px;
+                        "#,
+                        "{advanced_info.read().user_id}"
+                    }
+
+                    h4 {
+                        style: r#"
+                            margin-top: 24px;
+                        "#,
+                        "Sesion ID"
+                    }
+
+                    p {
+                        style: r#"
+                            margin-top: 12px;
+                        "#,
+                        "{advanced_info.read().session.device_id}"
+                    }
+                    "{advanced_info.read().session.is_verified}"
+                    if !advanced_info.read().session.is_verified {
+                        rsx!(
+                            div {
+                                style: "
+                                    margin-top: 24px
+                                ",
+                                Button {
+                                    text: "Verificar esta sesion",
+                                    on_click: move |_| {
+                                        navigator.push(Route::Verify { id: String::from("fidoid") });
+                                    }
+                                }
+                            }
+                        )
                     }
                 }
 
+                section {
+                    style: r#"
+                        margin-top: 40px;
+                    "#,
+                    h2 {
+                        "{i18n_get_key_value(&i18n_map, key_management_title)}"
+                    }
+
+                    p {
+                        style: r#"
+                            margin-top: 12px;
+                        "#,
+                        "{i18n_get_key_value(&i18n_map, key_management_deactivate_label)}"
+                    }
+                    div {
+                        style: "
+                            margin-top: 24px
+                        ",
+                        Button {
+                            text: "{i18n_get_key_value(&i18n_map, key_management_deactivate_cta_deactivate)}",
+                            on_click: move |_| {
+                                // cx.spawn({
+                                //     to_owned!(client);
+
+                                //     async move {
+                                //         client.accoutn
+                                //     }
+                                // })
+                            }
+                        }
+                    }
+                }
             )
         }
     }

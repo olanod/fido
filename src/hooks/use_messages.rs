@@ -21,9 +21,10 @@ use super::use_client::use_client;
 pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
     let client = use_client(cx).get();
     let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
-    let messages = use_shared_state::<Messages>(cx).expect("Matrix client not provided");
+    let messages = use_shared_state::<Messages>(cx).expect("Messages not provided");
     let messages_loading = use_ref::<bool>(cx, || false);
     let limit_events_by_room = use_ref::<HashMap<String, u64>>(cx, || HashMap::new());
+    let from = use_ref::<Option<String>>(cx, || None);
 
     let task_timeline = use_coroutine(cx, |mut rx: UnboundedReceiver<bool>| {
         to_owned![
@@ -31,13 +32,14 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
             current_room,
             messages,
             messages_loading,
-            limit_events_by_room
+            limit_events_by_room,
+            from
         ];
 
         async move {
             while let Some(true) = rx.next().await {
                 messages_loading.set(true);
-                messages.write().clear();
+                // messages.write().clear();
 
                 let current_room_id = current_room.read().id.clone();
                 let current_events = limit_events_by_room
@@ -48,7 +50,10 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
 
                 let room_id = RoomId::parse(current_room.read().id.clone()).unwrap();
 
-                let msg = timeline(&client, &room_id, current_events).await;
+                let (f, msg) =
+                    timeline(&client, &room_id, current_events, from.read().clone()).await;
+
+                from.set(f);
 
                 for m in msg.iter() {
                     let mut rep: Option<MessageReply> = None;
@@ -91,6 +96,7 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
             messages: messages.clone(),
             isLoading: messages_loading.clone(),
             limit: limit_events_by_room.clone(),
+            task: task_timeline.clone(),
         },
     })
 }
@@ -100,6 +106,7 @@ pub struct MessagesState {
     messages: UseSharedState<Messages>,
     isLoading: UseRef<bool>,
     limit: UseRef<HashMap<String, u64>>,
+    task: Coroutine<bool>,
 }
 
 #[derive(Clone)]
@@ -107,6 +114,7 @@ pub struct UseMessages {
     pub messages: Messages,
     pub isLoading: bool,
     pub limit: HashMap<String, u64>,
+    pub task: Coroutine<bool>,
 }
 
 #[derive(Clone)]
@@ -125,6 +133,7 @@ impl UseMessagesState {
             messages: messages.clone(),
             isLoading: *inner.isLoading.read(),
             limit: inner.limit.read().deref().clone(),
+            task: inner.task.clone(),
         }
     }
 
@@ -152,6 +161,6 @@ impl UseMessagesState {
 
         self.inner
             .limit
-            .with_mut(|lr| lr.insert(current_room_id, current_events + 15));
+            .with_mut(|lr| lr.insert(current_room_id, current_events + 5));
     }
 }

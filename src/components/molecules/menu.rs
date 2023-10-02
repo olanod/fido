@@ -5,6 +5,7 @@ use crate::utils::i18n_get_key_value::i18n_get_key_value;
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
 use gloo::storage::LocalStorage;
+use log::info;
 
 use crate::components::{
     atoms::{ChatConversation, Icon, LogOut, MenuItem, UserCircle},
@@ -59,8 +60,27 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
             to_owned![client, logged_in];
 
             async move {
+                
                 let _ = client.logout().await;
                 let _ = <LocalStorage as gloo::storage::Storage>::delete("session_file");
+                
+                let window = web_sys::window().expect("global window does not exists");
+                let x = window.indexed_db();
+
+                match x {
+                    Ok(index_db) => {
+                        if let Some(db) = index_db {
+                            let x = db.delete_database("b");
+                            info!("delete: {:?}", x);
+                            let x = db.delete_database("b::matrix-sdk-crypto");
+                            info!("delete: {:?}", x);
+                            let x = db.delete_database("b::matrix-sdk-state");
+                            info!("delete: {:?}", x);
+                        } 
+                    },
+                    Err(err) => todo!(),
+                }
+
                 logged_in.write().is_logged_in = false;
             }
         });

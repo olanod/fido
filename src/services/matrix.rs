@@ -1,8 +1,5 @@
 pub mod matrix {
-    use std::{
-        ops::Deref,
-        time::{Duration, UNIX_EPOCH},
-    };
+    use std::time::{Duration, UNIX_EPOCH};
 
     use chrono::{DateTime, Local, Utc};
     use log::info;
@@ -12,6 +9,7 @@ pub mod matrix {
         attachment::AttachmentConfig,
         config::SyncSettings,
         deserialized_responses::{SyncTimelineEvent, TimelineSlice},
+        encryption::identities::Device,
         room::{MessagesOptions, Room},
         ruma::{
             api::{
@@ -19,21 +17,25 @@ pub mod matrix {
                 client::{
                     filter::{LazyLoadOptions, RoomEventFilter},
                     room::{create_room::v3::RoomPreset, Visibility},
+                    uiaa,
                 },
                 error::{FromHttpResponseError, ServerError},
             },
             assign,
             events::{
                 room::{
+                    avatar::RoomAvatarEventContent,
                     message::{
-                        InReplyTo, MessageType, OriginalSyncRoomMessageEvent, Relation,
-                        RoomMessageEventContent,
+                        InReplyTo, MessageFormat, MessageType, OriginalSyncRoomMessageEvent,
+                        Relation, RoomMessageEventContent,
                     },
                     MediaSource,
                 },
-                AnyMessageLikeEvent, AnySyncMessageLikeEvent, AnySyncTimelineEvent,
-                AnyTimelineEvent, MessageLikeEvent, SyncMessageLikeEvent,
+                AnyInitialStateEvent, AnyMessageLikeEvent, AnySyncMessageLikeEvent,
+                AnySyncTimelineEvent, AnyTimelineEvent, EmptyStateKey, InitialStateEvent,
+                MessageLikeEvent, SyncMessageLikeEvent,
             },
+            serde::Raw,
             MilliSecondsSinceUnixEpoch, OwnedEventId, OwnedUserId, RoomId, TransactionId, UInt,
         },
         Client, Error, HttpError, HttpResult,
@@ -46,6 +48,7 @@ pub mod matrix {
     };
 
     use matrix_sdk::ruma::exports::serde_json;
+    use matrix_sdk::ruma::{device_id, user_id};
     use matrix_sdk::Session;
 
     use serde::{Deserialize, Serialize};
@@ -144,7 +147,7 @@ pub mod matrix {
         let mut rooms = Vec::new();
         let x = client.joined_rooms();
 
-        info!("{x:?}");
+        // info!("{x:?}");
         for room in client.joined_rooms() {
             let x = room.avatar_url();
 
@@ -275,8 +278,35 @@ pub mod matrix {
         is_dm: bool,
         users: &[OwnedUserId],
         name: Option<String>,
+        avatar: Option<Vec<u8>>,
     ) -> HttpResult<api::client::room::create_room::v3::Response> {
         let mut request = api::client::room::create_room::v3::Request::new();
+
+        let mut initstateevvec: Vec<Raw<AnyInitialStateEvent>> = vec![];
+
+        if let Some(data) = avatar {
+            let media_uri = client.media().upload(&mime::IMAGE_JPEG, &data).await;
+
+            match media_uri {
+                Ok(response) => {
+                    let mut x = RoomAvatarEventContent::new();
+                    x.url = Some(response.content_uri);
+
+                    let initstateev: InitialStateEvent<RoomAvatarEventContent> =
+                        InitialStateEvent {
+                            content: x,
+                            state_key: EmptyStateKey,
+                        };
+
+                    let rawinitstateev = Raw::new(&initstateev).unwrap();
+
+                    let rawanyinitstateev: Raw<AnyInitialStateEvent> = rawinitstateev.cast();
+                    initstateevvec.push(rawanyinitstateev);
+                    request.initial_state = &initstateevvec;
+                }
+                Err(_) => {}
+            }
+        }
 
         request.name = name.as_deref();
         request.is_direct = is_dm;
@@ -295,6 +325,7 @@ pub mod matrix {
     pub enum TimelineMessageType {
         Image(String),
         Text(String),
+        Html(String),
     }
 
     #[derive(PartialEq, Debug, Clone)]
@@ -317,7 +348,8 @@ pub mod matrix {
         client: &Client,
         room_id: &RoomId,
         limit: u64,
-    ) -> Vec<TimelineMessageEvent> {
+        from: Option<String>,
+    ) -> (Option<String>, Vec<TimelineMessageEvent>) {
         let mut messages: Vec<TimelineMessageEvent> = Vec::new();
 
         let room = client.get_room(&room_id).unwrap();
@@ -326,15 +358,19 @@ pub mod matrix {
             lazy_load_options: LazyLoadOptions::Enabled { include_redundant_members: false },
         });
         let options = assign!(MessagesOptions::backward(), {
-            limit: UInt::new(limit).unwrap(),
+            limit: UInt::new(5).unwrap(),
             filter,
+            from: from.as_deref()
         });
+
         let m = room.messages(options).await.unwrap();
+
+        info!("messages {m:?}");
 
         let t = TimelineSlice::new(
             m.chunk.into_iter().map(SyncTimelineEvent::from).collect(),
             m.start,
-            m.end,
+            m.end.clone(),
             false,
             false,
         );
@@ -356,7 +392,7 @@ pub mod matrix {
             }
         }
 
-        messages
+        (m.end, messages)
     }
 
     pub async fn deserialize_any_timeline_event(
@@ -479,6 +515,8 @@ pub mod matrix {
                 }
             },
             MessageType::Text(content) => {
+                info!("{content:?}");
+
                 message_result = Some(TimelineMessageEvent {
                     event_id: Some(String::from(event.as_str())),
                     sender: member.clone(),
@@ -491,6 +529,17 @@ pub mod matrix {
                     },
                     time: timestamp,
                 });
+
+                if let Some(formatted) = &content.formatted {
+                    match formatted.format {
+                        MessageFormat::Html => {
+                            if let Some(ref mut x) = message_result {
+                                x.body = TimelineMessageType::Html(formatted.body.clone());
+                            }
+                        }
+                        _ => {}
+                    }
+                };
             }
             _ => {}
         }
@@ -580,6 +629,20 @@ pub mod matrix {
                                             time: timestamp,
                                         });
                                     }
+                                    TimelineMessageType::Html(body) => {
+                                        message_result = Some(TimelineMessageEvent {
+                                            event_id: None,
+                                            sender: member.clone(),
+                                            body: TimelineMessageType::Html(body.clone()),
+                                            reply: Some(Box::from(r)),
+                                            origin: if member.id.eq(logged_user_id) {
+                                                EventOrigin::ME
+                                            } else {
+                                                EventOrigin::OTHER
+                                            },
+                                            time: timestamp,
+                                        });
+                                    }
                                 },
                                 _ => return None,
                             }
@@ -624,12 +687,15 @@ pub mod matrix {
 
         match client
             .login_username(&username, &password)
-            .initial_device_display_name("persist-session client")
+            .initial_device_display_name("Fido")
+            .device_id("fidoid")
             .send()
             .await
         {
-            Ok(_) => {
+            Ok(info) => {
                 info!("Logged in as {username}");
+
+                info!("{:?}", info.user_id);
             }
             Err(error) => {
                 info!("Error logging in: {error}");
@@ -678,7 +744,37 @@ pub mod matrix {
 
         info!("Restoring session for {}…", user_session.user_id);
 
-        client.restore_login(user_session).await?;
+        client.restore_login(user_session.clone()).await?;
+
+        // let device_id = user_session.device_id;
+        // let user_id = user_session.user_id;
+
+        // let x = client.encryption().get_user_devices(&user_id).await;
+
+        // if let Ok(r) = x {
+        //     // let x = r.get(&device_id);
+        //     let x: Vec<Device> = r.devices().collect();
+
+        //     info!("{:?}", x);
+        // }
+        // if let Ok(result) = client
+        //     .encryption()
+        //     .get_device(user_id!("@bob-test-1:matrix.org"), device_id!("fidoid"))
+        //     .await
+        // {
+        //     info!("{:?} {:?} {:?}", result, device_id, user_id);
+
+        //     // Device
+
+        //     if let Some(device) = result {
+        //         info!("{:?}", device.is_verified());
+
+        //         if !device.is_verified() {
+        //             let verification = device.request_verification().await?;
+        //             verification.start_sas().await;
+        //         }
+        //     }
+        // }
 
         Ok((client, sync_token))
     }

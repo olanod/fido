@@ -1,9 +1,13 @@
-use std::ops::Deref;
+use std::{collections::HashMap, ops::Deref};
 
-use dioxus::prelude::*;
-use dioxus_router::{navigation, prelude::use_navigator};
+use dioxus::{html::input_data::keyboard_types, prelude::*};
+use dioxus_router::prelude::use_navigator;
+use dioxus_std::{i18n::use_i18, translate};
 use log::info;
-use matrix_sdk::ruma::{OwnedUserId, UserId};
+use matrix_sdk::{
+    config::SyncSettings,
+    ruma::{OwnedUserId, UserId},
+};
 
 use crate::{
     components::atoms::{
@@ -13,7 +17,11 @@ use crate::{
     hooks::{
         use_attach::{use_attach, AttachFile},
         use_client::use_client,
-    }, services::matrix::matrix::create_room,
+    },
+    pages::route::Route,
+    services::matrix::matrix::create_room,
+    utils::i18n_get_key_value::i18n_get_key_value,
+    utils::matrix::{mxc_to_https_uri, ImageSize},
 };
 use futures_util::StreamExt;
 
@@ -32,6 +40,49 @@ pub fn RoomGroup(cx: Scope) -> Element {
     use_shared_state_provider::<SelectedProfiles>(cx, || SelectedProfiles { profiles: vec![] });
     use_shared_state_provider::<Option<AttachFile>>(cx, || None);
 
+    let i18 = use_i18(cx);
+
+    let key_group_title = "group-title";
+    let key_group_select_label = "group-select-label";
+    let key_group_select_placeholder = "group-select-placeholder";
+    let key_group_select_cta = "group-select-cta";
+
+    let key_group_meta_label = "group-meta-label";
+    let key_group_meta_placeholder = "group-meta-placeholder";
+    let key_group_meta_members_title = "group-meta-members-title";
+    let key_group_meta_cta_back = "group-meta-cta-back";
+    let key_group_meta_cta_create = "group-meta-cta-create";
+
+    let i18n_map = HashMap::from([
+        (key_group_title, translate!(i18, "group.title")),
+        (
+            key_group_select_label,
+            translate!(i18, "group.select.label"),
+        ),
+        (
+            key_group_select_placeholder,
+            translate!(i18, "group.select.placeholder"),
+        ),
+        (key_group_select_cta, translate!(i18, "group.select.cta")),
+        (key_group_meta_label, translate!(i18, "group.meta.label")),
+        (
+            key_group_meta_placeholder,
+            translate!(i18, "group.meta.placeholder"),
+        ),
+        (
+            key_group_meta_members_title,
+            translate!(i18, "group.meta.members.title"),
+        ),
+        (
+            key_group_meta_cta_back,
+            translate!(i18, "group.meta.cta.back"),
+        ),
+        (
+            key_group_meta_cta_create,
+            translate!(i18, "group.meta.cta.create"),
+        ),
+    ]);
+
     let navigation = use_navigator(cx);
     let client = use_client(cx);
     let attach = use_attach(cx);
@@ -39,6 +90,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
     let users = use_ref::<Vec<Profile>>(cx, || vec![]);
     let selected_users = use_shared_state::<SelectedProfiles>(cx).unwrap();
     let error = use_state::<Option<String>>(cx, || None);
+    let error_creation = use_state::<Option<String>>(cx, || None);
 
     let handle_complete_group = use_ref::<bool>(cx, || false);
     let group_name = use_state::<String>(cx, || String::from(""));
@@ -60,9 +112,21 @@ pub fn RoomGroup(cx: Scope) -> Element {
 
                     match resp {
                         Ok(u) => users.with_mut(|x| {
+                            let avatar_uri: Option<String> = if let Some(uri) = u.avatar_url {
+                                mxc_to_https_uri(
+                                    &uri,
+                                    ImageSize {
+                                        width: 48,
+                                        height: 48,
+                                    },
+                                )
+                            } else {
+                                None
+                            };
+
                             x.push(Profile {
                                 displayname: String::from(u.displayname.unwrap()),
-                                avatar_uri: None,
+                                avatar_uri: avatar_uri,
                                 id,
                             })
                         }),
@@ -77,16 +141,16 @@ pub fn RoomGroup(cx: Scope) -> Element {
 
     let on_handle_create = move |_| {
         cx.spawn({
-            to_owned![client, selected_users, attach, group_name];
+            to_owned![
+                client,
+                selected_users,
+                attach,
+                group_name,
+                error_creation,
+                navigation
+            ];
 
             async move {
-                info!(
-                    "selected: {:?}/n attach: {:?}/n name: {:?}",
-                    selected_users.read().profiles,
-                    group_name.get(),
-                    attach.get().unwrap().data,
-                );
-
                 let users = selected_users
                     .read()
                     .profiles
@@ -95,9 +159,29 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     .map(|p| UserId::parse(p).unwrap())
                     .collect::<Vec<OwnedUserId>>();
 
-                let x = create_room(&client.get(), true, &users, None).await;
+                let avatar = if let Some(file) = attach.get() {
+                    Some(file.data)
+                } else {
+                    None
+                };
 
-                info!("{x:?}")
+                let name = group_name.get().clone();
+
+                let room_meta =
+                    create_room(&client.get(), false, &users, Some(name.clone()), avatar).await;
+
+                info!("{room_meta:?}");
+
+                match room_meta {
+                    Ok(_) => {
+                        let _ = client.get().sync_once(SyncSettings::default()).await;
+                        navigation.push(Route::ChatList {});
+                    }
+                    Err(_) => {
+                        let e = Some(String::from("Ha ocurrido un error al crear el DM"));
+                        error_creation.set(e)
+                    }
+                }
             }
         })
     };
@@ -139,7 +223,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
 
     render! {
         Header {
-            text: "New Group",
+            text: "{i18n_get_key_value(&i18n_map, key_group_title)}",
             on_event: move |_|{
                 navigation.go_back()
             }
@@ -164,7 +248,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
             } else {
                 render!(rsx! (
                     Avatar{
-                        name: if group_name.get().len() > 0 {group_name.get()   } else {"X"},
+                        name: if group_name.get().len() > 0 {String::from(group_name.get()) } else {String::from("X")},
                         size: 80,
                         uri: None
                     }
@@ -178,10 +262,9 @@ pub fn RoomGroup(cx: Scope) -> Element {
                 }
 
                 MessageInput{
-                    itype: "text",
                     message: "{group_name.get()}",
-                    placeholder: "eg: Uniqueorns",
-                    label: "Name the group",
+                    placeholder: "{i18n_get_key_value(&i18n_map, key_group_meta_placeholder)}",
+                    label: "{i18n_get_key_value(&i18n_map, key_group_meta_label)}",
                     error: error.get().as_ref(),
                     on_input: move |event: Event<FormData>| {
                         group_name.set(event.value.clone());
@@ -196,7 +279,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     style: r#"
                         margin-top: 24px;
                     "#,
-                    "Participants"
+                    "{i18n_get_key_value(&i18n_map, key_group_meta_members_title)}"
                 }
                 users.read().deref().into_iter().map(|u| {
                     if let Some(position) =selected_users.read().profiles.clone().into_iter().position(|selected_p| selected_p.eq(&u.id)) {
@@ -244,14 +327,15 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     "#,
                     class: "row",
                     Button {
-                        text: "Volver",
+                        text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_back)}",
                         variant: &Variant::Secondary,
                         on_click: move |_| {
                             handle_complete_group.set(false)
                         }
                     }
                     Button {
-                        text: "Crear grupo",
+                        text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_create)}",
+                        disabled: group_name.get().len() == 0,
                         on_click: on_handle_create
                     }
                 }
@@ -259,14 +343,18 @@ pub fn RoomGroup(cx: Scope) -> Element {
         }else{
             rsx!(
                 MessageInput{
-                    itype: "text",
                     message: "{user_id.get()}",
-                    placeholder: "Escribe el id",
+                    placeholder: "{i18n_get_key_value(&i18n_map, key_group_select_placeholder)}",
+                    label: "{i18n_get_key_value(&i18n_map, key_group_select_label)}",
                     error: error.get().as_ref(),
                     on_input: move |event: Event<FormData>| {
                         user_id.set(event.value.clone());
                     },
-                    on_keypress: move |_| {
+                    on_keypress: move |event: KeyboardEvent| {
+                        if event.code() == keyboard_types::Code::Enter && user_id.get().len() > 0 {
+                            let id = user_id.get();
+                            task_search_user.send(id.to_string())
+                        }
                     },
                     on_click: move |_| {
                         let id = user_id.get();
@@ -288,7 +376,8 @@ pub fn RoomGroup(cx: Scope) -> Element {
                         }
                     },
                     users.read().deref().iter().map(|u| {
-                        let checked = if let Some(_) =selected_users.read().profiles.clone().into_iter().find(|selected_p| selected_p.eq(&u.id)) {true} else {false} ;
+                        let checked = if let Some(_) = selected_users.read().profiles.clone().into_iter().find(|selected_p| selected_p.eq(&u.id)) {true} else {false} ;
+
                         rsx!(
                             label {
                                 key: "{u.id}",
@@ -304,7 +393,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                                 }
                                 RoomView {
                                     displayname: "{u.displayname.clone()}",
-                                    avatar_uri: None,
+                                    avatar_uri: u.avatar_uri.clone(),
                                     description: "",
                                     on_click: move |_| {
 
@@ -326,7 +415,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
 
                     "#,
                     Button {
-                        text: "Continuar",
+                        text: "{i18n_get_key_value(&i18n_map, key_group_select_cta)}",
                         disabled: if selected_users.read().profiles.len() == 0 { true } else { false },
                         on_click: move |_| {
                             handle_complete_group.set(true)

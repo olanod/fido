@@ -14,7 +14,6 @@ ul {
   font-weight: 500;
   line-height: 20px;
   padding: 12px 10px;
-  width: 100%;
   transition: opacity 0.2s ease-out, background-color 0.2s ease-out;
   cursor: pointer;
   border-radius: 36px;
@@ -50,6 +49,15 @@ ul {
   align-items: center;
 }
 
+.button--primary,
+.button--secondary,
+.input-wrapper {
+  /* subtract box-shadow*/
+  width: calc(100% - 2px);
+  margin: 0 1px;
+}
+
+
 .input {
   width: 100%;
   border: 1px solid transparent;
@@ -61,8 +69,8 @@ ul {
   display: flex;
   position: absolute;
   bottom: 0;
-  padding: 20px 0;
-  background: var(--surface-1);
+  padding: 0 0 20px;
+  background: white;
 }
 
 .input__cta {
@@ -73,7 +81,7 @@ ul {
 }
 
 .notification {
-  background: var(--surface-1);
+  background: white;
   color: var(--text-1);
   border: 1px solid var(--text-1);
   width: 300px;
@@ -103,7 +111,7 @@ ul {
 .message-view--replying,
 .message-view--reply,
 .message-view {
-  background: var(--surface-1);
+  background: white;
   color: var(--text-1);
   padding: 10px;
   width: 100%;
@@ -114,20 +122,20 @@ ul {
 
 .message-view:hover {
   transition: opacity 0.2s ease-out, background-color 0.2s ease-out;
-  background: var(--surface-0);
+  background: white;
   border-radius: var(--size-1);
   cursor: pointer;
 }
 
 .message-view:hover .message-view--reply {
-  background: var(--surface-0);
+  background: white;
 }
 
 .message-view:hover::after {
   content: "Responder";
   color: var(--text-1);
   font-size: var(--size-1);
-  background: var(--surface-0);
+  background: white;
   padding: var(--size-0);
   border-radius: var(--size-0) var(--size-0) 0 0;
   position: relative;
@@ -136,13 +144,13 @@ ul {
 }
 
 .message-view--replying {
-  background: var(--surface-0);
+  background: white;
   border-radius: var(--size-2) var(--size-2) 0 0;
   width: 100%;
 }
 
 .message-view--replying::before {
-  background: var(--surface-0);
+  background: white;
   border-radius: var(--size-1) var(--size-1) 0 0;
   width: fit-content;
   color: var(--text-1);

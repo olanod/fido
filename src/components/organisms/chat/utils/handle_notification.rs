@@ -1,4 +1,4 @@
-use crate::{hooks::use_notification::UseNotificationState, pages::chat::chat::NotificationItem};
+use crate::{hooks::use_notification::UseNotificationState, pages::chat::chat::{NotificationItem, NotificationHandle, NotificationType}};
 
 pub fn handle_notification(item: NotificationItem, notification: UseNotificationState) {
     notification.set(item);
@@ -10,6 +10,9 @@ pub fn handle_notification(item: NotificationItem, notification: UseNotification
             title: String::from(""),
             body: String::from(""),
             show: false,
+            handle: NotificationHandle {
+                value: NotificationType::None,
+            },
         });
     })
     .forget();

@@ -3,11 +3,13 @@ use std::{collections::HashMap, ops::Deref};
 use dioxus::prelude::*;
 use dioxus_router::prelude::use_navigator;
 use dioxus_std::{i18n::use_i18, translate};
+use log::info;
 
 use crate::{
     components::{
         atoms::{
             header_main::{HeaderCallOptions, HeaderEvent},
+            input::InputType,
             Avatar, Header,
         },
         molecules::{
@@ -51,6 +53,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
 
     let nav = use_navigator(cx);
     let room = use_room(cx);
+    let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
     let send_message = use_send_message(cx);
     let send_attach = use_send_attach(cx);
 
@@ -106,21 +109,23 @@ pub fn ActiveRoom(cx: Scope) -> Element {
         send_attach.send(event);
     };
 
+    info!("{:?} {:?}", room.get(), *current_room.read());
+
     cx.render(rsx! {
         Header {
-            text: "{room.get().name.clone()}",
+            text: "{current_room.read().name.clone()}",
             avatar_element: render!(rsx!(
                 Avatar {
-                    name: "{room.get().name}",
+                    name: (*current_room.read()).name.to_string(),
                     size: 32,
-                    uri: None
+                    uri: current_room.read().avatar_uri.clone()
                   }
             )),
             on_event: header_event
         }
         List {},
         InputMessage {
-            message_type: "text",
+            message_type: InputType::Message,
             placeholder: input_placeholder.get().as_str(),
             on_submit: on_push_message,
             on_event: input_message_event,

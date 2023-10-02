@@ -1,15 +1,12 @@
 #![allow(non_snake_case)]
-use chat::components::atoms::{button, Spinner};
-use chat::components::molecules::modal::{ModalForm, RoomType};
-use chat::components::molecules::Modal;
+use chat::components::atoms::Spinner;
 use chat::hooks::use_client::use_client;
 use chat::hooks::use_init_app::use_init_app;
-use chat::hooks::use_modal::use_modal;
 use chat::pages::login::{LoggedIn, Login};
 use chat::pages::route::Route;
 use chat::MatrixClientState;
 use dioxus::prelude::*;
-use dioxus_router::prelude::{use_navigator, Router};
+use dioxus_router::prelude::Router;
 use gloo::storage::errors::StorageError;
 use gloo::storage::LocalStorage;
 use log::{info, LevelFilter};
@@ -65,7 +62,6 @@ fn App(cx: Scope) -> Element {
     use_init_app(cx);
 
     let client = use_client(cx);
-    let modal = use_modal(cx);
     let matrix_client = use_shared_state::<MatrixClientState>(cx).unwrap();
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
     let restoring_session = use_ref::<bool>(cx, || true);
@@ -99,15 +95,6 @@ fn App(cx: Scope) -> Element {
             }
         }
     });
-
-    
-    let handle = move || {
-        cx.spawn({
-            to_owned![client];
-
-            async move {}
-        })
-    };
 
     render! {
         rsx!(
@@ -146,33 +133,6 @@ fn App(cx: Scope) -> Element {
                     }
                 ),
             }
-            // button{
-            //     onclick: move |_| {
-            //         modal.show();
-            //     },
-            //     "show"
-            // }
-
-            // if modal.get().show {
-            //     // let navigator = use_navigator(cx);
-            //     rsx!(
-            //         Modal {
-            //             on_click: move |event: ModalForm| {
-            //                 match event.value {
-            //                     RoomType::CHAT => {
-            //                         // handle()
-            //                         // navigator.push(Route::RoomNew {});
-            //                     },
-            //                     RoomType::GROUP => {},
-            //                     RoomType::CHANNEL => {}
-            //                 }
-            //             },
-            //             on_close:move |_|{
-            //                 modal.hide()
-            //             }
-            //         }
-            //     )
-            // }
         )
     }
 }

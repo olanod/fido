@@ -1,10 +1,6 @@
-use dioxus::{html::input_data::keyboard_types, prelude::*};
-use web_sys::HtmlElement;
+use dioxus::prelude::*;
 
-use crate::{
-    components::atoms::{Button, MessageInput},
-    utils::get_element::GetElement,
-};
+use crate::components::atoms::Button;
 
 pub struct FormLoginEvent {
     pub value: String,
@@ -71,7 +67,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
         margin: auto;
     "#;
 
-    let login_style = r#"
+    let _login_style = r#"
         color: var(--text-normal-500, #666D80);
 
         /* Label/Small */
@@ -85,7 +81,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
     let button_style = r#"
         padding-top: 24px;
     "#;
-    let cta_login_style = r#"
+    let _cta_login_style = r#"
         padding-top: 16px;
     "#;
 
@@ -129,13 +125,13 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                 }
             }
 
-            div {
-                style: "{cta_login_style}",
-                small {
-                    style: "{login_style}",
-                    "Already have an account? Log in"
-                }
-            }
+            // div {
+            //     style: "{cta_login_style}",
+            //     small {
+            //         style: "{login_style}",
+            //         "Already have an account? Log in"
+            //     }
+            // }
         }
     }
 }

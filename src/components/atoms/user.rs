@@ -49,9 +49,9 @@ pub fn UserProfile<'a>(cx: Scope<'a, UserProps<'a>>) -> Element<'a> {
         onclick: move |event| {cx.props.on_click.call(event)},
 
         Avatar {
-          name: "{cx.props.display_name}",
+          name: cx.props.display_name.to_string(),
           size: 36,
-          uri: cx.props.avatar_uri
+          uri: cx.props.avatar_uri.cloned()
         }
 
         article {

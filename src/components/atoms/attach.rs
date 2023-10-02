@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::{
-    components::atoms::{Attachment, Avatar, Icon},
+    components::atoms::{Attachment, Icon},
     utils::get_element::GetElement,
 };
 
@@ -25,7 +25,7 @@ pub struct AttachProps<'a> {
 pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
     let button_style = r#"
         cursor: pointer;
-        background: var(--surface-3);
+        background: var(--background-loud);
         border: none;
         border-radius: 100%;
         max-width: 2.625rem;

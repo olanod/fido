@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::components::atoms::{header_main::HeaderCallOptions, ArrowLeft, Avatar, Icon};
+use crate::components::atoms::{header_main::HeaderCallOptions, ArrowLeft, Icon};
 
 use super::header_main::HeaderEvent;
 
@@ -20,7 +20,7 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
         position: absolute;
         width: 100%;
         padding: 1.25rem 0;
-        background: var(--surface-1);
+        background: white;
         font-weight: 600;
         top: 0;
         font-size: var(--font-size-0)

@@ -60,6 +60,54 @@
             "profile": "Profile",
             "chats": "Chats",
             "log_out": "Log Out"
+        },
+        "profile": {
+            "username": {
+                "label": "Username",
+                "placeholder": "Enter a username",
+                "cta_update": "Modify profile"
+            },
+            "management": {
+                "title": "Account management",
+                "deactivate": {
+                    "label": "Deactivate account",
+                    "cta_deactivate": "Deactivate"
+                }
+            }
+        },
+        "modal": {
+            "title": "Take the step",
+            "subtitle": "You just have to click 😊",
+            "options": {
+                "dm": "New chat",
+                "group": "New group",
+                "channel": "Public channel"
+            }
+        },
+        "dm": {
+            "title": "New chat",
+            "label": "Enter the user ID",
+            "placeholder": "@user:matrix.org",
+            "description": "Start a new chat with"
+        },
+        "group": {
+            "title": "New group",
+            "select": {
+                "label": "Enter the user ID",
+                "placeholder": "@user:matrix.org",
+                "cta": "Continue"
+            },
+            "meta": {
+                "label": "Group name",
+                "placeholder": "E.g., Unicorns",
+                "members": {
+                    "title": "Participants"
+                },
+                "cta": {
+                    "back": "Back",
+                    "create": "Create group"
+                }
+            }
         }
     }
 }

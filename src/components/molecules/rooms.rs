@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::components::atoms::{room::RoomItem, MessageInput, RoomView};
+use crate::components::atoms::{room::RoomItem, MessageInput, RoomView, input::InputType};
 
 #[derive(Clone, Debug)]
 pub struct CurrentRoom {
@@ -43,7 +43,7 @@ pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
             MessageInput {
                 message: "{pattern}",
                 placeholder: "Buscar",
-                itype: "search",
+                itype: InputType::Search,
                 error: None,
                 on_input: move |event: FormEvent| {
                     pattern.set(event.value.clone());
@@ -71,7 +71,7 @@ pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
                     rsx!(RoomView {
                         key: "{room.id}",
                         displayname: room.name.as_str(),
-                        avatar_uri: room.avatar_uri.as_ref(),
+                        avatar_uri: room.avatar_uri.clone(),
                         description: "",
                         on_click: move |_| {
                             cx.props.on_submit.call(FormRoomEvent {

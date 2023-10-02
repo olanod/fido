@@ -2,9 +2,18 @@ use dioxus::prelude::*;
 
 use crate::components::atoms::{icon::Icon, Search, Send, Warning};
 
+#[derive(Clone)]
+pub enum InputType {
+    Text,
+    Message,
+    Search,
+    Password,
+}
+
 #[derive(Props)]
 pub struct MessageInputProps<'a> {
-    itype: Option<&'a str>,
+    #[props(default = InputType::Text)]
+    itype: InputType,
     message: &'a str,
     placeholder: &'a str,
     #[props(!optional)]
@@ -22,6 +31,13 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
         "#
     } else {
         ""
+    };
+
+    let input_type = match cx.props.itype {
+        InputType::Text => "text",
+        InputType::Search => "search",
+        InputType::Message => "text",
+        InputType::Password => "password",
     };
 
     cx.render(rsx!(
@@ -43,17 +59,24 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                 style: "{error_container_style}",
                 class: "input-wrapper",
 
-                if cx.props.itype.unwrap_or("text").eq("search") {
-                    rsx!(
-                        Icon {
-                            stroke: "#818898",
-                            icon: Search
-                        }
-                    )
+                match cx.props.itype {
+                    InputType::Search => {
+                        rsx!(
+                            Icon {
+                                stroke: "#818898",
+                                icon: Search
+                            }
+                        )
+                    }
+                    _ => {
+                        rsx!(div {})
+                    }
                 }
 
+
+
                 input {
-                    r#type: cx.props.itype.unwrap_or("text"),
+                    r#type: "{input_type}",
                     class: "input",
                     value: cx.props.message,
                     placeholder: "{cx.props.placeholder}",
@@ -61,17 +84,24 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                     onkeypress: move |event| cx.props.on_keypress.call(event)
                 }
 
-                if cx.props.message.len() > 0 && !cx.props.itype.unwrap_or("text").eq("search") {
-                    rsx!(
-                        button {
-                            class: "input__cta",
-                            onclick: move |event| cx.props.on_click.call(event),
-                            Icon {
-                                stroke: "#818898",
-                                icon: Send
+                if cx.props.message.len() > 0 {
+                   match cx.props.itype {
+                    InputType::Message => {
+                        rsx!(
+                            button {
+                                class: "input__cta",
+                                onclick: move |event| cx.props.on_click.call(event),
+                                Icon {
+                                    stroke: "#818898",
+                                    icon: Send
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
+                    _ => {
+                        rsx!(div {})
+                    }
+                   }
                 }
             }
             if let Some(error) = cx.props.error {

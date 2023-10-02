@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 use futures_util::StreamExt;
+use log::info;
 use matrix_sdk::{
     config::SyncSettings, room::Room, ruma::events::room::message::OriginalSyncRoomMessageEvent,
 };
@@ -13,7 +14,7 @@ use crate::{
         molecules::rooms::CurrentRoom,
         organisms::chat::utils::handle_notification,
     },
-    pages::chat::chat::{MessageEvent, NotificationItem},
+    pages::chat::chat::{MessageEvent, NotificationHandle, NotificationItem, NotificationType},
     services::matrix::matrix::{
         format_original_any_room_message_event, format_reply_from_event, room_member,
         TimelineMessageType,
@@ -31,7 +32,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
     let notification = use_notification(cx);
 
     let task_sender = use_coroutine(cx, |mut rx: UnboundedReceiver<MessageEvent>| {
-        to_owned![messages, notification, current_room];
+        to_owned![client, messages, notification, current_room];
 
         async move {
             while let Some(message_event) = rx.next().await {
@@ -49,13 +50,39 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                     let plain_message = match &message.body {
                         TimelineMessageType::Image(_) => "Imagen",
                         TimelineMessageType::Text(t) => t,
+                        TimelineMessageType::Html(t) => todo!(),
+                    };
+
+                    let room_name = if let Some(name) = message_event.room.name() {
+                        name
+                    } else {
+                        let mut name = String::from("Unknown name room");
+                        let me = client.whoami().await.unwrap();
+                        let users = message_event.room.members().await;
+
+                        if let Ok(members) = users {
+                            let member = members
+                                .into_iter()
+                                .find(|member| !member.user_id().eq(&me.user_id));
+
+                            if let Some(m) = member {
+                                let n = m.name();
+
+                                name = String::from(n);
+                            }
+                        }
+
+                        name
                     };
 
                     handle_notification(
                         NotificationItem {
-                            title: String::from(message_event.room.name().unwrap()),
+                            title: String::from(room_name),
                             body: String::from(plain_message),
                             show: true,
+                            handle: NotificationHandle {
+                                value: NotificationType::Click,
+                            },
                         },
                         notification.to_owned(),
                     );
@@ -95,53 +122,78 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
         to_owned![client, handler_added, task_sender];
 
         async move {
-            let user = client.whoami().await;
+            // let user = client.whoami().await;
 
-            let me = match user {
-                Ok(u) => u.user_id.to_string(),
-                Err(_) => {
-                    panic!("User not found");
-                }
-            };
+            client.sync_once(SyncSettings::default()).await;
+
+            // let user = client.user_id();
+
+            // let me = match user {
+            //     Ok(u) => u.user_id.to_string(),
+            //     Err(_) => {
+            //         panic!("User not found");
+            //     }
+            // };
+
+            // let me = match user {
+            //     Some(u) => u.to_string(),
+            //     None => {
+            //         panic!("User not found");
+            //     }
+            // };
+
+            // let me = String::from("@edith-test-1:matrix.org");
 
             if !*handler_added.read() {
-                client.add_event_handler(move |ev: OriginalSyncRoomMessageEvent, room: Room| {
-                    let task_sender = task_sender.clone();
-                    let me = me.clone();
+                client.add_event_handler(
+                    move |ev: OriginalSyncRoomMessageEvent,
+                          room: Room,
+                          client: matrix_sdk::Client| {
+                        let task_sender = task_sender.clone();
 
-                    async move {
-                        let message_type = &ev.content.msgtype;
-                        let event_id = ev.event_id;
-                        let member = room_member(ev.sender, &room).await;
-                        let relates = &ev.content.relates_to;
-                        let time = ev.origin_server_ts;
+                        let user = client.user_id();
 
-                        let message_result = format_original_any_room_message_event(
-                            &message_type,
-                            event_id,
-                            &member,
-                            &me,
-                            time,
-                        )
-                        .await;
+                        let me = match user {
+                            Some(u) => u.to_string(),
+                            None => {
+                                panic!("User not found");
+                            }
+                        };
+                        
+                        async move {
+                            let message_type = &ev.content.msgtype;
+                            let event_id = ev.event_id;
+                            let member = room_member(ev.sender, &room).await;
+                            let relates = &ev.content.relates_to;
+                            let time = ev.origin_server_ts;
 
-                        let message_result = format_reply_from_event(
-                            &message_type,
-                            relates,
-                            &room,
-                            message_result,
-                            &member,
-                            &me,
-                            time,
-                        )
-                        .await;
+                            let message_result = format_original_any_room_message_event(
+                                &message_type,
+                                event_id,
+                                &member,
+                                &me,
+                                time,
+                            )
+                            .await;
 
-                        task_sender.send(MessageEvent {
-                            room,
-                            mgs: message_result,
-                        })
-                    }
-                });
+                            let message_result = format_reply_from_event(
+                                &message_type,
+                                relates,
+                                &room,
+                                message_result,
+                                &member,
+                                &me,
+                                time,
+                            )
+                            .await;
+
+                            task_sender.send(MessageEvent {
+                                room,
+                                mgs: message_result,
+                            })
+                        }
+                    },
+                );
 
                 handler_added.set(true);
             }

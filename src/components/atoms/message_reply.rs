@@ -32,7 +32,7 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
     "#;
 
     let sender_style = if cx.props.is_replying_for_me {
-      r#"
+        r#"
         color: var(--text-white);
         font-family: Inter;
         font-size: 12px;
@@ -40,7 +40,7 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
         line-height: 12px; 
       "#
     } else {
-      r#"
+        r#"
         color: var(--text-1);
         font-family: Inter;
         font-size: 12px;
@@ -81,9 +81,9 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
         class: "message-view--reply",
         style: "{message_wrapper_style}",
         Avatar {
-          name: "{cx.props.message.display_name}",
+          name: cx.props.message.display_name.clone(),
           size: 24,
-          uri: cx.props.message.avatar_uri.as_ref()
+          uri: cx.props.message.avatar_uri.clone()
         }
         article {
           style: "{message_style}",
@@ -109,6 +109,13 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
                 src: "{i}"
               })
               // rsx!(div{})
+            }
+            TimelineMessageType::Html(t) => {
+              rsx!(
+                div {
+                  // dangerous_inner_html: "{t}"
+                }
+              )
             }
           }
         }

@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{components::atoms::{Avatar, Icon, Close, header_main::HeaderCallOptions}, services::matrix::matrix::{TimelineMessageType, EventOrigin}};
+use crate::{components::atoms::{Avatar, Icon, Close, header_main::HeaderCallOptions}, services::matrix::matrix::{TimelineMessageType, EventOrigin}, utils::get_element::GetElement};
 
 use super::{MessageReply, header_main::HeaderEvent};
 
@@ -74,6 +74,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
           margin-top: var(--size-1);
           max-height: 100dvh;
           max-width: 70dvw;
+          width: 100%;
         "#
       };
 
@@ -102,11 +103,11 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
         border: 0.5px solid var(--border-normal-50);
         background: var(--background-loud);
         color: var(--text-white);
-        display: inline-block;
+        display: flex;
         width: fit-content;
         max-width: 80%;
-        margin: 0 var(--size-1) 0 auto;
-
+        margin: 0 var(--size-1) 8px auto;
+        
       "#,
       EventOrigin::OTHER => r#"
       "#
@@ -126,9 +127,9 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
           EventOrigin::OTHER => {
             rsx!(
               Avatar {
-                name: "{cx.props.message.display_name}",
+                name: cx.props.message.display_name.clone(),
                 size: 36,
-                uri: cx.props.message.avatar_uri.as_ref()
+                uri: cx.props.message.avatar_uri.clone()
               }
             )
           }
@@ -183,7 +184,14 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                 style: "{content_image_style}",
                 src: "{i}"
               })
-            } 
+            },
+            TimelineMessageType::Html(t) => {
+              rsx!(
+                div {
+                  dangerous_inner_html: "{t}"
+                }
+              )
+            }
           }          
         }
 
@@ -192,6 +200,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
             cursor: pointer;
             background: transparent;
             border: 1px solid transparent;
+            display: flex;
           "#;
 
           rsx!(

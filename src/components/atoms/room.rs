@@ -13,7 +13,7 @@ pub struct RoomItem {
 pub struct RoomViewProps<'a> {
     displayname: &'a str,
     #[props(!optional)]
-    avatar_uri: Option<&'a String>,
+    avatar_uri: Option<String>,
     description: Option<&'a str>,
     on_click: EventHandler<'a, MouseEvent>,
 }
@@ -25,9 +25,9 @@ pub fn RoomView<'a>(cx: Scope<'a, RoomViewProps<'a>>) -> Element<'a> {
         onclick: move |event| cx.props.on_click.call(event),
 
         Avatar {
-          name: cx.props.displayname.clone(),
+          name: String::from(cx.props.displayname),
           size: 60,
-          uri: cx.props.avatar_uri
+          uri: cx.props.avatar_uri.clone()
         }
         article {
           p {
