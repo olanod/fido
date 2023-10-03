@@ -140,21 +140,6 @@ pub fn Profile(cx: Scope) -> Element {
                 }
             }
 
-            for device in client
-                .encryption()
-                .get_user_devices(&user_id.unwrap())
-                .await
-                .unwrap()
-                .devices()
-            {
-                info!(
-                    "   {:<10} {:<30} {:<}",
-                    device.device_id(),
-                    device.display_name().unwrap_or("-"),
-                    device.is_verified()
-                );
-            }
-
             advanced_info.set(AdvancedInfo {
                 homeserver: String::from(homeserver),
                 user_id: String::from(user_id.unwrap().to_string()),
@@ -351,7 +336,6 @@ pub fn Profile(cx: Scope) -> Element {
                         "#,
                         "{advanced_info.read().session.device_id}"
                     }
-                    "{advanced_info.read().session.is_verified}"
                     if !advanced_info.read().session.is_verified {
                         rsx!(
                             div {

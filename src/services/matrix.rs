@@ -688,7 +688,7 @@ pub mod matrix {
         match client
             .login_username(&username, &password)
             .initial_device_display_name("Fido")
-            .device_id("fidoid")
+            // .device_id("fidoid")
             .send()
             .await
         {
@@ -745,36 +745,6 @@ pub mod matrix {
         info!("Restoring session for {}…", user_session.user_id);
 
         client.restore_login(user_session.clone()).await?;
-
-        // let device_id = user_session.device_id;
-        // let user_id = user_session.user_id;
-
-        // let x = client.encryption().get_user_devices(&user_id).await;
-
-        // if let Ok(r) = x {
-        //     // let x = r.get(&device_id);
-        //     let x: Vec<Device> = r.devices().collect();
-
-        //     info!("{:?}", x);
-        // }
-        // if let Ok(result) = client
-        //     .encryption()
-        //     .get_device(user_id!("@bob-test-1:matrix.org"), device_id!("fidoid"))
-        //     .await
-        // {
-        //     info!("{:?} {:?} {:?}", result, device_id, user_id);
-
-        //     // Device
-
-        //     if let Some(device) = result {
-        //         info!("{:?}", device.is_verified());
-
-        //         if !device.is_verified() {
-        //             let verification = device.request_verification().await?;
-        //             verification.start_sas().await;
-        //         }
-        //     }
-        // }
 
         Ok((client, sync_token))
     }
