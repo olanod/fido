@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::components::atoms::{room::RoomItem, MessageInput, RoomView, input::InputType};
+use crate::components::atoms::{input::InputType, room::RoomItem, MessageInput, RoomView};
 
 #[derive(Clone, Debug)]
 pub struct CurrentRoom {
@@ -22,14 +22,7 @@ pub struct RoomsListProps<'a> {
 
 pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
     let pattern = use_state(cx, String::new);
-    let rooms_filtered = use_state(cx, || {
-        cx.props
-            .rooms
-            .iter()
-            // .filter(|r| r.is_public)
-            .cloned()
-            .collect::<Vec<_>>()
-    });
+    let rooms_filtered = use_state(cx, || cx.props.rooms.iter().cloned().collect::<Vec<_>>());
 
     let rooms_style = r#"
         display: flex;
@@ -48,7 +41,7 @@ pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
                 on_input: move |event: FormEvent| {
                     pattern.set(event.value.clone());
 
-                    let default_rooms = cx.props.rooms.iter().filter(|r| r.is_public).cloned().collect::<Vec<_>>();
+                    let default_rooms = cx.props.rooms.iter().cloned().collect::<Vec<_>>();
 
                     if event.value.len() > 0 {
                         let x = default_rooms

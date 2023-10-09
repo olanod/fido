@@ -14,7 +14,8 @@ pub fn Card<'a>(cx: Scope<'a, CardProps<'a>>) -> Element<'a> {
         padding: 16px;
         -webkit-box-shadow: 0px -4px 16px -12px rgba(0,0,0,0.54);
         -moz-box-shadow: 0px -4px 16px -12px rgba(0,0,0,0.54);
-        box-shadow: 0px -4px 16px -12px rgba(0,0,0,0.54)
+        box-shadow: 0px -4px 16px -12px rgba(0,0,0,0.54);
+        background: var(--background);
     "#;
 
     let attach_container_style = r#"
@@ -29,12 +30,12 @@ pub fn Card<'a>(cx: Scope<'a, CardProps<'a>>) -> Element<'a> {
         object-fit: contain;
         border: 0.5px solid #0001;
         position: relative;
-        background: #000;
+        background: var(--background-loud);
     "#;
 
     let close_style = r#"
         cursor: pointer;
-        background: white;
+        background: var(--background);
         -webkit-box-shadow: 0px 0px 30px 0px rgba(0,0,0,0.54);
         -moz-box-shadow: 0px 0px 30px 0px rgba(0,0,0,0.54);
         box-shadow: 0px 0px 30px 0px rgba(0,0,0,0.54);
@@ -65,7 +66,7 @@ pub fn Card<'a>(cx: Scope<'a, CardProps<'a>>) -> Element<'a> {
                     style: "{close_style}",
                     onclick: move |event| {cx.props.on_click.call(event)},
                     Icon {
-                        stroke: "#818898",
+                        stroke: "var(--text-1)",
                         icon: Close
                     }
                 }

@@ -236,6 +236,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                 h2 {
                     style: r#"
                         margin-top: 40px;
+                        color: var(--text-1);
                     "#,
                     "Verificar sesion"
                 }
@@ -253,6 +254,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                                     p {
                                         style: r#"
                                             margin-top: 12px;
+                                            color: var(--text-2);
                                         "#,
                                         "Verifica si los emojis coinciden con la otra sesion, en el mismo orden"
                                     }
@@ -262,7 +264,8 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                                             grid-template-columns: repeat(4, 25%);
                                             grid-template-rows: 80px 80px;
                                             gap: 8px;
-                                            width: calc(100% - 24px)
+                                            width: calc(100% - 24px);
+                                            margin-top: 24px;
                                         ",
                                         emojis.into_iter().map(|emoji| {
                                             rsx!(
@@ -285,6 +288,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                                                     p {
                                                         style: "
                                                             font-size: 12px;
+                                                            color: var(--text-1);
                                                         ",
                                                         "{emoji.description}"
                                                     }
@@ -316,6 +320,9 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                         None => {
                             rsx!(
                                 div {
+                                    style: r#"
+                                        color: var(--text-2);
+                                    "#,
                                     "Para inicar la verificacion, ve a otro dispositivo desde el que iniciaste sesion y solicita la verificacion"
                                 }
                             )
@@ -330,6 +337,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                 h2 {
                     style: r#"
                         margin-top: 40px;
+                        color: var(--text-1);
                     "#,
                     "Verificacion completada"
                 }
@@ -337,6 +345,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                 p {
                     style: r#"
                         margin-top: 12px;
+                        color: var(--text-2);
                     "#,
                     "Haz verificado este dispositivo."
                 }

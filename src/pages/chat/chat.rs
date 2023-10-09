@@ -12,7 +12,6 @@ use crate::pages::route::Route;
 use crate::components::atoms::Notification;
 use crate::services::matrix::matrix::TimelineMessageEvent;
 
-use log::info;
 use matrix_sdk::room::Room;
 
 #[derive(Debug, Clone)]

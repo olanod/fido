@@ -29,7 +29,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
     "#;
     let avatar_container = r#"
         border-radius: 100px;
-        background: #FFF5D3;
+        background: var(--secondary-yellow-50);
         display: flex;
         justify-content: center;
         align-items: center;
@@ -43,7 +43,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
         
     "#;
     let title_style = r#"
-        color: var(--text-loud-900, #0D0D12);
+        color: var(--text-1);
         font-family: Inter;
         font-size: 24px;
         font-style: normal;
@@ -54,7 +54,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
         margin: auto;
     "#;
     let description_style = r#"
-        color: var(--text-subdued-400, #818898);
+        color: var(--text-subdued);
         text-align: center;
         
         /* Body/Medium */
@@ -68,7 +68,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
     "#;
 
     let _login_style = r#"
-        color: var(--text-normal-500, #666D80);
+        color: var(--text-normal);
 
         /* Label/Small */
         font-family: Inter;

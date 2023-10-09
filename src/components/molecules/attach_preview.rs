@@ -12,7 +12,7 @@ pub fn AttachPreview<'a>(cx: Scope<'a>) -> Element<'a> {
         object-fit: contain;
         border: 0.5px solid #0001;
         position: relative;
-        background: #000;
+        background: var(--background-loud);
     "#;
 
     let attach_preview = r#"

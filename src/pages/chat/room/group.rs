@@ -234,7 +234,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                 width: 100%;
                 object-fit: cover;
                 position: relative;
-                background: #000;
+                background: var(--background-loud);
                 border-radius: 100%;
             "#;
 
@@ -305,7 +305,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                                         selected_users.write().profiles.remove(position);
                                     },
                                     Icon {
-                                        stroke: "#818898",
+                                        stroke: "var(--icon-subdued)",
                                         icon: Close
                                     }
                                 }
@@ -318,7 +318,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                 div {
                     style: r#"
                         position: fixed;
-                        background: white;
+                        background: var(--background);
                         height: fit-content;
                         width: 100%;
                         padding: 12px 10px;
@@ -406,7 +406,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                 div {
                     style: r#"
                         position: fixed;
-                        background: white;
+                        background: var(--background);
                         height: fit-content;
                         width: 100%;
                         padding: 12px 10px;

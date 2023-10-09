@@ -36,7 +36,9 @@ pub fn RoomView<'a>(cx: Scope<'a, RoomViewProps<'a>>) -> Element<'a> {
           }
           p {
             class: "room-view__message",
-            "{cx.props.description.unwrap_or(&String::new())}"
+            span {
+              "{cx.props.description.unwrap_or(&String::new())}"
+            }
           }
         }
       }

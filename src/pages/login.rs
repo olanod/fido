@@ -42,7 +42,7 @@ fn LoadingStatus(cx: Scope, text: String) -> Element {
                 Spinner {}
 
                 p {
-                    style: "color: (--text-1)",
+                    style: "color: var(--text-1)",
                     "{text}"
                 }
             }
@@ -54,67 +54,67 @@ pub fn Login(cx: Scope) -> Element {
     let i18 = use_i18(cx);
 
     // Claves para el fragmento "chat_steps" dentro de "login"
-let key_login_chat_homeserver_message = "login-chat-homeserver-message";
-let key_login_chat_homeserver_description = "login-chat-homeserver-description";
-let key_login_chat_homeserver_placeholder = "login-chat-homeserver-placeholder";
-let key_login_chat_homeserver_cta = "login-chat-homeserver-cta";
+    let key_login_chat_homeserver_message = "login-chat-homeserver-message";
+    let key_login_chat_homeserver_description = "login-chat-homeserver-description";
+    let key_login_chat_homeserver_placeholder = "login-chat-homeserver-placeholder";
+    let key_login_chat_homeserver_cta = "login-chat-homeserver-cta";
 
-let key_login_chat_credentials_description = "login-chat-credentials-description";
-let key_login_chat_credentials_title = "login-chat-credentials-title";
+    let key_login_chat_credentials_description = "login-chat-credentials-description";
+    let key_login_chat_credentials_title = "login-chat-credentials-title";
 
-// Claves para el fragmento "username" dentro de "chat_steps.credentials"
-let key_login_chat_credentials_username_message = "login-chat-credentials-username-message";
-let key_login_chat_credentials_username_placeholder = "login-chat-credentials-username-placeholder";
+    // Claves para el fragmento "username" dentro de "chat_steps.credentials"
+    let key_login_chat_credentials_username_message = "login-chat-credentials-username-message";
+    let key_login_chat_credentials_username_placeholder = "login-chat-credentials-username-placeholder";
 
-// Claves para el fragmento "password" dentro de "chat_steps.credentials"
-let key_login_chat_credentials_password_message = "login-chat-credentials-password-message";
-let key_login_chat_credentials_password_placeholder = "login-chat-credentials-password-placeholder";
+    // Claves para el fragmento "password" dentro de "chat_steps.credentials"
+    let key_login_chat_credentials_password_message = "login-chat-credentials-password-message";
+    let key_login_chat_credentials_password_placeholder = "login-chat-credentials-password-placeholder";
 
-let key_login_chat_credentials_cta = "login-chat-credentials-cta";
+    let key_login_chat_credentials_cta = "login-chat-credentials-cta";
 
-// Claves para el fragmento "messages" dentro de "chat_steps"
-let key_login_chat_messages_validating = "login-chat-messages-validating";
-let key_login_chat_messages_welcome = "login-chat-messages-welcome";
+    // Claves para el fragmento "messages" dentro de "chat_steps"
+    let key_login_chat_messages_validating = "login-chat-messages-validating";
+    let key_login_chat_messages_welcome = "login-chat-messages-welcome";
 
-// Claves para el fragmento "chat_errors" dentro de "login"
-let key_login_chat_errors_invalid_url = "login-chat-errors-invalid-url";
-let key_login_chat_errors_unknown = "login-chat-errors-unknown";
-let key_login_chat_errors_invalid_username_password = "login-chat-errors-invalid-username-password";
+    // Claves para el fragmento "chat_errors" dentro de "login"
+    let key_login_chat_errors_invalid_url = "login-chat-errors-invalid-url";
+    let key_login_chat_errors_unknown = "login-chat-errors-unknown";
+    let key_login_chat_errors_invalid_username_password = "login-chat-errors-invalid-username-password";
 
-let i18n_map = HashMap::from([
-    // Traducciones para el fragmento "chat_steps.homeserver" dentro de "login"
-    (key_login_chat_homeserver_message, translate!(i18, "login.chat_steps.homeserver.message")),
-    (key_login_chat_homeserver_description, translate!(i18, "login.chat_steps.homeserver.description")),
-    (key_login_chat_homeserver_placeholder, translate!(i18, "login.chat_steps.homeserver.placeholder")),
-    (key_login_chat_homeserver_cta, translate!(i18, "login.chat_steps.homeserver.cta")),
+    let i18n_map = HashMap::from([
+        // Traducciones para el fragmento "chat_steps.homeserver" dentro de "login"
+        (key_login_chat_homeserver_message, translate!(i18, "login.chat_steps.homeserver.message")),
+        (key_login_chat_homeserver_description, translate!(i18, "login.chat_steps.homeserver.description")),
+        (key_login_chat_homeserver_placeholder, translate!(i18, "login.chat_steps.homeserver.placeholder")),
+        (key_login_chat_homeserver_cta, translate!(i18, "login.chat_steps.homeserver.cta")),
 
-    (key_login_chat_credentials_title, translate!(i18, "login.chat_steps.credentials.title")),
-    // Traducciones para el fragmento "chat_steps.credentials" dentro de "login"
-    (key_login_chat_credentials_description, translate!(i18, "login.chat_steps.credentials.description")),
+        (key_login_chat_credentials_title, translate!(i18, "login.chat_steps.credentials.title")),
+        // Traducciones para el fragmento "chat_steps.credentials" dentro de "login"
+        (key_login_chat_credentials_description, translate!(i18, "login.chat_steps.credentials.description")),
 
-    // Traducciones para el fragmento "username" dentro de "chat_steps.credentials"
-    (key_login_chat_credentials_username_message, translate!(i18, "login.chat_steps.credentials.username.message")),
-    (key_login_chat_credentials_username_placeholder, translate!(i18, "login.chat_steps.credentials.username.placeholder")),
+        // Traducciones para el fragmento "username" dentro de "chat_steps.credentials"
+        (key_login_chat_credentials_username_message, translate!(i18, "login.chat_steps.credentials.username.message")),
+        (key_login_chat_credentials_username_placeholder, translate!(i18, "login.chat_steps.credentials.username.placeholder")),
 
-    // Traducciones para el fragmento "password" dentro de "chat_steps.credentials"
-    (key_login_chat_credentials_password_message, translate!(i18, "login.chat_steps.credentials.password.message")),
-    (key_login_chat_credentials_password_placeholder, translate!(i18, "login.chat_steps.credentials.password.placeholder")),
-    (key_login_chat_credentials_cta, translate!(i18, "login.chat_steps.credentials.cta")),
+        // Traducciones para el fragmento "password" dentro de "chat_steps.credentials"
+        (key_login_chat_credentials_password_message, translate!(i18, "login.chat_steps.credentials.password.message")),
+        (key_login_chat_credentials_password_placeholder, translate!(i18, "login.chat_steps.credentials.password.placeholder")),
+        (key_login_chat_credentials_cta, translate!(i18, "login.chat_steps.credentials.cta")),
 
-    // Traducciones para el fragmento "messages" dentro de "chat_steps"
-    (key_login_chat_messages_validating, translate!(i18, "login.chat_steps.messages.validating")),
-    (key_login_chat_messages_welcome, translate!(i18, "login.chat_steps.messages.welcome")),
+        // Traducciones para el fragmento "messages" dentro de "chat_steps"
+        (key_login_chat_messages_validating, translate!(i18, "login.chat_steps.messages.validating")),
+        (key_login_chat_messages_welcome, translate!(i18, "login.chat_steps.messages.welcome")),
 
-    // Traducciones para el fragmento "chat_errors" dentro de "login"
-    (key_login_chat_errors_invalid_url, translate!(i18, "login.chat_errors.invalid_url")),
-    (key_login_chat_errors_unknown, translate!(i18, "login.chat_errors.unknown")),
-    (key_login_chat_errors_invalid_username_password, translate!(i18, "login.chat_errors.invalid_username_password")),
-]);
+        // Traducciones para el fragmento "chat_errors" dentro de "login"
+        (key_login_chat_errors_invalid_url, translate!(i18, "login.chat_errors.invalid_url")),
+        (key_login_chat_errors_unknown, translate!(i18, "login.chat_errors.unknown")),
+        (key_login_chat_errors_invalid_username_password, translate!(i18, "login.chat_errors.invalid_username_password")),
+    ]);
 
     let client = use_client(cx);
-    let homeserver = use_state(cx, || String::from("https://matrix.org"));
-    let username = use_state(cx, || String::from("@bob-test-1:matrix.org"));
-    let password = use_state(cx, || String::from("Theguardian#1"));
+    let homeserver = use_state(cx, || String::from(""));
+    let username = use_state(cx, || String::from(""));
+    let password = use_state(cx, || String::from(""));
     let error = use_state(cx, || None);
 
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
@@ -152,12 +152,20 @@ let i18n_map = HashMap::from([
         })
     };
 
+    let error_invalid_credentials = i18n_get_key_value(
+        &i18n_map,
+        key_login_chat_errors_invalid_username_password,
+    );
+    let error_unknown = i18n_get_key_value(
+        &i18n_map, key_login_chat_errors_unknown,
+    );
+
     let on_handle_login = move || {
         login_info.with_mut(|info| info.username = username.get().clone());
         login_info.with_mut(|info| info.password = password.get().clone());
 
         cx.spawn({
-            to_owned![logged_in, login_info, username, password, is_loading_loggedin, client];
+            to_owned![logged_in, login_info, username, password, is_loading_loggedin, client, error, error_invalid_credentials, error_unknown];
 
             info!("{:?}",login_info.read());
 
@@ -202,14 +210,9 @@ let i18n_map = HashMap::from([
                             .to_string()
                             .eq("the server returned an error: [403 / M_FORBIDDEN] Invalid username or password")
                         {
-                            // error.set(Some(i18n_get_key_value(
-                            //     &i18n_map,
-                            //     key_login_chat_errors_invalid_username_password,
-                            // )))
+                            error.set(Some(error_invalid_credentials))
                         } else {
-                            // error.set(Some(i18n_get_key_value(
-                            //     &i18n_map, key_login_chat_errors_unknown,
-                            // )))
+                            error.set(Some(error_unknown))
                         }
         
                         username.set(String::from(""));

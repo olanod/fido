@@ -58,7 +58,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
 
     let shadow_style = r#"
         position: absolute;
-        background: var(--light-modal-backdrop, rgba(0, 0, 0, 0.30));
+        background: var(--background-shadow);
         height: 100%;
         width: 100%;
         z-index: 10;
@@ -68,7 +68,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
         position: absolute;
         bottom: 0;
         width: 100%;
-        background: white;
+        background: var(--background);
         padding: 24px 18px 32px;
         border-radius: 28px 28px 0px 0px;
         z-index: 20;
@@ -87,7 +87,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
     "#;
 
     let username_style = r#"
-        color: var(--text-loud-900, #0D0D12);
+        color: var(--text-1);
         text-align: center;
         font-family: Inter;
         font-size: 18px;
@@ -98,7 +98,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
     "#;
 
     let message_style = r#"
-        color: var(--light-modal-text-secondary, rgba(60, 66, 66, 0.60));
+        color: var(--text-2);
         
         font-size: 14px;
         font-style: normal;
@@ -109,7 +109,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
 
     let close_style = r#"
         cursor: pointer;
-        background: white;
+        background: transparent;
         -webkit-box-shadow: 0px 0px 30px 0px rgba(0,0,0,0.54);
         -moz-box-shadow: 0px 0px 30px 0px rgba(0,0,0,0.54);
         box-shadow: 0px 0px 30px 0px rgba(0,0,0,0.54);
@@ -141,7 +141,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
 
     let cta_title_style = r#"
         overflow: hidden;
-        color: var(--text-loud-900, #0D0D12);
+        color: var(--text-1);
         text-align: center;
         text-overflow: ellipsis;
         whitespace: nowrap;
@@ -196,7 +196,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                         style: "{close_style}",
                         onclick: move |event| {cx.props.on_close.call(event)},
                         Icon {
-                            stroke: "#818898",
+                            stroke: "var(--icon-subdued)",
                             icon: Close
                         }
                     }
@@ -209,7 +209,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                             cx.props.on_click.call(ModalForm { value: RoomType::CHAT })
                         },
                         Icon {
-                            stroke: "#000",
+                            stroke: "var(--text-1)",
                             icon: NewChat
                         }
                         span {
@@ -223,7 +223,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                             cx.props.on_click.call(ModalForm { value: RoomType::GROUP })
                         },
                         Icon {
-                            stroke: "#000",
+                            stroke: "var(--text-1)",
                             icon: Group
                         }
                         span {
@@ -237,7 +237,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                             cx.props.on_click.call(ModalForm { value: RoomType::CHANNEL })
                         },
                         Icon {
-                            stroke: "#000",
+                            stroke: "var(--text-1)",
                             icon: ChatConversation
                         }
                         span {

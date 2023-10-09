@@ -358,7 +358,7 @@ pub mod matrix {
             lazy_load_options: LazyLoadOptions::Enabled { include_redundant_members: false },
         });
         let options = assign!(MessagesOptions::backward(), {
-            limit: UInt::new(5).unwrap(),
+            limit: UInt::new(20).unwrap(),
             filter,
             from: from.as_deref()
         });
@@ -510,8 +510,33 @@ pub mod matrix {
                         });
                     }
                 }
-                MediaSource::Encrypted(_) => {
-                    panic!("Unsupporterd encrypted image");
+                MediaSource::Encrypted(file) => {
+                    let mx_uri = &file.url;
+
+                    info!("{:?}", mx_uri);
+
+                    let https_uri = mxc_to_https_uri(
+                        &mx_uri,
+                        ImageSize {
+                            width: 800,
+                            height: 600,
+                        },
+                    );
+
+                    if let Some(uri) = https_uri {
+                        message_result = Some(TimelineMessageEvent {
+                            event_id: Some(String::from(event.as_str())),
+                            reply: None,
+                            sender: member.clone(),
+                            body: TimelineMessageType::Image(uri),
+                            origin: if member.id.eq(logged_user_id) {
+                                EventOrigin::ME
+                            } else {
+                                EventOrigin::OTHER
+                            },
+                            time: timestamp,
+                        });
+                    }
                 }
             },
             MessageType::Text(content) => {

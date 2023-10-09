@@ -2,7 +2,6 @@ use dioxus::prelude::*;
 use dioxus_router::prelude::use_navigator;
 use dioxus_std::{i18n::use_i18, translate};
 use log::info;
-use matrix_sdk::ruma::UserId;
 use std::{collections::HashMap, ops::Deref};
 
 use crate::{
@@ -159,7 +158,7 @@ pub fn Profile(cx: Scope) -> Element {
         object-fit: cover;
         border: 0.5px solid #0001;
         position: relative;
-        background: #000;
+        background: var(--background-loud);
         border-radius: 100%;
     "#;
 
@@ -292,12 +291,14 @@ pub fn Profile(cx: Scope) -> Element {
                         margin-top: 40px;
                     "#,
                     h2 {
+                        color: "var(--text-1)",
                         "Informacion de la cuenta"
                     }
 
                     h4 {
                         style: r#"
                             margin-top: 24px;
+                            color: var(--text-1);
                         "#,
                         "Servidor"
                     }
@@ -305,6 +306,7 @@ pub fn Profile(cx: Scope) -> Element {
                     p {
                         style: r#"
                             margin-top: 12px;
+                            color: var(--text-2);
                         "#,
                         "{advanced_info.read().homeserver.deref()}"
                     }
@@ -312,6 +314,7 @@ pub fn Profile(cx: Scope) -> Element {
                     h4 {
                         style: r#"
                             margin-top: 24px;
+                            color: var(--text-1);
                         "#,
                         "ID del usuario de Matrix"
                     }
@@ -319,6 +322,7 @@ pub fn Profile(cx: Scope) -> Element {
                     p {
                         style: r#"
                             margin-top: 12px;
+                            color: var(--text-2);
                         "#,
                         "{advanced_info.read().user_id}"
                     }
@@ -326,6 +330,7 @@ pub fn Profile(cx: Scope) -> Element {
                     h4 {
                         style: r#"
                             margin-top: 24px;
+                            color: var(--text-1);
                         "#,
                         "Sesion ID"
                     }
@@ -333,6 +338,7 @@ pub fn Profile(cx: Scope) -> Element {
                     p {
                         style: r#"
                             margin-top: 12px;
+                            color: var(--text-2);
                         "#,
                         "{advanced_info.read().session.device_id}"
                     }
@@ -356,6 +362,7 @@ pub fn Profile(cx: Scope) -> Element {
                 section {
                     style: r#"
                         margin-top: 40px;
+                        color: var(--text-1);
                     "#,
                     h2 {
                         "{i18n_get_key_value(&i18n_map, key_management_title)}"
@@ -364,6 +371,7 @@ pub fn Profile(cx: Scope) -> Element {
                     p {
                         style: r#"
                             margin-top: 12px;
+                            color: var(--text-2);
                         "#,
                         "{i18n_get_key_value(&i18n_map, key_management_deactivate_label)}"
                     }

@@ -88,7 +88,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
         line-height: 20px; /* 125% */
       "#,
       EventOrigin::OTHER => r#"
-        color: var(--text-loud);
+        color: var(--text-1);
         font-family: Inter;
         font-size: 16px;
         font-style: normal;
@@ -100,13 +100,14 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
     let origin_message_container_style = match cx.props.message.origin {
       EventOrigin::ME => r#"
         border-radius: 16px;
-        border: 0.5px solid var(--border-normal-50);
-        background: var(--background-loud);
+        // border: 0.5px solid var(--border-normal-50);
+        background: var(--background-button);
         color: var(--text-white);
         display: flex;
         width: fit-content;
         max-width: 80%;
         margin: 0 var(--size-1) 8px auto;
+        overflow: auto;
         
       "#,
       EventOrigin::OTHER => r#"
@@ -135,6 +136,11 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
           }
         }
         article {
+          style: "
+            padding: 10px;
+            border-radius: 16px;
+            background: var(--background-message);
+          ",
           match cx.props.message.origin {
             EventOrigin::OTHER => 
               rsx!(
@@ -208,7 +214,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
               style: "{close_style}",
               onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })},
               Icon {
-                stroke: "#818898",
+                stroke: "var(--icon-subdued)",
                 icon: Close
               }
             }

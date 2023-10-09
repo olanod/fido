@@ -36,7 +36,7 @@ fn Restoring(cx: Scope) -> Element {
                 Spinner {}
 
                 p {
-                    style: "color: (--text-1)",
+                    style: "color: var(--text-1)",
                     translate!(
                         i18,
                         "main.loading.title"

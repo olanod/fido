@@ -29,6 +29,7 @@ pub fn HeaderMain<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
 
     let title_style = r#"
         font-size: 18px;
+        color: var(--text-1);
     "#;
 
     let close_style = r#"
@@ -45,7 +46,7 @@ pub fn HeaderMain<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
                 style: "{close_style}",
                 onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })},
                 Icon {
-                  stroke: "#000000",
+                  stroke: "var(--text-1)",
                   icon: MenuHamburger,
                   height: 30,
                   width: 30
@@ -59,7 +60,7 @@ pub fn HeaderMain<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
                 style: "{close_style}",
                 onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::EDIT })},
                 Icon {
-                    stroke: "#000000",
+                    stroke: "var(--text-1)",
                     icon: Edit,
                     height: 30,
                     width: 30

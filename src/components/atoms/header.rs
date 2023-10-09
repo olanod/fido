@@ -20,7 +20,7 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
         position: absolute;
         width: 100%;
         padding: 1.25rem 0;
-        background: white;
+        background: var(--background);
         font-weight: 600;
         top: 0;
         font-size: var(--font-size-0)
@@ -34,7 +34,7 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
     "#;
 
     let title_style = r#"
-      color: var(--text-loud);
+      color: var(--text-1);
       font-family: Inter;
       font-size: 18px;
       font-style: normal;
@@ -49,7 +49,7 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
             style: "{close_style}",
             onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })},
             Icon {
-              stroke: "#000000",
+              stroke: "var(--text-1)",
               icon: ArrowLeft,
               height: 24,
               width: 24

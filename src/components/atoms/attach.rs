@@ -25,7 +25,7 @@ pub struct AttachProps<'a> {
 pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
     let button_style = r#"
         cursor: pointer;
-        background: var(--background-loud);
+        background: var(--background-button);
         border: none;
         border-radius: 100%;
         max-width: 2.625rem;
@@ -35,7 +35,7 @@ pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
 
     let avatar_style = r#"
         cursor: pointer;
-        background: #E9C8FD;
+        background: var(--neutral-solid-900);
         border: none;
         border-radius: 100%;
         width: 80px;
@@ -67,7 +67,7 @@ pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
                         style: "{button_style}",
                         onclick: on_handle_attach,
                         Icon {
-                            stroke: "#fff",
+                            stroke: "var(--icon-white)",
                             icon: Attachment
                         }
                     }

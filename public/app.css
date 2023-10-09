@@ -22,7 +22,7 @@ ul {
 .button--primary {
   border: none;
   color: var(--text-white);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.00) 100%), #0D0D12;
+  background: var(--background-button);
   box-shadow: 0px 0px 0px 1px #5E5E6E, 0px 1px 2px 0px rgba(17, 17, 20, 0.40);
 }
 
@@ -41,12 +41,13 @@ ul {
   height: 2.625rem;
   width: 100%;
   padding: 0.75rem 10px;
-  box-shadow: 0px 0px 0px 1px rgba(9, 25, 72, 0.13), 0px 1px 2px 0px rgba(18, 55, 105, 0.08);
+  box-shadow: 0px 0px 0px 1px var(--neutral-alpha-50), 0px 1px 2px 0px var(--neutral-alpha-100);
   border-radius: 2.25rem;
   display: flex;
   gap: 0.5rem;
   /* flex-direction: column; */
   align-items: center;
+  background: var(--background-input);
 }
 
 .button--primary,
@@ -62,6 +63,16 @@ ul {
   width: 100%;
   border: 1px solid transparent;
   outline: none;
+  color: var(--text-1);
+}
+
+.input__label {
+  color: var(--text-2);
+  font-family: Inter;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 20px; /* 142.857% */
 }
 
 .input__message {
@@ -70,7 +81,6 @@ ul {
   position: absolute;
   bottom: 0;
   padding: 0 0 20px;
-  background: white;
 }
 
 .input__cta {
@@ -83,14 +93,16 @@ ul {
 .notification {
   background: white;
   color: var(--text-1);
-  border: 1px solid var(--text-1);
-  width: 300px;
+  border: 1px solid transparent;
+  width: 100%;
   padding: var(--size-1);
   text-align: left;
   position: absolute;
-  right: var(--size-1);
-  top: 50px;
   z-index: 100;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+  height: 60px;
+  border-radius: 8px;
+  left: 0;
 }
 
 .notification__title {
@@ -111,31 +123,30 @@ ul {
 .message-view--replying,
 .message-view--reply,
 .message-view {
-  background: white;
   color: var(--text-1);
-  padding: 10px;
   width: 100%;
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  margin: 0 var(--size-1) 8px auto;
 }
 
 .message-view:hover {
   transition: opacity 0.2s ease-out, background-color 0.2s ease-out;
-  background: white;
+  background: transparent;
   border-radius: var(--size-1);
   cursor: pointer;
 }
 
 .message-view:hover .message-view--reply {
-  background: white;
+  background: transparent;
 }
 
 .message-view:hover::after {
   content: "Responder";
   color: var(--text-1);
   font-size: var(--size-1);
-  background: white;
+  background: transparent;
   padding: var(--size-0);
   border-radius: var(--size-0) var(--size-0) 0 0;
   position: relative;
@@ -144,13 +155,13 @@ ul {
 }
 
 .message-view--replying {
-  background: white;
+  background: transparent;
   border-radius: var(--size-2) var(--size-2) 0 0;
   width: 100%;
 }
 
 .message-view--replying::before {
-  background: white;
+  background: transparent;
   border-radius: var(--size-1) var(--size-1) 0 0;
   width: fit-content;
   color: var(--text-1);
@@ -163,18 +174,17 @@ ul {
 }
 
 .room-view {
-  color: var(--text-1);
   border: 1px solid transparent;
-  border-radius: var(--size-0);
   max-width: 100%;
   padding: 0.5rem 0;
   text-align: left;
   transition: opacity 0.2s ease-out, background-color 0.2s ease-out;
   cursor: pointer;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--size-1);
   width: 100%;
+  border-bottom: 1px solid var(--border);
 }
 
 .room-view:active:not(:disabled) {
@@ -185,14 +195,17 @@ ul {
   width: 100%;
   font-size: 16px;
   font-weight: 500;
-  color: var(--text-loud);
+  color: var(--text-1);
+  height: 24px;
 }
 
 .room-view__message {
   width: 100%;
   font-size: 14px;
   font-weight: 400;
-  color: var(--text-subdued);
+  color: var(--text-2);
+  height: 20px;
+  margin-top: 4px;
 }
 
 /* Page */
@@ -272,8 +285,8 @@ ul {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 6px solid var(--surface-3);
-  border-color: var(--surface-3) transparent var(--surface-3) transparent;
+  border: 6px solid var(--text-1);
+  border-color: var(--text-1) transparent var(--text-1) transparent;
   animation: lds-dual-ring 1.2s linear infinite;
 }
 

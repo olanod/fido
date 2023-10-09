@@ -20,24 +20,6 @@
     }
 
     :where(html) {
-      /* colors */
-      --border-light: #224;
-      --border-dark: #ddf;
-      --text-1-light: #224;
-      --text-1-dark: #ddf;
-      --text-2-light: #668;
-      --text-2-dark: #aac;
-      --brand-light: #88d;
-      --brand-dark: #77a;
-      --alt-light: #66a;
-      --alt-dark: #558;
-      --surface-0-light: #fafaff;
-      --surface-1-light: #eef;
-      --surface-1-dark: #223;
-      --surface-2-light: #dde;
-      --surface-2-dark: #334;
-      --surface-3-light: #0D0D12;
-      --surface-3-dark: #112;
       /* sizes */
       --size-0: clamp(.25rem, .5vw, 1rem);
       --size-1: clamp(.5rem, 1vw, 1rem);
@@ -111,6 +93,7 @@
       --border-normal: #ECEFF3;
       --border-hover: #DFE1E6;
       --border-pressed: #C1C7CF;
+      --border-muted: #353849;
 
       /* Icon */
 
@@ -168,35 +151,35 @@
       --secondary-green-50: #9DE0D3;
       --secondary-green-100: #40C4AA;
       --secondary-green-200: #287F6E;
-      --secondary-green-300: #174E43  ;
+      --secondary-green-300: #174E43;
 
     }
 
     :root {
-      --text-1: var(--text-1-light);
-      --text-2: var(--text-2-light);
-      --text-alt: var(--text-1-dark);
-      --brand: var(--brand-light);
-      --alt: var(--alt-light);
-      --surface-0: var(--surface-0-light);
-      --surface-1: var(--surface-1-light);
-      --surface-2: var(--surface-2-light);
-      --surface-3: var(--surface-3-light);
-      --avatar-size: var(--avatar-default-size);
-      --text-loud: var(--text-loud)
+      --text-1: var(--text-loud);
+      --text-2: var(--text-muted);
+
+      --background: var(--background-white);
+      --background-button: var(--neutral-solid-900);
+      --background-input: var(--neutral-solid-25);
+      --background-message: var(--neutral-alpha-0);
+      --background-shadow: rgba(0, 0, 0, 30%);
+
+      --border: var(--border-normal);
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --text-1: var(--text-1-dark);
-        --text-2: var(--text-2-dark);
-        --text-alt: var(--text-1-light);
-        --brand: var(--brand-dark);
-        --alt: var(--alt-dark);
-        --surface-0: var(--surface-0-dark);
-        --surface-1: var(--surface-1-dark);
-        --surface-2: var(--surface-2-dark);
-        --surface-3: var(--surface-3-dark);
+        --text-1: var(--text-white);
+        --text-2: var(--text-subdued);
+
+        --background: var(--background-loud);
+        --background-button: var(--neutral-solid-800);
+        --background-input: var(--neutral-solid-700);
+        --background-message: var(--neutral-solid-800);
+        --background-shadow: rgba(53, 56, 73, 30%);
+
+        --border: var(--border-muted);
       }
     }
 
@@ -222,7 +205,7 @@
     }
 
     body {
-      /* background: var(--surface-1); */
+      background: var(--background);
     }
 
     #main {

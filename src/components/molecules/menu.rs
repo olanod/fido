@@ -48,11 +48,12 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
     let content_style = r#"
         width: 75%;
         height: 100%;
-        background: white;
+        background: var(--background);
         z-index: 1000;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        padding-right: 16px;
     "#;
 
     let log_out = move || {
@@ -95,7 +96,7 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
                     li {
                         MenuItem {
                             title: "{i18n_get_key_value(&i18n_map, key_profile)}",
-                            icon: cx.render(rsx!(Icon {height: 24, width: 24, stroke: "#000", icon: UserCircle})),
+                            icon: cx.render(rsx!(Icon {height: 24, width: 24, stroke: "var(--text-1)", icon: UserCircle})),
                             on_click: move |event| {
                                 cx.props.on_click.call(event);
                                 nav.push(Route::Profile {});
@@ -106,7 +107,7 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
                      li {
                         MenuItem {
                             title: "{i18n_get_key_value(&i18n_map, key_chats)}",
-                            icon: cx.render(rsx!(Icon {height: 24, width: 24, stroke: "#000", icon: ChatConversation})),
+                            icon: cx.render(rsx!(Icon {height: 24, width: 24, stroke: "var(--text-1)", icon: ChatConversation})),
                             on_click: move |event| {
                                 cx.props.on_click.call(event);
                                 nav.push(Route::ChatList {});
@@ -118,7 +119,7 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
                     li {
                         MenuItem {
                             title: "{i18n_get_key_value(&i18n_map, key_log_out)}",
-                            icon: cx.render(rsx!(Icon {height: 24, width: 24, stroke: "#000", icon: LogOut})),
+                            icon: cx.render(rsx!(Icon {height: 24, width: 24, stroke: "var(--text-1)", icon: LogOut})),
                             on_click: move |_| {
                                 log_out()
                             }

@@ -27,7 +27,7 @@ pub struct MessageInputProps<'a> {
 pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
     let error_container_style = if let Some(_) = cx.props.error {
         r#"
-            box-shadow: 0px 0px 0px 1px #DF1C41, 0px 0px 0px 2px #FFF, 0px 0px 0px 3px rgba(223, 28, 65, 0.24), 0px 1px 2px 0px rgba(150, 19, 44, 0.32);
+            box-shadow: 0px 0px 0px 1px var(--secondary-red-100), 0px 0px 0px 2px var(--background-white), 0px 0px 0px 3px rgba(223, 28, 65, 0.24), 0px 1px 2px 0px rgba(150, 19, 44, 0.32);
         "#
     } else {
         ""
@@ -51,6 +51,7 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
             if let Some(value) = cx.props.label {
                 rsx!(
                     label {
+                        class: "input__label",
                         "{value}"
                     }
                 )
@@ -63,7 +64,7 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                     InputType::Search => {
                         rsx!(
                             Icon {
-                                stroke: "#818898",
+                                stroke: "var(--icon-subdued)",
                                 icon: Search
                             }
                         )
@@ -92,7 +93,7 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                                 class: "input__cta",
                                 onclick: move |event| cx.props.on_click.call(event),
                                 Icon {
-                                    stroke: "#818898",
+                                    stroke: "var(--icon-subdued)",
                                     icon: Send
                                 }
                             }
@@ -108,7 +109,7 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                 let error_style = r#"
                     display: flex;
                     gap: 2px;
-                    color: #DF1C41;
+                    color: var(--secondary-red-100);
                     font-family: Inter;
                     font-size: 12px;
                     font-style: normal;
@@ -122,7 +123,7 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                     div {
                         style: "{error_style}",
                         Icon {
-                            stroke: "#DF1C41",
+                            stroke: "var(--secondary-red-100)",
                             height: 16,
                             width: 16,
                             icon: Warning
