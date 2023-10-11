@@ -173,6 +173,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                 &member,
                                 &me,
                                 time,
+                                &client
                             )
                             .await;
 
@@ -184,6 +185,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                 &member,
                                 &me,
                                 time,
+                                &client
                             )
                             .await;
 

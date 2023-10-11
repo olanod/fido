@@ -10,12 +10,14 @@ pub mod matrix {
         config::SyncSettings,
         deserialized_responses::{SyncTimelineEvent, TimelineSlice},
         encryption::identities::Device,
+        media::{self, MediaFormat, MediaRequest, MediaThumbnailSize},
         room::{MessagesOptions, Room},
         ruma::{
             api::{
                 self,
                 client::{
                     filter::{LazyLoadOptions, RoomEventFilter},
+                    media::{get_content, get_content_thumbnail::v3::Method},
                     room::{create_room::v3::RoomPreset, Visibility},
                     uiaa,
                 },
@@ -322,8 +324,14 @@ pub mod matrix {
     }
 
     #[derive(PartialEq, Debug, Clone)]
+    pub enum ImageType {
+        URL(String),
+        Media(Vec<u8>),
+    }
+
+    #[derive(PartialEq, Debug, Clone)]
     pub enum TimelineMessageType {
-        Image(String),
+        Image(ImageType),
         Text(String),
         Html(String),
     }
@@ -384,8 +392,13 @@ pub mod matrix {
 
         for zz in t.events.iter() {
             // info!("event: {:?}", zz);
-            let deserialized =
-                deserialize_any_timeline_event(zz.event.deserialize().unwrap(), &room, &me).await;
+            let deserialized = deserialize_any_timeline_event(
+                zz.event.deserialize().unwrap(),
+                &room,
+                &me,
+                &client,
+            )
+            .await;
 
             if let Some(d) = deserialized {
                 messages.push(d);
@@ -399,6 +412,7 @@ pub mod matrix {
         ev: AnySyncTimelineEvent,
         room: &Room,
         logged_user_id: &String,
+        client: &Client,
     ) -> Option<TimelineMessageEvent> {
         match ev {
             AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::RoomMessage(
@@ -417,6 +431,7 @@ pub mod matrix {
                     &member,
                     &logged_user_id,
                     time,
+                    &client,
                 )
                 .await;
                 let message_result = format_reply_from_event(
@@ -427,6 +442,7 @@ pub mod matrix {
                     &member,
                     &logged_user_id,
                     time,
+                    &client,
                 )
                 .await;
                 message_result
@@ -443,6 +459,7 @@ pub mod matrix {
         ev: AnyTimelineEvent,
         room: &Room,
         logged_user_id: &String,
+        client: &Client,
     ) -> Option<TimelineMessageEvent> {
         match ev {
             AnyTimelineEvent::MessageLike(AnyMessageLikeEvent::RoomMessage(
@@ -459,6 +476,7 @@ pub mod matrix {
                     &member,
                     &logged_user_id,
                     time,
+                    &client,
                 )
                 .await;
 
@@ -474,6 +492,7 @@ pub mod matrix {
         member: &RoomMember,
         logged_user_id: &String,
         time: MilliSecondsSinceUnixEpoch,
+        client: &Client,
     ) -> Option<TimelineMessageEvent> {
         let mut message_result = None;
 
@@ -487,6 +506,20 @@ pub mod matrix {
         match &n {
             MessageType::Image(nm) => match &nm.source {
                 MediaSource::Plain(mx_uri) => {
+                    info!("{:?}", nm);
+                    let x = client
+                        .media()
+                        .get_media_content(
+                            &MediaRequest {
+                                source: nm.source.clone(),
+                                format: MediaFormat::File,
+                            },
+                            true,
+                        )
+                        .await;
+
+                    info!("get media image {x:?}");
+
                     let https_uri = mxc_to_https_uri(
                         &mx_uri,
                         ImageSize {
@@ -500,7 +533,7 @@ pub mod matrix {
                             event_id: Some(String::from(event.as_str())),
                             reply: None,
                             sender: member.clone(),
-                            body: TimelineMessageType::Image(uri),
+                            body: TimelineMessageType::Image(ImageType::URL(uri)),
                             origin: if member.id.eq(logged_user_id) {
                                 EventOrigin::ME
                             } else {
@@ -511,24 +544,30 @@ pub mod matrix {
                     }
                 }
                 MediaSource::Encrypted(file) => {
-                    let mx_uri = &file.url;
+                    info!("{:?}", nm);
+                    let x = client
+                        .media()
+                        .get_media_content(
+                            &MediaRequest {
+                                source: nm.source.clone(),
+                                format: MediaFormat::Thumbnail(MediaThumbnailSize {
+                                    method: Method::Crop,
+                                    width: UInt::new(16).unwrap(),
+                                    height: UInt::new(16).unwrap(),
+                                }),
+                            },
+                            true,
+                        )
+                        .await;
 
-                    info!("{:?}", mx_uri);
+                    info!("get media {x:?}");
 
-                    let https_uri = mxc_to_https_uri(
-                        &mx_uri,
-                        ImageSize {
-                            width: 800,
-                            height: 600,
-                        },
-                    );
-
-                    if let Some(uri) = https_uri {
+                    if let Ok(content) = x {
                         message_result = Some(TimelineMessageEvent {
                             event_id: Some(String::from(event.as_str())),
                             reply: None,
                             sender: member.clone(),
-                            body: TimelineMessageType::Image(uri),
+                            body: TimelineMessageType::Image(ImageType::Media(content)),
                             origin: if member.id.eq(logged_user_id) {
                                 EventOrigin::ME
                             } else {
@@ -580,6 +619,7 @@ pub mod matrix {
         member: &RoomMember,
         logged_user_id: &String,
         time: MilliSecondsSinceUnixEpoch,
+        client: &Client,
     ) -> Option<TimelineMessageEvent> {
         let mut message_result: Option<TimelineMessageEvent> = message_result;
 
@@ -597,8 +637,13 @@ pub mod matrix {
                         Ok(event) => {
                             let desc_event = event.event.deserialize().unwrap();
 
-                            let reply =
-                                deserialize_timeline_event(desc_event, room, &logged_user_id).await;
+                            let reply = deserialize_timeline_event(
+                                desc_event,
+                                room,
+                                &logged_user_id,
+                                &client,
+                            )
+                            .await;
 
                             match reply {
                                 Some(r) => match &r.body {

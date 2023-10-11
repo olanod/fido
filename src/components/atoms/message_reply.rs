@@ -1,6 +1,11 @@
+use std::ops::Deref;
+
 use dioxus::prelude::*;
 
-use crate::{components::atoms::Avatar, services::matrix::matrix::TimelineMessageType};
+use crate::{
+    components::atoms::Avatar,
+    services::matrix::matrix::{ImageType, TimelineMessageType},
+};
 
 #[derive(PartialEq, Props, Debug, Clone)]
 pub struct MessageReply {
@@ -104,10 +109,25 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
               )
             },
             TimelineMessageType::Image(i) => {
-              rsx!(img{
-                style: "{content_image_style}",
-                src: "{i}"
-              })
+              match i {
+                ImageType::URL(url) => {
+                  rsx!(img{
+                    style: "{content_image_style}",
+                    src: "{url}"
+                  })
+                }
+                ImageType::Media(content) => {
+                  let c: &[u8] = content.as_ref();
+
+                  let blob = gloo::file::Blob::new(c);
+                  let object_url = gloo::file::ObjectUrl::from(blob);
+
+                  rsx!(img{
+                    style: "{content_image_style}",
+                    src: "{object_url.deref()}"
+                  })
+                }
+              }
               // rsx!(div{})
             }
             TimelineMessageType::Html(t) => {

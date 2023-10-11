@@ -1,6 +1,10 @@
-use dioxus::prelude::*;
+use std::ops::Deref;
 
-use crate::{components::atoms::{Avatar, Icon, Close, header_main::HeaderCallOptions}, services::matrix::matrix::{TimelineMessageType, EventOrigin}, utils::get_element::GetElement};
+use dioxus::prelude::*;
+use gloo::file::BlobContents;
+use web_sys::Url;
+
+use crate::{components::atoms::{Avatar, Icon, Close, header_main::HeaderCallOptions}, services::matrix::matrix::{TimelineMessageType, EventOrigin, ImageType}};
 
 use super::{MessageReply, header_main::HeaderEvent};
 
@@ -186,10 +190,25 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
               )
             },
             TimelineMessageType::Image(i) => {
-              rsx!(img{
-                style: "{content_image_style}",
-                src: "{i}"
-              })
+              match i {
+                ImageType::URL(url) => {
+                  rsx!(img{
+                    style: "{content_image_style}",
+                    src: "{url}"
+                  })
+                }
+                ImageType::Media(content) => {
+                  let c = content.deref();
+                  let parts = js_sys::Array::of1(&unsafe { c.into_jsvalue() });
+                  let blob = web_sys::Blob::new_with_u8_array_sequence(&parts).unwrap();
+                  let url  = Url::create_object_url_with_blob(&blob).unwrap();
+                  
+                  rsx!(img {
+                    style: "{content_image_style}",
+                    src: "{url}"
+                  })
+                }
+              }
             },
             TimelineMessageType::Html(t) => {
               rsx!(
