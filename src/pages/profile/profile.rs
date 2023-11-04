@@ -177,11 +177,11 @@ pub fn Profile(cx: Scope) -> Element {
                         let blob = gloo::file::Blob::new(content.deref());
                         let object_url = gloo::file::ObjectUrl::from(blob);
 
-                        attach.set(Some(AttachFile {
-                            name: fs.get(0).unwrap().to_string(),
-                            preview_url: object_url,
-                            data: content.clone(),
-                        }));
+                        // attach.set(Some(AttachFile {
+                        //     name: fs.get(0).unwrap().to_string(),
+                        //     preview_url: object_url,
+                        //     data: content.clone(),
+                        // }));
                     }
                 }
             }

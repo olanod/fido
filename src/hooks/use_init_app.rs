@@ -1,5 +1,6 @@
 use crate::components::atoms::message::Messages;
 use crate::pages::chat::chat::{NotificationHandle, NotificationType};
+use crate::services::matrix::matrix::TimelineThread;
 use crate::{
     components::molecules::{input_message::ReplyingTo, rooms::CurrentRoom},
     pages::{
@@ -49,4 +50,5 @@ pub fn use_init_app(cx: &ScopeState) {
     });
 
     use_shared_state_provider::<Option<SasVerification>>(cx, || None);
+    use_shared_state_provider::<Option<TimelineThread>>(cx, || None);
 }

@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 use gloo::file::ObjectUrl;
+use mime::Mime;
 
 use crate::utils::get_element::GetElement;
 
@@ -8,6 +9,8 @@ pub struct AttachFile {
     pub name: String,
     pub preview_url: ObjectUrl,
     pub data: Vec<u8>,
+    pub content_type: Mime,
+    pub size: u64,
 }
 
 #[allow(clippy::needless_return)]

@@ -1,12 +1,13 @@
 use std::ops::Deref;
 
 use dioxus::{html::input_data::keyboard_types, prelude::*};
-use matrix_sdk::ruma::RoomId;
+use log::info;
+use matrix_sdk::ruma::{RoomId, UInt};
 
 use crate::{
-    components::{atoms::{message::Message, Attach, MessageInput, MessageView, Button, header_main::HeaderEvent, input::InputType,
+    components::{atoms::{message::Message, Attach, MessageInput, MessageView, Button, header_main::{HeaderEvent, HeaderCallOptions}, input::InputType, hover_menu::{MenuEvent, MenuOption},
     }, molecules::AttachPreview},
-    services::matrix::matrix::{TimelineMessageType, EventOrigin}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_room::use_room},
+    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_room::use_room},
 };
 
 #[derive(Debug, Clone)]
@@ -29,7 +30,7 @@ pub struct InputMessageProps<'a> {
     placeholder: &'a str,
     on_submit: EventHandler<'a, FormMessageEvent>,
     on_event: EventHandler<'a, HeaderEvent>,
-    on_attach: Option<EventHandler<'a, Vec<u8>>>
+    on_attach: Option<EventHandler<'a, Attachment>>
 }
 
 pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
@@ -62,11 +63,40 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                 if let Some(f) = &files {
                     let fs = f.files();
                     let file = f.read_file(fs.get(0).unwrap()).await;
-                    
+
                     if let Some(content) = file {
-                        let blob = gloo::file::Blob::new(content.deref());
+        
+                        let x = infer::get(content.deref());
+
+                        info!("type: {:?}", x.unwrap().mime_type());
+                        
+                        let content_type: mime::Mime = x.unwrap().mime_type().parse().unwrap();
+                        
+
+                        let blob = match content_type.type_() {
+                            mime::IMAGE => {
+                                gloo::file::Blob::new(content.deref())
+                            },
+                            mime::VIDEO => {
+                                gloo::file::Blob::new_with_options(content.deref(), Some(x.unwrap().mime_type()))
+                            },
+                            _ => {
+                                gloo::file::Blob::new(content.deref())
+                            }
+                        };
+
+
+                        let size = blob.size().clone();
+                        info!("mime: {:?}", content_type);
                         let object_url = gloo::file::ObjectUrl::from(blob);
-                        attach.set(Some(AttachFile { name: fs.get(0).unwrap().to_string(), preview_url: object_url, data: content.clone() })) ;
+                        
+                        attach.set(Some(AttachFile { 
+                            name: fs.get(0).unwrap().to_string(), 
+                            preview_url: object_url, 
+                            data: content.clone(), 
+                            content_type,
+                            size
+                        })) ;
                     }
                 }
             }
@@ -92,9 +122,14 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                         reply: None,
                         origin: replying.origin.clone(),
                         time: String::from(""),
+                        thread: None
                     },
                     is_replying: true,
-                    on_event: move |event| {cx.props.on_event.call(event)}
+                    on_event: move |event: MenuEvent| {
+                        if let MenuOption::Close = event.option {
+                            cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })
+                        }
+                    }
                 }
             )
         }
@@ -121,7 +156,13 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                         text: "Enviar",
                         on_click: move |event| {
                             if let Some(l) = &cx.props.on_attach {
-                                l.call(file.data.clone());
+                                let attachment = Attachment {
+                                    body: file.name.clone(),
+                                    data: file.data.clone(),
+                                    content_type: file.content_type.clone()
+                                };
+
+                                l.call(attachment);
 
                                 on_handle_send_attach(event);
                             }

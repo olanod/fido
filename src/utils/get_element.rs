@@ -1,3 +1,4 @@
+use log::info;
 use wasm_bindgen::JsCast;
 
 pub struct GetElement<T>(T);
@@ -9,6 +10,12 @@ impl<T> GetElement<T> {
     {
         let window = web_sys::window().expect("global window does not exists");
         let document = window.document().expect("expecting a document on window");
+
+        let element = document
+            .get_element_by_id(tag)
+            .unwrap();
+
+        info!("elemtn get elemtn {:?}", element);
         let element = document
             .get_element_by_id(tag)
             .unwrap()

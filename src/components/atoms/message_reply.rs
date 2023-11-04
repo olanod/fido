@@ -3,7 +3,7 @@ use std::ops::Deref;
 use dioxus::prelude::*;
 
 use crate::{
-    components::atoms::Avatar,
+    components::atoms::{Avatar, File},
     services::matrix::matrix::{ImageType, TimelineMessageType},
 };
 
@@ -71,13 +71,13 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
         color: var(--text-white);
         margin: var(--size-0) 0;
         padding: 0 var(--size-0);
-        border-left: 2px solid var(--brand);
+        border-left: 2px solid var(--primary-100);
       "#
     } else {
         r#"
         margin: var(--size-0) 0;
         padding: 0 var(--size-0);
-        border-left: 2px solid var(--brand);
+        border-left: 2px solid var(--primary-100);
       "#
     };
 
@@ -109,7 +109,7 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
               )
             },
             TimelineMessageType::Image(i) => {
-              match i {
+              match i.source.as_ref().unwrap() {
                 ImageType::URL(url) => {
                   rsx!(img{
                     style: "{content_image_style}",
@@ -130,10 +130,36 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
               }
               // rsx!(div{})
             }
+            TimelineMessageType::File(file) => {
+              rsx!(
+                div {
+                  style: "margin-top: var(--size-0)",
+                  File {
+                    body: file.clone(),
+                  }
+                }
+              )
+            }
+            TimelineMessageType::Video(i) => {
+              rsx!(
+                div {
+                  style: "margin-top: var(--size-0)",
+                  File {
+                    body: i.clone(),
+                  }
+                }
+              )
+            }
             TimelineMessageType::Html(t) => {
               rsx!(
                 div {
-                  // dangerous_inner_html: "{t}"
+                  style: "
+                    overflow: hidden;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 3;
+                    -webkit-box-orient: vertical;
+                  ",
+                  dangerous_inner_html: "{t}"
                 }
               )
             }

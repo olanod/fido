@@ -72,7 +72,8 @@ ul {
   font-size: 14px;
   font-style: normal;
   font-weight: 500;
-  line-height: 20px; /* 142.857% */
+  line-height: 20px;
+  /* 142.857% */
 }
 
 .input__message {
@@ -128,30 +129,10 @@ ul {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  margin: 0 var(--size-1) 8px auto;
 }
 
 .message-view:hover {
-  transition: opacity 0.2s ease-out, background-color 0.2s ease-out;
-  background: transparent;
-  border-radius: var(--size-1);
   cursor: pointer;
-}
-
-.message-view:hover .message-view--reply {
-  background: transparent;
-}
-
-.message-view:hover::after {
-  content: "Responder";
-  color: var(--text-1);
-  font-size: var(--size-1);
-  background: transparent;
-  padding: var(--size-0);
-  border-radius: var(--size-0) var(--size-0) 0 0;
-  position: relative;
-  right: 0;
-  top: 0;
 }
 
 .message-view--replying {
@@ -390,4 +371,95 @@ ul {
   border: 0;
   box-shadow: none;
   cursor: not-allowed;
+}
+
+.file {
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  height: 2.625rem;
+  background: var(--neutral-solid-100);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.file__content {
+  width: 100%;
+  display: flex;
+  gap: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .file {
+    background: var(--neutral-solid-600);
+  }
+}
+
+.hover_menu {
+  display: none;
+  position: relative;
+  min-width: 140px;
+  width: fit-content;
+  max-width: 200px;
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  border-radius: 8px;
+  margin: 0 0 0 auto;
+  background: var(--background-modal);
+  right: 10px;
+}
+
+.hover_menu>ul>li>button {
+  cursor: pointer;
+}
+
+.hover_menu>ul>li:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
+.dropdown {
+  margin: 0 var(--size-1) 8px auto;
+  max-height: 70vh;
+  max-width: 80%;
+  width: fit-content;
+}
+
+.dropdown:hover .hover_menu {
+  display: block;
+}
+
+.dropdown--left {
+  margin: 0 var(--size-1) 8px;
+}
+
+.dropdown--left .hover_menu {
+  left: 40px;
+}
+
+.message-container {
+  border-radius: 16px;
+  background: var(--background-button);
+  color: var(--text-white);
+  display: flex;
+  width: fit-content;
+  margin: 0 0 0 auto;
+  overflow: auto;
+}
+
+.message-wrapper {
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--background-message);
+  height: 100%;
+}
+
+.message--text {
+  font-size: var(--font-size-0);
+  display: flex;
+  gap: 11px;
+  align-items: flex-end;
+  justify-content: space-between;
 }

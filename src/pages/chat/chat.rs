@@ -10,7 +10,7 @@ use crate::hooks::use_notification::use_notification;
 use crate::pages::route::Route;
 
 use crate::components::atoms::Notification;
-use crate::services::matrix::matrix::TimelineMessageEvent;
+use crate::services::matrix::matrix::{TimelineMessage, TimelineRelation};
 
 use matrix_sdk::room::Room;
 
@@ -30,7 +30,7 @@ pub struct MessageItem {
 
 pub struct MessageEvent {
     pub room: Room,
-    pub mgs: Option<TimelineMessageEvent>,
+    pub mgs: Option<TimelineRelation>,
 }
 
 #[derive(Debug)]

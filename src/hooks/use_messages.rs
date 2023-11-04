@@ -2,6 +2,7 @@ use std::{collections::HashMap, ops::Deref};
 
 use dioxus::prelude::*;
 use futures_util::StreamExt;
+use log::info;
 use matrix_sdk::ruma::RoomId;
 
 use crate::{
@@ -12,7 +13,7 @@ use crate::{
         },
         molecules::rooms::CurrentRoom,
     },
-    services::matrix::matrix::timeline,
+    services::matrix::matrix::{timeline, TimelineRelation, TimelineThread},
 };
 
 use super::use_client::use_client;
@@ -22,18 +23,22 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
     let client = use_client(cx).get();
     let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
     let messages = use_shared_state::<Messages>(cx).expect("Messages not provided");
+    let mutable_messages = use_ref::<Messages>(cx, || vec![]);
     let messages_loading = use_ref::<bool>(cx, || false);
     let limit_events_by_room = use_ref::<HashMap<String, u64>>(cx, || HashMap::new());
     let from = use_ref::<Option<String>>(cx, || None);
+    let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).unwrap();
 
     let task_timeline = use_coroutine(cx, |mut rx: UnboundedReceiver<bool>| {
         to_owned![
             client,
             current_room,
             messages,
+            mutable_messages,
             messages_loading,
             limit_events_by_room,
-            from
+            from,
+            timeline_thread
         ];
 
         async move {
@@ -49,33 +54,42 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
                     .to_owned();
 
                 let room_id = RoomId::parse(current_room.read().id.clone()).unwrap();
+                let ms = messages.read().deref().clone();
 
                 let (f, msg) =
-                    timeline(&client, &room_id, current_events, from.read().clone()).await;
+                    timeline(&client, &room_id, current_events, from.read().clone(), ms).await;
 
                 from.set(f);
 
-                for m in msg.iter() {
-                    let mut rep: Option<MessageReply> = None;
+                // for m in msg.into_iter() {
+                //     messages.write().push(m.clone())
+                // }
+                *messages.write() = msg;
+                let mm = timeline_thread.read().clone();
 
-                    if let Some(r) = &m.reply {
-                        rep = Some(MessageReply {
-                            display_name: r.sender.name.clone(),
-                            avatar_uri: r.sender.avatar_uri.clone(),
-                            content: r.body.clone(),
-                        })
-                    }
+                if let Some(thread) = mm {
+                    let ms = messages.read().deref().clone();
+                    let message = ms.iter().find(|m| {
+                        if let TimelineRelation::CustomThread(t) = m {
+                            if t.event_id.eq(&thread.event_id) {
+                                let mut xthread = thread.clone();
 
-                    let last_message_id = messages.read().len() as i64;
-                    messages.write().push(Message {
-                        id: last_message_id,
-                        event_id: m.event_id.clone(),
-                        display_name: m.sender.name.clone(),
-                        content: m.body.clone(),
-                        avatar_uri: m.sender.avatar_uri.clone(),
-                        reply: rep.clone(),
-                        origin: m.origin.clone(),
-                        time: m.time.clone(),
+                                info!("timeline when use messages: {t:#?}");
+
+                                // xthread.thread.append(&mut t.thread.clone());
+
+                                *timeline_thread.write() = Some(TimelineThread {
+                                    event_id: t.event_id.clone(),
+                                    thread: t.thread.clone(),
+                                    count: t.count.clone(),
+                                    latest_event: t.latest_event.clone(),
+                                });
+                            }
+
+                            true
+                        } else {
+                            false
+                        }
                     });
                 }
 

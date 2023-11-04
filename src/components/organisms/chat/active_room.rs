@@ -25,6 +25,7 @@ use crate::{
         chat::chat::{ListHeight, MessageItem},
         route::Route,
     },
+    services::matrix::matrix::Attachment,
     utils::i18n_get_key_value::i18n_get_key_value,
 };
 
@@ -63,20 +64,6 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     let input_placeholder =
         use_state::<String>(cx, || i18n_get_key_value(&i18n_map, "inputs-plain-message"));
 
-    let on_push_message = move |evt: FormMessageEvent| {
-        let mut reply_to = None;
-
-        if let Some(r) = replying_to.read().deref() {
-            reply_to = Some(r.event_id.clone());
-        }
-
-        send_message.send(MessageItem {
-            room_id: room.get().id.clone(),
-            msg: evt.value,
-            reply_to,
-        });
-    };
-
     let header_event = move |evt: HeaderEvent| {
         to_owned![room];
 
@@ -105,7 +92,25 @@ pub fn ActiveRoom(cx: Scope) -> Element {
         }
     };
 
-    let on_handle_attach = move |event: Vec<u8>| {
+    let on_push_message = move |evt: FormMessageEvent| {
+        let mut reply_to = None;
+
+        if let Some(r) = replying_to.read().deref() {
+            reply_to = Some(r.event_id.clone());
+        }
+
+        send_message.send(MessageItem {
+            room_id: room.get().id.clone(),
+            msg: evt.value,
+            reply_to,
+        });
+
+        input_message_event(HeaderEvent {
+            value: HeaderCallOptions::CLOSE,
+        });
+    };
+
+    let on_handle_attach = move |event: Attachment| {
         send_attach.send(event);
     };
 
