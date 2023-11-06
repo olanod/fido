@@ -58,6 +58,9 @@ pub fn List(cx: Scope) -> Element {
                 TimelineMessageType::Video(file) => {
                     String::from(file.body.clone())
                 },
+                TimelineMessageType::Payment(p) => {
+                    String::from("Pago")
+                },
             };
 
             let close_style = r#"

@@ -5,8 +5,8 @@ use log::info;
 use matrix_sdk::ruma::{RoomId, UInt};
 
 use crate::{
-    components::{atoms::{message::Message, Attach, MessageInput, MessageView, Button, header_main::{HeaderEvent, HeaderCallOptions}, input::InputType, hover_menu::{MenuEvent, MenuOption},
-    }, molecules::AttachPreview},
+    components::{atoms::{message::Message, Attach, MessageInput, MessageView, Button, header_main::{HeaderEvent, HeaderCallOptions}, input::InputType, hover_menu::{MenuEvent, MenuOption}, Icon, Dollar,
+    }, molecules::{AttachPreview, PaymentPreview}},
     services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_room::use_room},
 };
 
@@ -33,12 +33,19 @@ pub struct InputMessageProps<'a> {
     on_attach: Option<EventHandler<'a, Attachment>>
 }
 
+#[derive(Debug)]
+pub struct Payment {
+    value: i32,
+}
+
 pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
     let attach = use_attach(cx);
     let client = use_client(cx);
     let room = use_room(cx);
     let message_field = use_state(cx, String::new);
     let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).unwrap();
+    use_shared_state_provider::<Option<Payment>>(cx, || None);
+    let payment = use_shared_state::<Option<Payment>>(cx).unwrap();
     
     let wrapper_style = r#"
         flex-direction: column;
@@ -103,6 +110,16 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
         });
     };
 
+    let button_style = r#"
+        cursor: pointer;
+        background: var(--background-button);
+        border: none;
+        border-radius: 100%;
+        max-width: 2.625rem;
+        width: 100%;
+        height: 2.625rem;
+    "#;
+
     cx.render(rsx! {
       div {
         id: "input_field",
@@ -140,12 +157,35 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
             )
         } 
 
+        if let Some(_) = *payment.read() {
+            rsx!(
+                PaymentPreview {}
+            )
+        } 
+        
         div {
             style: "{container_style}", 
-            if let Some(_) = &cx.props.on_attach {
+            if message_field.get().len() == 0 {
                 rsx!(
-                    Attach {
-                        on_click: on_handle_attach
+                    if let Some(_) = &cx.props.on_attach {
+                        rsx!(
+                            Attach {
+                                on_click: on_handle_attach
+                            }
+                        )
+                    } else {
+                        rsx!(div {})
+                    }
+        
+                    button {
+                        style: "{button_style}",
+                        onclick: move |_| {
+                            *payment.write() = Some(Payment {value: 3})
+                        },
+                        Icon {
+                            stroke: "var(--icon-white)",
+                            icon: Dollar
+                        }
                     }
                 )
             }

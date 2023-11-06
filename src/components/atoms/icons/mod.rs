@@ -1,8 +1,11 @@
 pub mod arrow_left;
 pub mod attachment;
+pub mod chart;
 pub mod chat_conversation;
+pub mod chevron_right;
 pub mod close;
 pub mod copy;
+pub mod dollar;
 pub mod edit;
 pub mod file_download;
 pub mod group;
@@ -20,9 +23,12 @@ pub mod warning;
 
 pub use arrow_left::ArrowLeft;
 pub use attachment::Attachment;
+pub use chart::Chart;
 pub use chat_conversation::ChatConversation;
+pub use chevron_right::ChevronRight;
 pub use close::Close;
 pub use copy::CopyIcon;
+pub use dollar::Dollar;
 pub use edit::Edit;
 pub use file_download::FileDownload;
 pub use group::Group;

@@ -6,6 +6,7 @@ use super::{page_not_found::PageNotFound, profile::profile::Profile, profile::ve
 use crate::{
     pages::chat::chat::Chat, pages::chat::chat_list::ChatList, pages::chat::chat_room::ChatRoom,
     pages::chat::room::group::RoomGroup, pages::chat::room::new::RoomNew,
+    pages::profile::balance::Balance,
 };
 
 use crate::components::organisms::IndexMenu;
@@ -17,6 +18,8 @@ pub enum Route {
     #[layout(IndexMenu)]
         #[route("/profile")]
         Profile {},
+        #[route("/balance")]
+        Balance {},
         #[route("/verify/:id")]
         Verify {id: String},
         #[route("/")]

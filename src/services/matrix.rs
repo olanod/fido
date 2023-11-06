@@ -47,7 +47,13 @@ pub mod matrix {
         Client, Error, HttpError, HttpResult,
     };
     use mime::Mime;
-    use ruma::events::room::message::Thread;
+    use ruma::{
+        events::{
+            room::message::Thread, EventContent, MessageLikeUnsigned, OriginalSyncMessageLikeEvent,
+        },
+        serde::{test::serde_json_eq, JsonObject},
+    };
+    use serde_json::{json, Value};
     use url::Url;
 
     use crate::{
@@ -109,6 +115,16 @@ pub mod matrix {
     pub async fn join_room(client: &Client, room_id: &RoomId) {
         info!("Joining room");
         client.join_room_by_id(&room_id).await.unwrap();
+    }
+
+    pub async fn send_payment(client: &Client, room_id: &RoomId, content: PaymentEventContent) {
+        let room = client.get_joined_room(&room_id).unwrap();
+
+        let x = room
+            .send_raw(serde_json::to_value(content).unwrap(), "m.fido.pay", None)
+            .await;
+
+        info!("after send raw {x:#?}");
     }
 
     pub async fn send_message(
@@ -432,6 +448,22 @@ pub mod matrix {
         pub source: Option<ImageType>,
     }
 
+    use ruma::events::macros::EventContent;
+
+    /// The payload for our reaction event.
+    #[derive(PartialEq, Clone, Debug, Deserialize, Serialize, EventContent)]
+    #[ruma_event(type = "m.fido.pay", kind = MessageLike)]
+    pub struct PaymentEventContent {
+        pub asset: String,
+        pub value: u32,
+    }
+
+    // #[derive(Clone, Debug, Deserialize, Serialize, EventContent)]
+    // pub struct PaymentContent {
+    //     pub asset: String,
+    //     pub value: u32,
+    // }
+
     #[derive(PartialEq, Debug, Clone)]
     pub enum TimelineMessageType {
         Image(FileContent),
@@ -439,6 +471,7 @@ pub mod matrix {
         Html(String),
         File(FileContent),
         Video(FileContent),
+        Payment(PaymentEventContent),
     }
 
     #[derive(PartialEq, Debug, Clone)]
@@ -524,13 +557,59 @@ pub mod matrix {
         }
 
         for zz in t.events.iter() {
-            let deserialized = deserialize_any_timeline_event(
-                zz.event.deserialize().unwrap(),
-                &room,
-                &me,
-                &client,
-            )
-            .await;
+            info!("event into for matrix {zz:#?}");
+
+            let value: Value = serde_json::from_str(zz.event.json().get()).unwrap();
+            let y =
+                serde_json::from_value::<OriginalSyncMessageLikeEvent<PaymentEventContent>>(value);
+
+            let deserialized = match y {
+                Ok(original) => {
+                    let event = original.event_id;
+
+                    if let Some(x) = original.unsigned.relations {
+                        // x.thread.unwrap().latest_event
+                    }
+
+                    let member = room_member(original.sender, &room).await;
+
+                    let time = original.origin_server_ts;
+
+                    let timestamp = {
+                        let d = UNIX_EPOCH + Duration::from_millis(time.0.into());
+
+                        let datetime = DateTime::<Local>::from(d);
+                        datetime.format("%H:%M").to_string()
+                    };
+
+                    Some(TimelineRelation::None(TimelineMessage {
+                        event_id: Some(String::from(event.as_str())),
+                        sender: member.clone(),
+                        body: TimelineMessageType::Payment(original.content),
+                        origin: if member.id.eq(&me) {
+                            EventOrigin::ME
+                        } else {
+                            EventOrigin::OTHER
+                        },
+                        time: timestamp,
+                    }))
+                }
+                Err(err) => {
+                    info!("Error deserializing PaymentEvent continue finding event");
+                    let x = zz.event.deserialize().unwrap();
+                    let deserialized = deserialize_any_timeline_event(
+                        zz.event.deserialize().unwrap(),
+                        &room,
+                        &me,
+                        &client,
+                    )
+                    .await;
+
+                    info!("event into for matrix deserialized {deserialized:#?}");
+
+                    deserialized
+                }
+            };
 
             if let Some(d) = deserialized {
                 match &d {
@@ -624,10 +703,16 @@ pub mod matrix {
         logged_user_id: &String,
         client: &Client,
     ) -> Option<TimelineRelation> {
+        info!("deserializing event matrix {:#?}", ev);
         match ev {
             AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::RoomMessage(
                 SyncMessageLikeEvent::Original(original),
             )) => {
+                info!(
+                    "original room message event after deserialize matrix {:#?}",
+                    original.clone()
+                );
+
                 let n = &original.content.msgtype;
                 let event = original.event_id;
 
@@ -688,6 +773,16 @@ pub mod matrix {
                     }
                 }
             }
+            AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::_Custom(
+                SyncMessageLikeEvent::Original(original),
+            )) => {
+                info!(
+                    "original custom event after deserialize matrix {:#?}",
+                    original.clone()
+                );
+
+                None
+            }
             _ => None,
         }
     }
@@ -721,6 +816,19 @@ pub mod matrix {
             }
             _ => None,
         }
+    }
+
+    #[derive(Clone, Debug, Deserialize, Serialize)]
+    pub struct CustomEvent {
+        /// A custom msgtype.
+        pub msgtype: String,
+
+        /// The message body.
+        pub body: String,
+
+        /// Remaining event content.
+        #[serde(flatten)]
+        pub data: JsonObject,
     }
 
     pub async fn format_original_any_room_message_event(
@@ -1166,6 +1274,9 @@ pub mod matrix {
                                         }
                                         TimelineMessageType::Video(video) => {
                                             final_message.reply = Some(r);
+                                        }
+                                        TimelineMessageType::Payment(payment) => {
+                                            final_message.reply = Some(r)
                                         }
                                     }
 

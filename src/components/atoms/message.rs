@@ -8,7 +8,7 @@ use web_sys::Url;
 use crate::{
     components::atoms::{
         hover_menu::{MenuEvent, MenuOption},
-        Avatar, Close, File, HoverMenu, Icon,
+        Avatar, ChevronRight, Close, File, HoverMenu, Icon,
     },
     services::matrix::matrix::{EventOrigin, ImageType, TimelineMessageType, TimelineRelation},
 };
@@ -141,6 +141,12 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
         }
     };
 
+    let message_payment = if let TimelineMessageType::Payment(_) = &cx.props.message.content {
+        "padding: 16px 12px;"
+    } else {
+        ""
+    };
+
     let message_container = match cx.props.message.origin {
         EventOrigin::ME => "message-container",
         EventOrigin::OTHER => "",
@@ -181,6 +187,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
           }
           article {
             class: "message-wrapper",
+            style: "{message_payment}",
             // Name sender content
             match cx.props.message.origin {
               EventOrigin::OTHER =>
@@ -310,6 +317,82 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                   div {
                     style: "{html_style}",
                     dangerous_inner_html: "{t}"
+                  }
+                )
+              }
+              TimelineMessageType::Payment(p) => {
+                rsx!(
+                  div {
+                    style: "
+                      
+                    ",
+                    p {
+                      style: "
+  
+                      ",
+                      "Payment to Vitalik"
+                    }
+                    div {
+                      style: "
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-top: 2px;
+                        gap: 40px;
+                      ",
+                      span {
+                        style: "
+                          color: #E3E3E3;
+                          font-family: Inter;
+                          font-size: 32px;
+                          font-style: normal;
+                          font-weight: 500;
+                          line-height: 40px;
+                          letter-spacing: -0.32px;
+                        ",
+                        "{p.value} {p.asset}"
+                      }
+                      span {
+                        style: "
+                          color: var(--icon-normal);
+                          font-family: Inter;
+                          font-size: 16px;
+                          font-style: normal;
+                          font-weight: 500;
+                          line-height: 24px;
+                        ",
+                        "$20"
+                      }
+                    }
+                    div {
+                      style: "
+                        margin-top: 16px; 
+                        border-top: 1px solid #242424;
+                      ",
+                      p {
+                        style: "
+                          padding-top: 20px;
+                          display: flex;
+                          justify-content: space-between;
+                          align-items: center;
+                        ",
+                        span {
+                          style: "
+                            color: var(--secondary-green);
+                            font-family: Inter;
+                            font-size: 12px;
+                            font-style: normal;
+                            font-weight: 500;
+                            line-height: 16px;
+                          ",
+                          "Transacción fallida"
+                        }
+                        Icon {
+                          stroke: "var(--icon-white)",
+                          icon: ChevronRight
+                      }
+                      }
+                    }
                   }
                 )
               }

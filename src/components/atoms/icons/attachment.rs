@@ -5,11 +5,11 @@ use super::icon::IconShape;
 pub struct Attachment;
 impl IconShape for Attachment {
     fn view_box(&self) -> String {
-        String::from("0 0 24 24")
+        String::from("0 0 20 20")
     }
     fn child_elements(&self) -> LazyNodes {
         rsx!(path {
-            d: "M4.536 11.465 11.43 4.57a5.25 5.25 0 1 1 7.424 7.425L10.9 19.95A3.5 3.5 0 0 1 5.95 15l7.956-7.955A1.75 1.75 0 0 1 16.38 9.52l-6.895 6.894"
+            d: "m17.08 9.287-6.892 6.893A4.502 4.502 0 1 1 3.82 9.813l6.893-6.893a3.002 3.002 0 1 1 4.245 4.245l-6.9 6.892a1.5 1.5 0 1 1-2.123-2.122l6.368-6.36"
         })
     }
 }

@@ -5,11 +5,11 @@ use super::icon::IconShape;
 pub struct ArrowLeft;
 impl IconShape for ArrowLeft {
     fn view_box(&self) -> String {
-        String::from("0 0 24 24")    
+        String::from("0 0 20 20")    
     }
     fn child_elements(&self) -> LazyNodes {
         rsx!(path {
-            d: "M19 12H5m0 0 6 6m-6-6 6-6"
+            d: "M15.25 10H4.75M10 15.25 4.75 10 10 4.75"
         })
     }
 }

@@ -163,6 +163,52 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
                 }
               )
             }
+            TimelineMessageType::Payment(p) => {
+              rsx!(
+                div {
+                  style: "
+                    
+                  ",
+                  p {
+                    style: "
+
+                    ",
+                    "Payment to Vitalik"
+                  }
+                  div {
+                    style: "
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      margin-top: 2px;
+                    ",
+                    span {
+                      style: "
+                        color: #E3E3E3;
+                        font-family: Inter;
+                        font-size: 32px;
+                        font-style: normal;
+                        font-weight: 500;
+                        line-height: 40px;
+                        letter-spacing: -0.32px;
+                      ",
+                      "{p.value} {p.asset}"
+                    }
+                    span {
+                      style: "
+                        color: var(--icon-normal);
+                        font-family: Inter;
+                        font-size: 16px;
+                        font-style: normal;
+                        font-weight: 500;
+                        line-height: 24px;
+                      ",
+                      "$20"
+                    }
+                  }
+                }
+              )
+            }
           }
         }
       }

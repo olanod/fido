@@ -16,8 +16,8 @@ use crate::{
 
 #[derive(Clone)]
 pub struct Profile {
-    displayname: String,
-    avatar: Option<String>,
+    pub displayname: String,
+    pub avatar: Option<String>,
 }
 
 #[derive(Clone)]

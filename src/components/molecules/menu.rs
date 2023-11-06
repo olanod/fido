@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::components::atoms::Chart;
 use crate::{hooks::use_client::use_client, pages::login::LoggedIn};
 use crate::utils::i18n_get_key_value::i18n_get_key_value;
 use dioxus::prelude::*;
@@ -7,10 +8,7 @@ use dioxus_std::{i18n::use_i18, translate};
 use gloo::storage::LocalStorage;
 use log::info;
 
-use crate::components::{
-    atoms::{ChatConversation, Icon, LogOut, MenuItem, UserCircle},
-    
-};
+use crate::components::atoms::{ChatConversation, Icon, LogOut, MenuItem, UserCircle};
 
 use dioxus_router::prelude::*;
 
@@ -111,6 +109,17 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
                             on_click: move |event| {
                                 cx.props.on_click.call(event);
                                 nav.push(Route::ChatList {});
+                            }
+                        }
+                     }
+
+                     li {
+                        MenuItem {
+                            title: "Balance",
+                            icon: cx.render(rsx!(Icon {height: 24, width: 24, stroke: "var(--text-1)", icon: Chart})),
+                            on_click: move |event| {
+                                cx.props.on_click.call(event);
+                                nav.push(Route::Balance {});
                             }
                         }
                      }

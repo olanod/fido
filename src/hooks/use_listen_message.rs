@@ -6,7 +6,7 @@ use log::info;
 use matrix_sdk::{
     config::SyncSettings, room::Room, ruma::events::room::message::OriginalSyncRoomMessageEvent,
 };
-use ruma::events::room::message::Relation;
+use ruma::events::{room::message::Relation, OriginalSyncMessageLikeEvent};
 
 use crate::{
     components::{
@@ -20,7 +20,7 @@ use crate::{
     pages::chat::chat::{MessageEvent, NotificationHandle, NotificationItem, NotificationType},
     services::matrix::matrix::{
         format_head_thread, format_original_any_room_message_event, format_relation_from_event,
-        room_member, TimelineMessageType, TimelineRelation, TimelineThread,
+        room_member, PaymentEventContent, TimelineMessageType, TimelineRelation, TimelineThread,
     },
 };
 
@@ -126,6 +126,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                     TimelineMessageType::File(t) => "Archivo adjunto",
                                     TimelineMessageType::Video(t) => "Video",
                                     TimelineMessageType::Html(t) => "Bloque de texto",
+                                    TimelineMessageType::Payment(t) => "Nuevo pago",
                                 };
                             }
                         }
@@ -141,6 +142,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                 TimelineMessageType::File(t) => "Archivo adjunto",
                                 TimelineMessageType::Video(t) => "Video",
                                 TimelineMessageType::Html(t) => "Bloque de texto",
+                                TimelineMessageType::Payment(t) => "Nuevo pago",
                             };
                         }
                         TimelineRelation::CustomThread(x) => {
@@ -351,6 +353,11 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                         }
                     },
                 );
+                // client.add_event_handler(
+                //     move |ev: OriginalSyncMessageLikeEvent<PaymentEventContent>, room: Room| {
+                //         info!("listening event from listen message {:#?}", ev);
+                //     },
+                // );
 
                 handler_added.set(true);
             }

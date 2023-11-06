@@ -2,14 +2,15 @@ use dioxus::prelude::*;
 
 use super::icon::IconShape;
 
-pub struct Send;
-impl IconShape for Send {
+pub struct Chart;
+impl IconShape for Chart {
     fn view_box(&self) -> String {
-        String::from("0 0 20 20")    
+        String::from("0 0 24 24")
     }
+
     fn child_elements(&self) -> LazyNodes {
         rsx!(path {
-            d: "m17.5 2.5-8.25 8.25M17.5 2.5l-5.25 15-3-6.75-6.75-3 15-5.25Z"
+            d: "M12 3a9 9 0 1 0 9 9m-9-9a9 9 0 0 1 9 9m-9-9v9m9 0h-9m6 6.5L12 12"
         })
     }
 }
