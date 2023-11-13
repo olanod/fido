@@ -455,14 +455,8 @@ pub mod matrix {
     #[ruma_event(type = "m.fido.pay", kind = MessageLike)]
     pub struct PaymentEventContent {
         pub asset: String,
-        pub value: u32,
+        pub value: u64,
     }
-
-    // #[derive(Clone, Debug, Deserialize, Serialize, EventContent)]
-    // pub struct PaymentContent {
-    //     pub asset: String,
-    //     pub value: u32,
-    // }
 
     #[derive(PartialEq, Debug, Clone)]
     pub enum TimelineMessageType {

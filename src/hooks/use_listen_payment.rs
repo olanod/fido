@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+use chrono::{DateTime, Local};
 use dioxus::prelude::*;
 use futures_util::StreamExt;
 use log::info;
@@ -7,7 +8,12 @@ use matrix_sdk::{
     config::SyncSettings, room::Room, ruma::events::room::message::OriginalSyncRoomMessageEvent,
 };
 use ruma::events::{room::message::Relation, OriginalSyncMessageLikeEvent};
+use std::{
+    ptr::eq,
+    time::{Duration, UNIX_EPOCH},
+};
 
+use crate::services::matrix::matrix::TimelineMessage;
 use crate::{
     components::{
         atoms::{
@@ -20,15 +26,15 @@ use crate::{
     pages::chat::chat::{MessageEvent, NotificationHandle, NotificationItem, NotificationType},
     services::matrix::matrix::{
         format_head_thread, format_original_any_room_message_event, format_relation_from_event,
-        room_member, PaymentEventContent, SyncPaymentEvent, TimelineMessageType, TimelineRelation,
-        TimelineThread, OriginalSyncPaymentEvent,
+        room_member, EventOrigin, OriginalSyncPaymentEvent, PaymentEventContent, SyncPaymentEvent,
+        TimelineMessageType, TimelineRelation, TimelineThread,
     },
 };
 
 use super::{use_client::use_client, use_notification::use_notification};
 
 #[allow(clippy::needless_return)]
-pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
+pub fn use_listen_payment(cx: &ScopeState) -> &UseListenPaymentState {
     let client = use_client(cx).get();
     let messages = use_shared_state::<Messages>(cx).unwrap();
     let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
@@ -259,36 +265,14 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
         to_owned![client, handler_added, task_sender];
 
         async move {
-            // let user = client.whoami().await;
-
             client.sync_once(SyncSettings::default()).await;
-
-            // let user = client.user_id();
-
-            // let me = match user {
-            //     Ok(u) => u.user_id.to_string(),
-            //     Err(_) => {
-            //         panic!("User not found");
-            //     }
-            // };
-
-            // let me = match user {
-            //     Some(u) => u.to_string(),
-            //     None => {
-            //         panic!("User not found");
-            //     }
-            // };
-
-            // let me = String::from("@edith-test-1:matrix.org");
 
             if !*handler_added.read() {
                 client.add_event_handler(
-                    move |ev: OriginalSyncRoomMessageEvent,
-                          room: Room,
-                          client: matrix_sdk::Client| {
+                    move |ev: OriginalSyncPaymentEvent, room: Room, client: matrix_sdk::Client| {
                         let task_sender = task_sender.clone();
 
-                        info!("listen messages {:#?}", ev);
+                        info!("listen messages payment {:#?}", ev);
 
                         let user = client.user_id();
 
@@ -300,54 +284,33 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                         };
 
                         async move {
-                            let message_type = &ev.content.msgtype;
-                            let event_id = ev.event_id;
                             let member = room_member(ev.sender, &room).await;
-                            let relates = &ev.content.relates_to;
                             let time = ev.origin_server_ts;
 
-                            let formatted_message = format_original_any_room_message_event(
-                                &message_type,
-                                event_id,
-                                &member,
-                                &me,
-                                time,
-                                &client,
-                            )
-                            .await;
+                            let event = ev.event_id;
 
-                            let mut message_result = None;
-
-                            match relates {
-                                Some(relation) => match &relation {
-                                    Relation::_Custom => {
-                                        if let Some(x) = formatted_message {
-                                            message_result = Some(TimelineRelation::None(x));
-                                        }
-                                    }
-
-                                    _ => {
-                                        if let Some(x) = formatted_message {
-                                            message_result = format_relation_from_event(
-                                                &message_type,
-                                                relates,
-                                                &room,
-                                                x,
-                                                &member,
-                                                &me,
-                                                time,
-                                                &client,
-                                            )
-                                            .await;
-                                        }
-                                    }
-                                },
-                                None => {
-                                    if let Some(x) = formatted_message {
-                                        message_result = Some(TimelineRelation::None(x));
-                                    }
-                                }
+                            if let Some(x) = ev.unsigned.relations {
+                                // x.thread.unwrap().latest_event
                             }
+
+                            let timestamp = {
+                                let d = UNIX_EPOCH + Duration::from_millis(time.0.into());
+
+                                let datetime = DateTime::<Local>::from(d);
+                                datetime.format("%H:%M").to_string()
+                            };
+
+                            let message_result = Some(TimelineRelation::None(TimelineMessage {
+                                event_id: Some(String::from(event.as_str())),
+                                sender: member.clone(),
+                                body: TimelineMessageType::Payment(ev.content),
+                                origin: if member.id.eq(&me) {
+                                    EventOrigin::ME
+                                } else {
+                                    EventOrigin::OTHER
+                                },
+                                time: timestamp,
+                            }));
 
                             task_sender.send(MessageEvent {
                                 room,
@@ -356,16 +319,6 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                         }
                     },
                 );
-                // client.add_event_handler(move |ev: OriginalSyncPaymentEvent, room: Room| {
-                    
-                    
-                //     // let y = serde_json::from_value::<
-                //     //     OriginalSyncMessageLikeEvent<PaymentEventContent>,
-                //     // >(ev);
-
-                //     info!("listening event from listen message {:#?}", ev);
-                //     async move {}
-                // });
 
                 handler_added.set(true);
             }
@@ -374,16 +327,16 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
         }
     });
 
-    cx.use_hook(move || UseListenMessagesState {
+    cx.use_hook(move || UseListenPaymentState {
         inner: current_room.clone(),
     })
 }
 
 #[derive(Clone)]
-pub struct UseListenMessagesState {
+pub struct UseListenPaymentState {
     inner: UseSharedState<CurrentRoom>,
 }
 
-impl UseListenMessagesState {
+impl UseListenPaymentState {
     pub fn initialize(&self) {}
 }

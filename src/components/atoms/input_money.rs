@@ -1,6 +1,10 @@
 use dioxus::prelude::*;
+use log::info;
 
-use crate::components::atoms::{icon::Icon, Search, Send, Warning};
+use crate::components::{
+    atoms::{icon::Icon, Search, Send, Warning},
+    molecules::input_message::FormMessageEvent,
+};
 
 #[derive(Props)]
 pub struct InputMoneyProps<'a> {
@@ -9,7 +13,7 @@ pub struct InputMoneyProps<'a> {
     #[props(!optional)]
     error: Option<&'a String>,
     label: Option<&'a str>,
-    on_input: EventHandler<'a, FormEvent>,
+    on_input: EventHandler<'a, FormMessageEvent<f64>>,
     on_keypress: EventHandler<'a, KeyboardEvent>,
     on_click: EventHandler<'a, MouseEvent>,
 }
@@ -64,7 +68,20 @@ pub fn InputMoney<'a>(cx: Scope<'a, InputMoneyProps<'a>>) -> Element<'a> {
                     ",
                     value: cx.props.message,
                     placeholder: "{cx.props.placeholder}",
-                    oninput: move |event| cx.props.on_input.call(event),
+                    oninput: move |event: Event<FormData>| {
+                        info!("event from input money {:#?}", event);
+
+                        let value: f64 = match event.data.value.parse::<f64>() {
+                            Ok(v) => v,
+                            _ => 0.0
+                        };
+
+                        info!("converted value to f64 {value}");
+
+                        if value > 0.0 {
+                            cx.props.on_input.call(FormMessageEvent { value: value });
+                        }
+                    },
                     onkeypress: move |event| cx.props.on_keypress.call(event)
                 }
             }

@@ -5,7 +5,10 @@ use ruma::{serde::JsonObject, RoomId};
 use std::ops::Deref;
 
 use crate::{
-    components::atoms::{button::Variant, Button, Card, File, InputMoney},
+    components::{
+        atoms::{button::Variant, Button, Card, File, InputMoney},
+        molecules::input_message::FormMessageEvent,
+    },
     hooks::{use_attach::use_attach, use_client::use_client, use_room::use_room},
     services::matrix::matrix::{send_message, send_payment, FileContent, PaymentEventContent},
 };
@@ -15,7 +18,7 @@ use ruma::events::room::message::CustomEventContent;
 use super::input_message::Payment;
 
 pub fn PaymentPreview<'a>(cx: Scope<'a>) -> Element<'a> {
-    let message_field = use_state(cx, String::new);
+    let message_field = use_state::<f64>(cx, || 0.0);
     let client = use_client(cx);
     let room = use_room(cx);
     let payment = use_shared_state::<Option<Payment>>(cx).unwrap();
@@ -41,64 +44,31 @@ pub fn PaymentPreview<'a>(cx: Scope<'a>) -> Element<'a> {
 
     let on_handle_pay = move |_: MouseEvent| {
         cx.spawn({
-            to_owned![client, room, payment];
+            to_owned![client, room, payment, message_field];
 
             async move {
                 let current_room = room.get();
-                // let custom = CustomEventContent {
-                //     msgtype: String::from("m.fido.pay"),
-                //     body: String::from("hola"),
-                //     data: serde_json::from_str(
-                //         "
-                //         value: 1000000,
-                //         asset: KSM,
-                //         tx_id: random_tx_id,
-                //     ",
-                //     )
-                //     .unwrap(),
-                // };
+                let value = *message_field.get();
 
-                let data = r#"
-                {
-                    "name": "John Doe",
-                    "age": 43,
-                    "phones": [
-                        "+44 1234567",
-                        "+44 2345678"
-                    ]
-                }"#;
+                info!("the value of the payment {value}");
+                const KSM_SCALE: u8 = 12;
+                let scaled_value = value as f64 * 10f64.powf(KSM_SCALE as f64);
 
-                let msg = ruma::events::room::message::MessageType::new(
-                    "m.fido.pay",
-                    String::from("hola"),
-                    serde_json::from_str(data).unwrap(),
-                );
+                info!("the scaled value of the payment {}", scaled_value as u64);
 
-                if let Ok(x) = msg {
-                    // info!("message type payment preview {:#?}", x);
-
-                    //     send_message(
-                    //         &client.get(),
-                    //         &RoomId::parse(current_room.id).unwrap(),
-                    //         x,
-                    //         None,
-                    //         None,
-                    //         None,
-                    //     )
-                    //     .await;
-
+                if scaled_value as u64 > 0 {
                     send_payment(
                         &client.get(),
                         &RoomId::parse(current_room.id).unwrap(),
                         PaymentEventContent {
                             asset: String::from("KSM"),
-                            value: 10000,
+                            value: scaled_value as u64,
                         },
                     )
                     .await;
+                }
 
-                    *payment.write() = None;
-                };
+                *payment.write() = None;
             }
         })
     };
@@ -106,7 +76,7 @@ pub fn PaymentPreview<'a>(cx: Scope<'a>) -> Element<'a> {
     cx.render(rsx!(
         article {
             style: "
-                    height: calc(100vh - 64px - 22px);
+                    height: calc(100vh - 64px);
                     background: var(--background);
                     display: flex;
                     justify-content: center;
@@ -141,8 +111,10 @@ pub fn PaymentPreview<'a>(cx: Scope<'a>) -> Element<'a> {
                     // }
                     InputMoney {
                         message: "{message_field}",
-                        placeholder: "0",
-                        on_input: move |_| {},
+                        placeholder: "$0",
+                        on_input: move |event: FormMessageEvent<f64>| {
+                            message_field.set(event.value)
+                        },
                         on_keypress: move |_| {},
                         on_click: move |_| {},
                         error: None

@@ -321,6 +321,9 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                 )
               }
               TimelineMessageType::Payment(p) => {
+                const KSM_SCALE: u32 = 12;
+                let unscaled_value = p.value as f64 / 10_f64.powf(KSM_SCALE as f64);
+
                 rsx!(
                   div {
                     style: "
@@ -350,7 +353,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                           line-height: 40px;
                           letter-spacing: -0.32px;
                         ",
-                        "{p.value} {p.asset}"
+                        "{unscaled_value} {p.asset}"
                       }
                       span {
                         style: "

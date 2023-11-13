@@ -11,8 +11,8 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub struct FormMessageEvent {
-    pub value: String,
+pub struct FormMessageEvent<T> {
+    pub value: T,
 }
 
 #[derive(Debug, Clone)]
@@ -28,7 +28,7 @@ pub struct ReplyingTo {
 pub struct InputMessageProps<'a> {
     message_type: InputType,
     placeholder: &'a str,
-    on_submit: EventHandler<'a, FormMessageEvent>,
+    on_submit: EventHandler<'a, FormMessageEvent<String>>,
     on_event: EventHandler<'a, HeaderEvent>,
     on_attach: Option<EventHandler<'a, Attachment>>
 }

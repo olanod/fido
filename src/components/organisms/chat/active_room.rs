@@ -92,7 +92,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
         }
     };
 
-    let on_push_message = move |evt: FormMessageEvent| {
+    let on_push_message = move |evt: FormMessageEvent<String>| {
         let mut reply_to = None;
 
         if let Some(r) = replying_to.read().deref() {
