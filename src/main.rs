@@ -1,9 +1,10 @@
 #![allow(non_snake_case)]
 use chat::components::atoms::Spinner;
 use chat::hooks::use_client::use_client;
-use chat::hooks::use_init_app::use_init_app;
+use chat::hooks::use_init_app::{use_init_app, BeforeSession};
 use chat::pages::login::{LoggedIn, Login};
 use chat::pages::route::Route;
+use chat::pages::signup::Signup;
 use chat::MatrixClientState;
 use dioxus::prelude::*;
 use dioxus_router::prelude::Router;
@@ -64,6 +65,9 @@ fn App(cx: Scope) -> Element {
     let client = use_client(cx);
     let matrix_client = use_shared_state::<MatrixClientState>(cx).unwrap();
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
+    let before_session =
+        use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
+
     let restoring_session = use_ref::<bool>(cx, || true);
 
     use_coroutine(cx, |_: UnboundedReceiver<MatrixClientState>| {
@@ -114,15 +118,26 @@ fn App(cx: Scope) -> Element {
                                 Restoring {}
                             )
                         } else {
-                            rsx!(
-                                section {
-                                    class: "login",
-                                    style: "
-                                        width: 100%;
-                                    ",
-                                    Login {}
-                                }
-                            )
+                            match *before_session.read() {
+                                BeforeSession::Login => rsx!(
+                                    section {
+                                        class: "login",
+                                        style: "
+                                            width: 100%;
+                                        ",
+                                        Login {}
+                                    }
+                                ),
+                                BeforeSession::Signup => rsx!(
+                                    section {
+                                        class: "login",
+                                        style: "
+                                            width: 100%;
+                                        ",
+                                        Signup {}
+                                    }
+                                )
+                            }
                         }
                     })
                 }

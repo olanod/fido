@@ -42,6 +42,44 @@
                 "invalid_username_password": "Error: Nombre de usuario o contraseña inválidos"
             }
         },
+        "signup": {
+            "chat_steps": {
+                "homeserver": {
+                    "message": "Ingresa un servidor",
+                    "description": "Únete a un servidor, por defecto puedes utilizar https://matrix.org",
+                    "placeholder": "https://matrix.org",
+                    "cta": "Confirmar servidor"
+                },
+                "credentials": {
+                    "title": "Vamos a registrate",
+                    "description": "Imagina un nombre de usuario asombroso y una contraseña segura.",
+                    "username": {
+                        "message": "Ingresa tu nombre de usuario",
+                        "placeholder": "Nombre de usuario"
+                    },
+                    "password": {
+                        "message": "Ingresa tu contraseña",
+                        "placeholder": "Contraseña"
+                    },
+                    "cta": "Crear una cuenta"
+                },
+                "captcha": {
+                    "title": "¿Eres humano?",
+                    "description": "Completa el captcha a continuación",
+                    "cta": "Completado"
+                }
+            }
+        },
+        "onboard": {
+            "login": {
+                "description": "¿Ya tienes una cuenta?",
+                "cta": "Iniciar sesión"
+            },
+            "signup": {
+                "description": "¿Si no tienes una cuenta?",
+                "cta": "Registrate"
+            }
+        },
         "chat": {
             "helpers": {
                 "join": {

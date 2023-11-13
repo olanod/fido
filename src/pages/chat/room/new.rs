@@ -42,7 +42,7 @@ pub fn RoomNew(cx: Scope) -> Element {
     let navigation = use_navigator(cx);
     let client = use_client(cx);
     let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
-    let user_id = use_state::<String>(cx, || String::from("@brayan-test-1:matrix.org"));
+    let user_id = use_state::<String>(cx, || String::from(""));
     let user = use_state::<Option<Profile>>(cx, || None);
     let error_field = use_state::<Option<String>>(cx, || None);
     let error_creation = use_state::<Option<String>>(cx, || None);

@@ -229,6 +229,24 @@
       if (wasm.__wbindgen_start == undefined) wasm.main();
     });
   </script>
+  <script src="https://www.google.com/recaptcha/api.js?render=explicit" async defer></script>
+  <script>
+    function onloadCallback() {
+      let sitekey = localStorage.getItem("sitekey");
+
+      if (sitekey) {
+        let cleanedSitekey = sitekey.replaceAll(/"/g, '')
+        grecaptcha.render('recaptcha-container', {
+          'sitekey': cleanedSitekey,
+          'callback': onRecaptchaSuccess
+        });
+      }
+    }
+
+    function onRecaptchaSuccess(token) {
+      localStorage.setItem("recaptcha", `"${token}"`)
+    }
+  </script>
   {script_include}
 </body>
 

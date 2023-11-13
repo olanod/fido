@@ -1,9 +1,17 @@
+use std::collections::HashMap;
+
 use dioxus::prelude::*;
+use dioxus_std::{i18n::use_i18, translate};
 
-use crate::components::atoms::Button;
+use crate::{
+    components::atoms::Button, hooks::use_init_app::BeforeSession,
+    utils::i18n_get_key_value::i18n_get_key_value,
+};
 
-pub struct FormLoginEvent {
-    pub value: String,
+pub enum FormLoginEvent {
+    CreateAccount,
+    Login,
+    FilledForm,
 }
 
 #[derive(Props)]
@@ -18,7 +26,32 @@ pub struct LoginFormProps<'a> {
 }
 
 pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
-    let message_field = use_state(cx, String::new);
+    let i18 = use_i18(cx);
+
+    let key_onboard_login_description = "onboard-login-description";
+    let key_onboard_login_cta = "onboard-login-cta";
+
+    let key_onboard_signup_description = "onboard-signup-description";
+    let key_onboard_signup_cta = "onboard-signup-cta";
+
+    let i18n_map = HashMap::from([
+        (
+            key_onboard_login_description,
+            translate!(i18, "onboard.login.description"),
+        ),
+        (key_onboard_login_cta, translate!(i18, "onboard.login.cta")),
+        (
+            key_onboard_signup_description,
+            translate!(i18, "onboard.signup.description"),
+        ),
+        (
+            key_onboard_signup_cta,
+            translate!(i18, "onboard.signup.cta"),
+        ),
+    ]);
+
+    let before_session =
+        use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
 
     let page = r#"
         text-align: center;
@@ -67,7 +100,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
         margin: auto;
     "#;
 
-    let _login_style = r#"
+    let login_style = r#"
         color: var(--text-normal);
 
         /* Label/Small */
@@ -81,7 +114,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
     let button_style = r#"
         padding-top: 24px;
     "#;
-    let _cta_login_style = r#"
+    let cta_login_style = r#"
         padding-top: 16px;
     "#;
 
@@ -118,20 +151,49 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                 style: "{button_style}",
                 Button {
                     text: "{cx.props.button_text}",
-                    on_click: move |_event| {
-                        message_field.set(String::new());
-                        cx.props.on_handle.call(FormLoginEvent {value: message_field.get().to_string()})
+                    on_click: move |_| {
+                        cx.props.on_handle.call(FormLoginEvent::FilledForm)
                     }
                 }
             }
 
-            // div {
-            //     style: "{cta_login_style}",
-            //     small {
-            //         style: "{login_style}",
-            //         "Already have an account? Log in"
-            //     }
-            // }
+            div {
+                style: "{cta_login_style}",
+                small {
+                    style: "{login_style}",
+                    match *before_session.read() {
+                        BeforeSession::Login => rsx!(
+                            "{i18n_get_key_value(&i18n_map, key_onboard_signup_description)}"
+                            button {
+                                style: "
+                                    {login_style}
+                                    color: var(--text-loud);
+                                ",
+                                class: "button button--tertiary",
+                                onclick: move |_| {
+                                        cx.props.on_handle.call(FormLoginEvent::CreateAccount)
+                                },
+                                "{i18n_get_key_value(&i18n_map, key_onboard_signup_cta)}",
+                            }
+                        ),
+                        BeforeSession::Signup => rsx!(
+                            "{i18n_get_key_value(&i18n_map, key_onboard_login_description)}"
+                            button {
+                                style: "
+                                    {login_style}
+                                    color: var(--text-loud);
+                                ",
+                                class: "button button--tertiary",
+                                onclick: move |_| {
+                                        cx.props.on_handle.call(FormLoginEvent::Login)
+                                },
+                                "{i18n_get_key_value(&i18n_map, key_onboard_login_cta)}",
+                            }
+                        )
+                    }
+
+                }
+            }
         }
     }
 }

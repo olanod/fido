@@ -36,6 +36,7 @@ pub mod pages {
     pub mod page_not_found;
     pub mod profile;
     pub mod route;
+    pub mod signup;
 }
 
 #[derive(Clone)]

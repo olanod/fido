@@ -11,14 +11,14 @@ use crate::{
         atoms::{MessageInput, input::InputType, Spinner},
         organisms::{login_form::FormLoginEvent, LoginForm},
     },
-    utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::{login, FullSession}, hooks::use_client::use_client,
+    utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::{login, FullSession}, hooks::{use_client::use_client, use_init_app::BeforeSession},
 };
 
 #[derive(Debug, Clone)]
 pub struct LoginInfo {
-    homeserver: String,
-    username: String,
-    password: String,
+    pub homeserver: String,
+    pub username: String,
+    pub password: String,
 }
 
 pub struct LoggedIn {
@@ -118,6 +118,8 @@ pub fn Login(cx: Scope) -> Element {
     let error = use_state(cx, || None);
 
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
+    let before_session =
+        use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
 
     let login_info = use_ref::<LoginInfo>(cx, || LoginInfo {
         homeserver: String::from(""),
@@ -232,12 +234,19 @@ pub fn Login(cx: Scope) -> Element {
     render!(
         if login_info.read().homeserver.len() == 0 {
             rsx!(
+                div {
+                    "lgin"
+                }
                 LoginForm {
                     title: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_message)}",
                     description: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_description)}",
                     button_text: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_cta)}",
                     emoji: "🛰️",
-                    on_handle: move |_| { on_update_homeserver() },
+                    on_handle: move |event: FormLoginEvent| match event {
+                        FormLoginEvent::FilledForm => on_update_homeserver(),
+                        FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
+                        FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+                    },
                     body: render!(rsx!(
                         div {
                             MessageInput {
@@ -268,8 +277,10 @@ pub fn Login(cx: Scope) -> Element {
                     description: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_description)}",
                     button_text: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_cta)}",
                     emoji: "👋",
-                    on_handle: move |_: FormLoginEvent| {
-                        on_handle_login()
+                    on_handle: move |event: FormLoginEvent| match event {
+                        FormLoginEvent::FilledForm => on_handle_login(),
+                        FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
+                        FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
                     },
                     body: render!(rsx!(
                         div {

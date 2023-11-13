@@ -1,8 +1,5 @@
 pub mod matrix {
-    use std::{
-        ptr::eq,
-        time::{Duration, UNIX_EPOCH},
-    };
+    use std::time::{Duration, UNIX_EPOCH};
 
     use chrono::{DateTime, Local, Utc};
     use log::info;
@@ -12,15 +9,14 @@ pub mod matrix {
         attachment::AttachmentConfig,
         config::SyncSettings,
         deserialized_responses::{SyncTimelineEvent, TimelineSlice},
-        encryption::identities::Device,
-        media::{self, MediaFormat, MediaRequest, MediaThumbnailSize},
+        media::{MediaFormat, MediaRequest, MediaThumbnailSize},
         room::{MessagesOptions, Room},
         ruma::{
             api::{
                 self,
                 client::{
                     filter::{LazyLoadOptions, RoomEventFilter},
-                    media::{get_content, get_content_thumbnail::v3::Method},
+                    media::get_content_thumbnail::v3::Method,
                     room::{create_room::v3::RoomPreset, Visibility},
                     uiaa,
                 },
@@ -51,12 +47,11 @@ pub mod matrix {
     use url::Url;
 
     use crate::{
-        components::atoms::{message, room::RoomItem, MessageReply},
+        components::atoms::room::RoomItem,
         utils::matrix::{mxc_to_https_uri, ImageSize},
     };
 
     use matrix_sdk::ruma::exports::serde_json;
-    use matrix_sdk::ruma::{device_id, user_id};
     use matrix_sdk::Session;
 
     use serde::{Deserialize, Serialize};
@@ -1158,13 +1153,13 @@ pub mod matrix {
                                                 final_message.reply = Some(r);
                                             }
                                         }
-                                        TimelineMessageType::Html(body) => {
+                                        TimelineMessageType::Html(_) => {
                                             final_message.reply = Some(r);
                                         }
-                                        TimelineMessageType::File(body) => {
+                                        TimelineMessageType::File(_) => {
                                             final_message.reply = Some(r);
                                         }
-                                        TimelineMessageType::Video(video) => {
+                                        TimelineMessageType::Video(_) => {
                                             final_message.reply = Some(r);
                                         }
                                     }
@@ -1215,6 +1210,69 @@ pub mod matrix {
         // client
     }
 
+    use matrix_sdk::ruma::api::client::account::register::v3::Request as RegistrationRequest;
+
+    pub async fn prepare_register(
+        homeserver: String,
+        username: String,
+        password: String,
+    ) -> anyhow::Result<(Client, String), Error> {
+        let mut request = RegistrationRequest::new();
+        request.username = Some(&username);
+        request.password = Some(&password);
+
+        let x = uiaa::Dummy::new();
+        request.auth = Some(uiaa::AuthData::Dummy(x));
+
+        let result = build_client(homeserver).await;
+        let (client, client_session) = match result {
+            Ok((client, client_session)) => (client, client_session),
+            Err(_) => panic!("Can't create client"),
+        };
+
+        match client.register(request.clone()).await {
+            Ok(info) => {
+                info!("{:?}", info);
+                Ok((client, "registered".to_string()))
+            }
+            Err(error) => Err(Error::Http(error)),
+        }
+    }
+    pub async fn register(
+        homeserver: String,
+        username: String,
+        password: String,
+        recaptcha_token: Option<String>,
+        session: Option<String>,
+    ) -> anyhow::Result<(Client, String), Error> {
+        let mut request = RegistrationRequest::new();
+        request.username = Some(&username);
+        request.password = Some(&password);
+
+        if let Some(token) = &recaptcha_token {
+            let mut x = uiaa::ReCaptcha::new(&token);
+            x.session = session.as_deref();
+            request.auth = Some(uiaa::AuthData::ReCaptcha(x));
+        }
+
+        let result = build_client(homeserver).await;
+        let (client, client_session) = match result {
+            Ok((client, client_session)) => (client, client_session),
+            Err(_) => panic!("Can't create client"),
+        };
+
+        match client.register(request.clone()).await {
+            Ok(info) => {
+                info!("signup result {:?}", info);
+
+                client.logout();
+
+                Ok((client, "registered".to_string()))
+            }
+            Err(error) => Err(Error::Http(error)),
+        }
+    }
+
     pub async fn login(
         homeserver: String,
         username: String,
@@ -1227,7 +1285,6 @@ pub mod matrix {
         match client
             .login_username(&username, &password)
             .initial_device_display_name("Fido")
-            // .device_id("fidoid")
             .send()
             .await
         {
@@ -1239,9 +1296,6 @@ pub mod matrix {
             Err(error) => {
                 info!("Error logging in: {error}");
                 match error {
-                    // Error::Http(HttpError::Api(FromHttpResponseError::Server(
-                    //     ServerError::Known(matrix_sdk::RumaApiError::ClientApi(m)),
-                    // ))) => return Err(m.into()),
                     _ => return Err(error.into()),
                 }
             }

@@ -5,38 +5,79 @@
             "loading": {
                 "title": "Searching for sessions to restore",
                 "steps": {
-                    "fount": "Session found",
+                    "found": "Session found",
                     "restoring": "Restoring session"
                 }
             }
         },
         "login": {
-            "actors": {
-                "bot": "Fido",
-                "user": "User"
-            },
             "chat_steps": {
                 "homeserver": {
-                    "message": "Hello. Enter a homeserver",
-                    "placeholder": "https://matrix.org"
+                    "message": "Enter a server",
+                    "description": "Join a server, by default you can use https://matrix.org",
+                    "placeholder": "https://matrix.org",
+                    "cta": "Confirm server"
                 },
-                "username": {
-                    "message": "Enter your username",
-                    "placeholder": "username"
-                },
-                "password": {
-                    "message": "Enter your password",
-                    "placeholder": "password"
+                "credentials": {
+                    "title": "Complete your information",
+                    "description": "Create a world, build your future",
+                    "username": {
+                        "message": "Enter your username",
+                        "placeholder": "@user:matrix.org"
+                    },
+                    "password": {
+                        "message": "Enter your password",
+                        "placeholder": "Password"
+                    },
+                    "cta": "Unlock"
                 },
                 "messages": {
                     "validating": "Validating your information...",
-                    "welcome": "Welcome! It's great to have you here. We will redirect you shortly..."
+                    "welcome": "Great to have you here, we will redirect you soon..."
                 }
             },
             "chat_errors": {
                 "invalid_url": "Error: Relative URL without base",
                 "unknown": "Error: Unknown error",
                 "invalid_username_password": "Error: Invalid username or password"
+            }
+        },
+        "signup": {
+            "chat_steps": {
+                "homeserver": {
+                    "message": "Enter a server",
+                    "description": "Join a server, by default you can use https://matrix.org",
+                    "placeholder": "https://matrix.org",
+                    "cta": "Confirm server"
+                },
+                "credentials": {
+                    "title": "Let's get you registered",
+                    "description": "Imagine an amazing username and a secure password.",
+                    "username": {
+                        "message": "Enter your username",
+                        "placeholder": "Username"
+                    },
+                    "password": {
+                        "message": "Enter your password",
+                        "placeholder": "Password"
+                    },
+                    "cta": "Create an account"
+                },
+                "captcha": {
+                    "title": "Are you human?",
+                    "description": "Complete the captcha below",
+                    "cta": "Completed"
+                }
+            }
+        },
+        "onboard": {
+            "login": {
+                "description": "Do you already have an account?",
+                "cta": "Log In"
+            },
+            "signup": {
+                "description": "Don't you have an account?",
+                "cta": "Sign Up"
             }
         },
         "chat": {
@@ -64,11 +105,11 @@
         "profile": {
             "username": {
                 "label": "Username",
-                "placeholder": "Enter a username",
-                "cta_update": "Modify profile"
+                "placeholder": "Write a username",
+                "cta_update": "Update profile"
             },
             "management": {
-                "title": "Account management",
+                "title": "Account Management",
                 "deactivate": {
                     "label": "Deactivate account",
                     "cta_deactivate": "Deactivate"
@@ -86,20 +127,20 @@
         },
         "dm": {
             "title": "New chat",
-            "label": "Enter the user ID",
+            "label": "Write the user's id",
             "placeholder": "@user:matrix.org",
             "description": "Start a new chat with"
         },
         "group": {
             "title": "New group",
             "select": {
-                "label": "Enter the user ID",
+                "label": "Write the user's id",
                 "placeholder": "@user:matrix.org",
                 "cta": "Continue"
             },
             "meta": {
                 "label": "Group name",
-                "placeholder": "E.g., Unicorns",
+                "placeholder": "E.g.: Unicorns",
                 "members": {
                     "title": "Participants"
                 },
