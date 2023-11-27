@@ -1,6 +1,11 @@
+use std::ops::Deref;
+
 use dioxus::prelude::*;
 
-use crate::{components::atoms::Avatar, services::matrix::matrix::TimelineMessageType};
+use crate::{
+    components::atoms::{Avatar, File},
+    services::matrix::matrix::{ImageType, TimelineMessageType},
+};
 
 #[derive(PartialEq, Props, Debug, Clone)]
 pub struct MessageReply {
@@ -32,7 +37,7 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
     "#;
 
     let sender_style = if cx.props.is_replying_for_me {
-      r#"
+        r#"
         color: var(--text-white);
         font-family: Inter;
         font-size: 12px;
@@ -40,7 +45,7 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
         line-height: 12px; 
       "#
     } else {
-      r#"
+        r#"
         color: var(--text-1);
         font-family: Inter;
         font-size: 12px;
@@ -66,13 +71,13 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
         color: var(--text-white);
         margin: var(--size-0) 0;
         padding: 0 var(--size-0);
-        border-left: 2px solid var(--brand);
+        border-left: 2px solid var(--primary-100);
       "#
     } else {
         r#"
         margin: var(--size-0) 0;
         padding: 0 var(--size-0);
-        border-left: 2px solid var(--brand);
+        border-left: 2px solid var(--primary-100);
       "#
     };
 
@@ -81,9 +86,9 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
         class: "message-view--reply",
         style: "{message_wrapper_style}",
         Avatar {
-          name: "{cx.props.message.display_name}",
+          name: cx.props.message.display_name.clone(),
           size: 24,
-          uri: cx.props.message.avatar_uri.as_ref()
+          uri: cx.props.message.avatar_uri.clone()
         }
         article {
           style: "{message_style}",
@@ -104,11 +109,59 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
               )
             },
             TimelineMessageType::Image(i) => {
-              rsx!(img{
-                style: "{content_image_style}",
-                src: "{i}"
-              })
+              match i.source.as_ref().unwrap() {
+                ImageType::URL(url) => {
+                  rsx!(img{
+                    style: "{content_image_style}",
+                    src: "{url}"
+                  })
+                }
+                ImageType::Media(content) => {
+                  let c: &[u8] = content.as_ref();
+
+                  let blob = gloo::file::Blob::new(c);
+                  let object_url = gloo::file::ObjectUrl::from(blob);
+
+                  rsx!(img{
+                    style: "{content_image_style}",
+                    src: "{object_url.deref()}"
+                  })
+                }
+              }
               // rsx!(div{})
+            }
+            TimelineMessageType::File(file) => {
+              rsx!(
+                div {
+                  style: "margin-top: var(--size-0)",
+                  File {
+                    body: file.clone(),
+                  }
+                }
+              )
+            }
+            TimelineMessageType::Video(i) => {
+              rsx!(
+                div {
+                  style: "margin-top: var(--size-0)",
+                  File {
+                    body: i.clone(),
+                  }
+                }
+              )
+            }
+            TimelineMessageType::Html(t) => {
+              rsx!(
+                div {
+                  style: "
+                    overflow: hidden;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 3;
+                    -webkit-box-orient: vertical;
+                  ",
+                  dangerous_inner_html: "{t}"
+                }
+              )
             }
           }
         }

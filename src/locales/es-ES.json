@@ -11,23 +11,26 @@
             }
         },
         "login": {
-            "actors": {
-                "bot": "Fido",
-                "user": "Usuario"
-            },
             "chat_steps": {
                 "homeserver": {
-                    "message": "Hola. Ingresa un servidor",
-                    "placeholder": "https://matrix.org"
+                    "message": "Ingresa un servidor",
+                    "description": "Únete a un servidor, por defecto puedes utilizar https://matrix.org",
+                    "placeholder": "https://matrix.org",
+                    "cta": "Confirmar servidor"
                 },
-                "username": {
-                    "message": "Ingresa tu nombre de usuario",
-                    "placeholder": "usuario"
+                "credentials": {
+                    "title": "Completa tu información",
+                    "description": "Crea un mundo, construye tu futuro",
+                    "username": {
+                        "message": "Ingresa tu nombre de usuario",
+                        "placeholder": "@user:matrix.org"
+                    },
+                    "password": {
+                        "message": "Ingresa tu contraseña",
+                        "placeholder": "Contraseña"
+                    },
+                    "cta": "Desbloquear"
                 },
-                "password": {
-                    "message": "Ingresa tu contraseña",
-                    "placeholder": "contraseña"
-                }, 
                 "messages": {
                     "validating": "Validando tu información...",
                     "welcome": "Que bien tenerte acá, pronto te vamos a redirigir..."
@@ -39,10 +42,45 @@
                 "invalid_username_password": "Error: Nombre de usuario o contraseña inválidos"
             }
         },
-        "chat": {
-            "nav": {
-                "log_out": "Cerrar sesión"
+        "signup": {
+            "chat_steps": {
+                "homeserver": {
+                    "message": "Ingresa un servidor",
+                    "description": "Únete a un servidor, por defecto puedes utilizar https://matrix.org",
+                    "placeholder": "https://matrix.org",
+                    "cta": "Confirmar servidor"
+                },
+                "credentials": {
+                    "title": "Vamos a registrate",
+                    "description": "Imagina un nombre de usuario asombroso y una contraseña segura.",
+                    "username": {
+                        "message": "Ingresa tu nombre de usuario",
+                        "placeholder": "Nombre de usuario"
+                    },
+                    "password": {
+                        "message": "Ingresa tu contraseña",
+                        "placeholder": "Contraseña"
+                    },
+                    "cta": "Crear una cuenta"
+                },
+                "captcha": {
+                    "title": "¿Eres humano?",
+                    "description": "Completa el captcha a continuación",
+                    "cta": "Completado"
+                }
+            }
+        },
+        "onboard": {
+            "login": {
+                "description": "¿Ya tienes una cuenta?",
+                "cta": "Iniciar sesión"
             },
+            "signup": {
+                "description": "¿Si no tienes una cuenta?",
+                "cta": "Registrate"
+            }
+        },
+        "chat": {
             "helpers": {
                 "join": {
                     "title": "Unirse a un room",
@@ -57,6 +95,59 @@
             },
             "message_list": {
                 "see_more": "Ver más"
+            }
+        },
+        "menu": {
+            "profile": "Perfil",
+            "chats": "Chats",
+            "log_out": "Cerrar sesión"
+        },
+        "profile": {
+            "username": {
+                "label": "Nombre de usuario",
+                "placeholder": "Escribe un nombre de usuario",
+                "cta_update": "Modificar perfil"
+            },
+            "management": {
+                "title": "Gestión de cuenta",
+                "deactivate": {
+                    "label": "Desactivar cuenta",
+                    "cta_deactivate": "Desactivar"
+                }
+            }
+        },
+        "modal": {
+            "title": "da el paso",
+            "subtitle": "Solo tienes que dar clic 😊",
+            "options": {
+                "dm": "Nuevo chat",
+                "group": "Nuevo grupo",
+                "channel": "Canal público"
+            }
+        },
+        "dm": {
+            "title": "Nuevo chat",
+            "label": "Escribe el id del usuario",
+            "placeholder": "@user:matrix.org",
+            "description": "Inicia un nuevo chat con"
+        },
+        "group": {
+            "title": "Nuevo grupo",
+            "select": {
+                "label": "Escribe el id del usuario",
+                "placeholder": "@user:matrix.org",
+                "cta": "Continuar"
+            },
+            "meta": {
+                "label": "Nombre del grupo",
+                "placeholder": "Ej: Unicornios",
+                "members": {
+                    "title": "Participantes"
+                },
+                "cta": {
+                    "back": "Volver",
+                    "create": "Crear grupo"
+                }
             }
         }
     }

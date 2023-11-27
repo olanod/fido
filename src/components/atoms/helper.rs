@@ -23,7 +23,7 @@ pub fn Helper<'a>(cx: Scope<'a, HelperProps<'a>>) -> Element<'a> {
         border-radius: var(--size-1);
         padding: var(--size-3);
         transition: opacity 0.2s ease-out, background-color 0.2s ease-out;
-        background: var(--surface-0);
+        background: var(--background-button);
         text-align: left;
         border: 1px solid transparent;
     "#;

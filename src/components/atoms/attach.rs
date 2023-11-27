@@ -1,7 +1,14 @@
 use dioxus::prelude::*;
-use wasm_bindgen::JsCast;
 
-use crate::components::atoms::{Attachment, Icon};
+use crate::{
+    components::atoms::{Attachment, Icon},
+    utils::get_element::GetElement,
+};
+
+pub enum AttachType<'a> {
+    Button,
+    Avatar(Element<'a>),
+}
 
 #[derive(Debug)]
 pub struct AttachEvent {
@@ -10,13 +17,15 @@ pub struct AttachEvent {
 
 #[derive(Props)]
 pub struct AttachProps<'a> {
-    on_click: EventHandler<'a, AttachEvent>,
+    #[props(default = AttachType::Button)]
+    atype: AttachType<'a>,
+    on_click: EventHandler<'a, Event<FormData>>,
 }
 
 pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
     let button_style = r#"
         cursor: pointer;
-        background: var(--surface-3);
+        background: var(--background-button);
         border: none;
         border-radius: 100%;
         max-width: 2.625rem;
@@ -24,20 +33,64 @@ pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
         height: 2.625rem;
     "#;
 
-    cx.render(rsx!(
-        button {
-            style: "{button_style}",
-            onclick: move |_| {
-                let window = web_sys::window().expect("global window does not exists");
-                let document = window.document().expect("expecting a document on window");
-                let val = document.get_element_by_id("input_file").unwrap().dyn_into::<web_sys::HtmlInputElement>().unwrap(); 
-                val.click();
+    let avatar_style = r#"
+        cursor: pointer;
+        background: var(--neutral-solid-900);
+        border: none;
+        border-radius: 100%;
+        width: 80px;
+        height: 80px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0;
+        margin: 0 auto;
+    "#;
 
-            } ,
-            Icon {
-                stroke: "#fff",
-                icon: Attachment
-            }
+    let input_attach_style = r#"
+        visibility: hidden;
+        width: 0;
+        display: none;
+    "#;
+
+    let on_handle_attach = move |_| {
+        let element = GetElement::<web_sys::HtmlInputElement>::get_element_by_id("input_file");
+
+        element.click();
+    };
+
+    cx.render(rsx!(
+        match &cx.props.atype {
+            AttachType::Button => {
+                rsx!(
+                    button {
+                        style: "{button_style}",
+                        onclick: on_handle_attach,
+                        Icon {
+                            stroke: "var(--icon-white)",
+                            icon: Attachment
+                        }
+                    }
+                )
+            },
+            AttachType::Avatar(element) => {
+                rsx!(
+                    button {
+                        style: "{avatar_style}",
+                        onclick: on_handle_attach,
+                        element
+                    }
+                )
+            },
+        }
+
+
+
+        input {
+            style: "{input_attach_style}",
+            r#type: "file",
+            id: "input_file",
+            oninput: move |event| cx.props.on_click.call(event)
         }
     ))
 }

@@ -1,13 +1,13 @@
 use dioxus::prelude::*;
-#[derive(Props)]
-pub struct AvatarProps<'a> {
-    name: &'a str,
+#[derive(PartialEq, Props)]
+pub struct AvatarProps {
+    name: String,
     size: u8,
     #[props(!optional)]
-    uri: Option<&'a String>,
+    uri: Option<String>,
 }
 
-pub fn Avatar<'a>(cx: Scope<'a, AvatarProps<'a>>) -> Element<'a> {
+pub fn Avatar(cx: Scope<AvatarProps>) -> Element {
     let size_avatar = format!("--avatar-size: {}px;", cx.props.size);
     let avatar_style = r#"
         width: var(--avatar-size);
@@ -21,13 +21,12 @@ pub fn Avatar<'a>(cx: Scope<'a, AvatarProps<'a>>) -> Element<'a> {
     "#;
     let avatar_style = format!("{}\n{}", size_avatar, avatar_style);
 
-    
     let initial_style = r#"
         font-size: calc(var(--avatar-size) * 0.4);
         color: var(--text-normal);
     "#;
     cx.render(rsx! {
-      match cx.props.uri {
+      match &cx.props.uri {
           Some(uri)=> {
             rsx!(
               img{

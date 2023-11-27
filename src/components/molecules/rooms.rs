@@ -1,8 +1,8 @@
 use dioxus::prelude::*;
 
-use crate::components::atoms::{room::RoomItem, MessageInput, RoomView};
+use crate::components::atoms::{input::InputType, room::RoomItem, MessageInput, RoomView};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CurrentRoom {
     pub id: String,
     pub name: String,
@@ -22,14 +22,7 @@ pub struct RoomsListProps<'a> {
 
 pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
     let pattern = use_state(cx, String::new);
-    let rooms_filtered = use_state(cx, || {
-        cx.props
-            .rooms
-            .iter()
-            .filter(|r| r.is_public)
-            .cloned()
-            .collect::<Vec<_>>()
-    });
+    let rooms_filtered = use_state(cx, || cx.props.rooms.iter().cloned().collect::<Vec<_>>());
 
     let rooms_style = r#"
         display: flex;
@@ -43,11 +36,12 @@ pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
             MessageInput {
                 message: "{pattern}",
                 placeholder: "Buscar",
-                itype: "search",
+                itype: InputType::Search,
+                error: None,
                 on_input: move |event: FormEvent| {
                     pattern.set(event.value.clone());
 
-                    let default_rooms = cx.props.rooms.iter().filter(|r| r.is_public).cloned().collect::<Vec<_>>();
+                    let default_rooms = cx.props.rooms.iter().cloned().collect::<Vec<_>>();
 
                     if event.value.len() > 0 {
                         let x = default_rooms
@@ -69,8 +63,9 @@ pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
                 rooms_filtered.get().iter().map(|room| {
                     rsx!(RoomView {
                         key: "{room.id}",
-                        room_avatar_uri: room.avatar_uri.as_ref(),
-                        room_name: room.name.as_str(),
+                        displayname: room.name.as_str(),
+                        avatar_uri: room.avatar_uri.clone(),
+                        description: "",
                         on_click: move |_| {
                             cx.props.on_submit.call(FormRoomEvent {
                                 room: CurrentRoom {

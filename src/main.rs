@@ -1,17 +1,19 @@
 #![allow(non_snake_case)]
 use chat::components::atoms::Spinner;
-use chat::components::molecules::rooms::CurrentRoom;
-use chat::components::organisms::login::LoggedIn;
+use chat::hooks::use_client::use_client;
+use chat::hooks::use_init_app::{use_init_app, BeforeSession};
+use chat::pages::login::{LoggedIn, Login};
+use chat::pages::route::Route;
+use chat::pages::signup::Signup;
 use chat::MatrixClientState;
 use dioxus::prelude::*;
+use dioxus_router::prelude::Router;
 use gloo::storage::errors::StorageError;
 use gloo::storage::LocalStorage;
 use log::{info, LevelFilter};
 
-use chat::components::organisms::{IndexChat, IndexLogin};
 use chat::services::matrix::matrix::*;
-use dioxus_std::i18n::*;
-use dioxus_std::translate;
+use dioxus_std::{i18n::*, translate};
 use matrix_sdk::config::SyncSettings;
 use matrix_sdk::ruma::exports::serde_json;
 use matrix_sdk::Client;
@@ -35,7 +37,7 @@ fn Restoring(cx: Scope) -> Element {
                 Spinner {}
 
                 p {
-                    style: "color: (--text-1)",
+                    style: "color: var(--text-1)",
                     translate!(
                         i18,
                         "main.loading.title"
@@ -58,36 +60,36 @@ fn App(cx: Scope) -> Element {
         },
     );
 
-    use_shared_state_provider::<LoggedIn>(cx, || LoggedIn {
-        is_logged_in: false,
-    });
-    use_shared_state_provider::<MatrixClientState>(cx, || MatrixClientState { client: None });
-    use_shared_state_provider::<CurrentRoom>(cx, || CurrentRoom {
-        id: String::new(),
-        name: String::new(),
-        avatar_uri: None,
-    });
+    use_init_app(cx);
 
-    let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
+    let client = use_client(cx);
     let matrix_client = use_shared_state::<MatrixClientState>(cx).unwrap();
+    let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
+    let before_session =
+        use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
+
     let restoring_session = use_ref::<bool>(cx, || true);
 
     use_coroutine(cx, |_: UnboundedReceiver<MatrixClientState>| {
-        to_owned![matrix_client, logged_in, restoring_session];
+        to_owned![client, logged_in, restoring_session];
 
         async move {
-            let client = create_client(String::from("https://matrix.org")).await;
+            let c = create_client(String::from("https://matrix.org")).await;
 
-            matrix_client.write().client = Some(client.clone());
+            client.set(MatrixClientState {
+                client: Some(c.clone()),
+            });
 
             let serialized_session: Result<String, StorageError> =
                 <LocalStorage as gloo::storage::Storage>::get("session_file");
 
             if let Ok(s) = serialized_session {
-                let (client, sync_token) = restore_session(&s).await.unwrap();
+                let (c, sync_token) = restore_session(&s).await.unwrap();
 
-                matrix_client.write().client = Some(client.clone());
-                let x = sync(client.clone(), sync_token, logged_in).await;
+                client.set(MatrixClientState {
+                    client: Some(c.clone()),
+                });
+                let x = sync(c.clone(), sync_token, logged_in).await;
 
                 info!("old session {:?}", x);
                 restoring_session.set(false);
@@ -98,38 +100,56 @@ fn App(cx: Scope) -> Element {
         }
     });
 
-    cx.render(match &matrix_client.read().client {
-        Some(_) => {
-            rsx!(div {
-                class: "page",
-                if logged_in.read().is_logged_in {
-                    rsx!(
-                        section {
-                            class: "chat",
-                            IndexChat {}
+    render! {
+        rsx!(
+            match &matrix_client.read().client {
+                Some(_) => {
+                    rsx!(div {
+                        class: "page",
+                        if logged_in.read().is_logged_in {
+                            rsx!(
+                                section {
+                                    class: "chat",
+                                    Router::<Route> {}
+                                }
+                            )
+                        } else if *restoring_session.read() {
+                            rsx!(
+                                Restoring {}
+                            )
+                        } else {
+                            match *before_session.read() {
+                                BeforeSession::Login => rsx!(
+                                    section {
+                                        class: "login",
+                                        style: "
+                                            width: 100%;
+                                        ",
+                                        Login {}
+                                    }
+                                ),
+                                BeforeSession::Signup => rsx!(
+                                    section {
+                                        class: "login",
+                                        style: "
+                                            width: 100%;
+                                        ",
+                                        Signup {}
+                                    }
+                                )
+                            }
                         }
-                    )
-                } else if *restoring_session.read() {
-                    rsx!(
-                        Restoring {}
-                    )
-                } else {
-                    rsx!(
-                        section {
-                            class: "login",
-                            IndexLogin {}
-                        }
-                    )
+                    })
                 }
-            })
-        }
-        None => rsx!(
-            div {
-                class: "spinner-dual-ring--center",
-                Spinner {}
+                None => rsx!(
+                    div {
+                        class: "spinner-dual-ring--center",
+                        Spinner {}
+                    }
+                ),
             }
-        ),
-    })
+        )
+    }
 }
 
 pub async fn sync(

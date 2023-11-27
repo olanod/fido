@@ -1,7 +1,6 @@
 pub mod chat;
-pub mod login;
-pub mod nav;
+pub mod login_form;
+pub mod menu;
 
-pub use chat::IndexChat;
-pub use login::IndexLogin;
-pub use nav::Nav;
+pub use login_form::LoginForm;
+pub use menu::*;

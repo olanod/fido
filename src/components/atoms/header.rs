@@ -1,21 +1,12 @@
 use dioxus::prelude::*;
 
-use crate::components::atoms::{ArrowLeft, Avatar, Icon};
+use crate::components::atoms::{header_main::HeaderCallOptions, ArrowLeft, Icon};
 
-#[derive(Debug)]
-pub enum HeaderCallOptions {
-    CLOSE,
-}
-
-#[derive(Debug)]
-pub struct HeaderEvent {
-    pub value: HeaderCallOptions,
-}
+use super::header_main::HeaderEvent;
 
 #[derive(Props)]
 pub struct HeaderProps<'a> {
-    #[props(!optional)]
-    avatar_uri: Option<&'a String>,
+    avatar_element: Option<Element<'a>>,
     text: &'a str,
     on_event: EventHandler<'a, HeaderEvent>,
 }
@@ -27,9 +18,9 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
         gap: 0.5rem;
         align-items: center;
         position: absolute;
-        width: inherit;
+        width: 100%;
         padding: 1.25rem 0;
-        background: var(--surface-1);
+        background: var(--background);
         font-weight: 600;
         top: 0;
         font-size: var(--font-size-0)
@@ -43,7 +34,7 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
     "#;
 
     let title_style = r#"
-      color: var(--text-loud);
+      color: var(--text-1);
       font-family: Inter;
       font-size: 18px;
       font-style: normal;
@@ -58,16 +49,16 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
             style: "{close_style}",
             onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })},
             Icon {
-              stroke: "#000000",
+              stroke: "var(--text-1)",
               icon: ArrowLeft,
               height: 24,
               width: 24
             }
           }
-          Avatar {
-            name: cx.props.text.clone(),
-            size: 32,
-            uri: cx.props.avatar_uri
+          if let Some(element) = &cx.props.avatar_element {
+            rsx!(
+              element
+            )
           }
           span {
             style: "{title_style}",
