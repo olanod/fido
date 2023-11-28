@@ -3,12 +3,17 @@ use log::info;
 use std::ops::Deref;
 
 use crate::{
-    components::atoms::{Button, Card, File, button::Variant},
+    components::atoms::{button::Variant, header_main::HeaderCallOptions, Button, Card, File},
     hooks::use_attach::use_attach,
     services::matrix::matrix::FileContent,
 };
 
-pub fn AttachPreview<'a>(cx: Scope<'a>) -> Element<'a> {
+#[derive(Props)]
+pub struct AttachPreviewProps<'a> {
+    on_event: EventHandler<'a, HeaderCallOptions>,
+}
+
+pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
     let attach = use_attach(cx);
 
     let attach_file_style = r#"
@@ -21,12 +26,10 @@ pub fn AttachPreview<'a>(cx: Scope<'a>) -> Element<'a> {
     "#;
 
     let attach_preview = r#"
-        height: 100vh;
+        height: 100%;
     "#;
 
-    let on_handle_card = move |_| {
-        attach.reset();
-    };
+    let on_handle_card = move |_| cx.props.on_event.call(HeaderCallOptions::CLOSE);
 
     cx.render(rsx!(if let Some(file) = attach.get() {
         info!("{:?}", file.content_type.type_());
@@ -52,10 +55,9 @@ pub fn AttachPreview<'a>(cx: Scope<'a>) -> Element<'a> {
                 rsx!(
                     article {
                         style: "
-                            height: 100vh;
+                            height: 100%;
                             display: flex;
                             justify-content: center;
-                            align-items: center;
                             background: var(--background);
                             flex-direction: column;
                         ",
@@ -69,7 +71,7 @@ pub fn AttachPreview<'a>(cx: Scope<'a>) -> Element<'a> {
                         }
                         div {
                             style: "
-                                margin-top: 24px;
+                                margin: 24px auto;
                                 width: 50%;
                             ",
                             Button {
@@ -86,17 +88,12 @@ pub fn AttachPreview<'a>(cx: Scope<'a>) -> Element<'a> {
                 rsx!(
                     article {
                         style: "
-                            height: calc(100vh - 64px - 22px);
+                            height: 100%;
                             background: var(--background);
                             display: flex;
                             justify-content: center;
                             align-items: center;
-                            padding: 24px;
                             flex-direction: column;
-                            position: fixed;
-                            top: 0;
-                            left: 0;
-                            width: 100vw;
                         ",
                         div {
                             style: "

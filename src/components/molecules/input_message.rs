@@ -2,12 +2,12 @@ use std::ops::Deref;
 
 use dioxus::{html::input_data::keyboard_types, prelude::*};
 use log::info;
-use matrix_sdk::ruma::{RoomId, UInt};
+use matrix_sdk::ruma::RoomId;
 
 use crate::{
-    components::{atoms::{message::Message, Attach, MessageInput, MessageView, Button, header_main::{HeaderEvent, HeaderCallOptions}, input::InputType, hover_menu::{MenuEvent, MenuOption},
+    components::{atoms::{message::Message, Attach, MessageView, Button, header_main::{HeaderEvent, HeaderCallOptions}, input::InputType, hover_menu::{MenuEvent, MenuOption}, TextareaInput, Close, Icon, Avatar,
     }, molecules::AttachPreview},
-    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_room::use_room},
+    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment, RoomMember, room_members}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_room::use_room},
 };
 
 #[derive(Debug, Clone)]
@@ -39,23 +39,26 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
     let room = use_room(cx);
     let message_field = use_state(cx, String::new);
     let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).unwrap();
-    
-    let wrapper_style = r#"
+    let wrapper_style = use_ref(cx, || r#"
         flex-direction: column;
-    "#;
+    "#);
 
     let container_style = r#"
         display: flex;
         gap: 0.75rem;
+        align-items: flex-end;
     "#;
 
-    let on_handle_send_attach = move |_| {
+    let on_handle_send_attach = move || {
         attach.reset();
+        wrapper_style.set(r#"
+            flex-direction: column;
+        "#);
     };
 
     let on_handle_attach = move |event: Event<FormData>| {
         cx.spawn({
-            to_owned![attach];
+            to_owned![attach, wrapper_style];
 
             async move {
                 let files = &event.files;
@@ -97,6 +100,13 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                             content_type,
                             size
                         })) ;
+
+                        wrapper_style.set(r#"
+                            flex-direction: column;
+                            position: absolute;
+                            height: 100vh;
+                            background: var(--background);
+                        "#);
                     }
                 }
             }
@@ -106,11 +116,42 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
     cx.render(rsx! {
       div {
         id: "input_field",
-        style: "{wrapper_style}",
+        style: "{wrapper_style.read()}",
         class: "input__message",
 
         if let Some(replying) = replying_to.read().deref() {
+            let close_style = r#"
+                cursor: pointer;
+                background: transparent;
+                border: 1px solid transparent;
+                display: flex;
+            "#;
+              
             rsx!(
+                div {
+                    style: "
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      padding: 8px 0 4px; 
+                    ",
+                    span {
+                        style: "
+                            color: var(--text-1);
+                            font-size: var(--size-1);
+                        ",
+                        "Respondiendo a "
+                    }
+                    button {
+                      style: "{close_style}",
+                      onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })},
+                      Icon {
+                        stroke: "var(--icon-subdued)",
+                        icon: Close
+                      }
+                    }
+                  }
+                  
                 MessageView {
                     key: "1",
                     message: Message {
@@ -136,7 +177,11 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
 
         if let Some(_) = attach.get() {
             rsx!(
-                AttachPreview {}
+                AttachPreview {
+                    on_event: move |event| {
+                        on_handle_send_attach()
+                    }
+                }
             )
         } 
 
@@ -164,45 +209,31 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
 
                                 l.call(attachment);
 
-                                on_handle_send_attach(event);
+                                on_handle_send_attach();
                             }
                         }
                     }
                 )
             } else {
                 rsx!(
-                    MessageInput {
-                        message: "{message_field}",
+                    TextareaInput {
+                        value: "{message_field}",
                         placeholder: cx.props.placeholder,
-                        itype: cx.props.message_type.clone(),
-                        error: None,
                         on_input: move |event: FormEvent| {
+                            let value = event.value.clone();
                             message_field.set(event.value.clone());
-                            if message_field.get().starts_with("@") {
-                                cx.spawn({
-                                    to_owned!(room, client);
-
-                                    async move {
-                                        let current_room = room.get();
-                                                                        
-                                        let room = client.get().get_room(&RoomId::parse(current_room.id).unwrap());
-
-                                        if let Some(r) = room {
-                                            let members = r.members().await;
-
-                                            if let Ok(m) = members {
-                                                
-                                                
-                                            }
-                                        }
-                                    }
-                                })
-                            }
                         },
                         on_keypress: move |event: KeyboardEvent| {
-                            if event.code() == keyboard_types::Code::Enter && message_field.get().len() > 0 {
-                                cx.props.on_submit.call(FormMessageEvent { value: message_field.get().clone() });
-                                message_field.set(String::new());
+                            let modifiers = event.modifiers();
+
+                            match modifiers {
+                                keyboard_types::Modifiers::SHIFT => {}
+                                _ => {
+                                    if event.code() == keyboard_types::Code::Enter && message_field.get().len() > 0 {
+                                        cx.props.on_submit.call(FormMessageEvent { value: message_field.get().clone() });
+                                        message_field.set(String::from(""));
+                                    }
+                                }
                             }
                         },
                         on_click: move |_| {

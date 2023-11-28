@@ -20,6 +20,7 @@ pub fn IndexMenu(cx: Scope) -> Element {
         name: String::new(),
         avatar_uri: None,
     });
+    let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
 
     let profile = use_state::<AccountInfo>(cx, || AccountInfo {
         name: String::from(""),
@@ -54,11 +55,15 @@ pub fn IndexMenu(cx: Scope) -> Element {
             }
         }
     };
-    
+
     cx.render(rsx!(
         article {
-            HeaderMain{
-                on_event: header_event
+            if current_room.read().name.is_empty() {
+                rsx!(
+                    HeaderMain{
+                        on_event: header_event
+                    }
+                )
             }
 
             if *show_menu.read() {

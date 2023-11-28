@@ -13,7 +13,7 @@ use crate::services::matrix::matrix::TimelineThread;
 use crate::{components::{atoms::{
     message::Message,
     *, messages::hover_menu::{MenuEvent, MenuOption},
-}, molecules::input_message::ReplyingTo}, utils::get_element::GetElement, hooks::use_messages::{use_messages, UseMessages}, pages::chat::chat::ListHeight, services::matrix::matrix::{TimelineMessageType, ImageType}};
+}, molecules::input_message::ReplyingTo}, utils::get_element::GetElement, hooks::use_messages::{use_messages, UseMessages}, services::matrix::matrix::TimelineMessageType};
 
 use super::rooms::CurrentRoom;
 
@@ -22,7 +22,6 @@ pub fn List(cx: Scope) -> Element {
     let UseMessages {messages, isLoading: _, limit: _, task: _} = use_m.get();
 
     let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).unwrap();
-    let height = use_shared_state::<ListHeight>(cx).unwrap();
     let container_to_scroll = use_ref::<Option<HtmlElement>>(cx, || None);
     let list_to_scroll = use_ref::<Option<HtmlElement>>(cx, || None);
     let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
@@ -117,7 +116,7 @@ pub fn List(cx: Scope) -> Element {
         
         div {
             style: "
-                {height.read().height}
+                
                 {list_style}
             ",
             class:"messages-list",
@@ -199,7 +198,6 @@ pub fn List(cx: Scope) -> Element {
                                                             info!("TODO: handle download")
                                                         }
                                                         MenuOption::Reply => {
-                                                            let height = height.clone();
                                                             if let Some(eid) = &event_id {
                                                                 let replying = ReplyingTo { 
                                                                     event_id: eid.clone(), 
@@ -210,16 +208,6 @@ pub fn List(cx: Scope) -> Element {
                                                                 };
                                                                 
                                                                 *replying_to.write() = Some(replying);
-                                                            
-                                                                let element = GetElement::<web_sys::HtmlElement>::get_element_by_id("input_field");
-                        
-                                                                info!("into event list");
-                                                                gloo::timers::callback::Timeout::new(250, move || {      
-                                                                    let h = element.offset_height();
-                                                                    let x = format!("height: calc(100vh - 72px - {}px );", h + 18); 
-                                                                    height.write().height = x;
-                                                                })
-                                                                .forget();
                                                             }
                                                         }
                                                         MenuOption::Close => {
@@ -271,7 +259,6 @@ pub fn List(cx: Scope) -> Element {
                                                                     info!("TODO: handle download")
                                                                 }
                                                                 MenuOption::Reply => {
-                                                                    let height = height.clone();
                                                                     if let Some(eid) = &event_id {
                                                                         let replying = ReplyingTo { 
                                                                             event_id: eid.clone(), 
@@ -282,16 +269,6 @@ pub fn List(cx: Scope) -> Element {
                                                                         };
                                                                         
                                                                         *replying_to.write() = Some(replying);
-                                                                    
-                                                                        let element = GetElement::<web_sys::HtmlElement>::get_element_by_id("input_field");
-                                
-                                                                        info!("into event list");
-                                                                        gloo::timers::callback::Timeout::new(250, move || {      
-                                                                            let h = element.offset_height();
-                                                                            let x = format!("height: calc(100vh - 72px - {}px );", h + 18); 
-                                                                            height.write().height = x;
-                                                                        })
-                                                                        .forget();
                                                                     }
                                                                 }
                                                                 MenuOption::Close => {
@@ -355,7 +332,6 @@ pub fn List(cx: Scope) -> Element {
                                                                     info!("TODO: handle download")
                                                                 }
                                                                 MenuOption::Reply => {
-                                                                    let height = height.clone();
                                                                     if let Some(eid) = &event_id {
                                                                         let replying = ReplyingTo { 
                                                                             event_id: eid.clone(), 
@@ -366,16 +342,6 @@ pub fn List(cx: Scope) -> Element {
                                                                         };
                                                                         
                                                                         *replying_to.write() = Some(replying);
-                                                                    
-                                                                        let element = GetElement::<web_sys::HtmlElement>::get_element_by_id("input_field");
-                                
-                                                                        info!("into event list");
-                                                                        gloo::timers::callback::Timeout::new(250, move || {      
-                                                                            let h = element.offset_height();
-                                                                            let x = format!("height: calc(100vh - 72px - {}px );", h + 18); 
-                                                                            height.write().height = x;
-                                                                        })
-                                                                        .forget();
                                                                     }
                                                                 }
                                                                 MenuOption::Close => {
@@ -433,7 +399,6 @@ pub fn List(cx: Scope) -> Element {
                                                                     info!("TODO: handle download")
                                                                 }
                                                                 MenuOption::Reply => {
-                                                                    let height = height.clone();
                                                                     let replying = ReplyingTo { 
                                                                         event_id: event_id.clone(), 
                                                                         content: head_message.body.clone(), 
@@ -443,16 +408,6 @@ pub fn List(cx: Scope) -> Element {
                                                                     };
                                                                     
                                                                     *replying_to.write() = Some(replying);
-                                                                
-                                                                    let element = GetElement::<web_sys::HtmlElement>::get_element_by_id("input_field");
-                            
-                                                                    info!("into event list");
-                                                                    gloo::timers::callback::Timeout::new(250, move || {      
-                                                                        let h = element.offset_height();
-                                                                        let x = format!("height: calc(100vh - 72px - {}px );", h + 18); 
-                                                                        height.write().height = x;
-                                                                    })
-                                                                    .forget();
                                                                 }
                                                                 MenuOption::Close => {
                                                                     info!("close");
