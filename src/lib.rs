@@ -9,6 +9,7 @@ pub mod components {
 
 pub mod hooks {
     pub mod use_attach;
+    pub mod use_auth;
     pub mod use_client;
     pub mod use_init_app;
     pub mod use_listen_message;
@@ -18,6 +19,7 @@ pub mod hooks {
     pub mod use_room;
     pub mod use_send_attach;
     pub mod use_send_message;
+    pub mod use_session;
 }
 
 pub mod services {

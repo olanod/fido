@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
 
 use crate::{
-    components::atoms::Button, hooks::use_init_app::BeforeSession,
+    components::atoms::{Button, Icon, Warning}, hooks::use_init_app::BeforeSession,
     utils::i18n_get_key_value::i18n_get_key_value,
 };
 
@@ -20,7 +20,8 @@ pub struct LoginFormProps<'a> {
     description: &'a str,
     button_text: &'a str,
     emoji: &'a str,
-    // cta: &'a str,
+    #[props(!optional)]
+    error: Option<&'a String>,
     body: Element<'a>,
     on_handle: EventHandler<'a, FormLoginEvent>,
 }
@@ -138,13 +139,42 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
             }
 
            div {
-            style: "
-                display: flex;
-                gap: 16px;
-                flex-direction: column;
-                padding-top: 36px;
-            ",
-            &cx.props.body
+                style: "
+                    display: flex;
+                    gap: 16px;
+                    flex-direction: column;
+                    padding-top: 36px;
+                ",
+                &cx.props.body
+
+                if let Some(error) = cx.props.error {
+                    let error_style = r#"
+                        display: flex;
+                        gap: 2px;
+                        color: var(--secondary-red-100);
+                        font-family: Inter;
+                        font-size: 12px;
+                        font-style: normal;
+                        font-weight: 400;
+                        line-height: 16px; 
+                        align-items: center;
+                        padding-top: 6px;
+                        margin: 0 auto;
+                    "#;
+    
+                    rsx!(
+                        div {
+                            style: "{error_style}",
+                            Icon {
+                                stroke: "var(--secondary-red-100)",
+                                height: 16,
+                                width: 16,
+                                icon: Warning
+                            }
+                            "{error}"
+                        }
+                    )
+                }
            }
 
             div {

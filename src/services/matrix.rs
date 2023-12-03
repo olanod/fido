@@ -1213,9 +1213,9 @@ pub mod matrix {
     use matrix_sdk::ruma::api::client::account::register::v3::Request as RegistrationRequest;
 
     pub async fn prepare_register(
-        homeserver: String,
-        username: String,
-        password: String,
+        homeserver: &String,
+        username: &String,
+        password: &String,
     ) -> anyhow::Result<(Client, String), Error> {
         let mut request = RegistrationRequest::new();
         request.username = Some(&username);
@@ -1224,7 +1224,7 @@ pub mod matrix {
         let x = uiaa::Dummy::new();
         request.auth = Some(uiaa::AuthData::Dummy(x));
 
-        let result = build_client(homeserver).await;
+        let result = build_client(homeserver.to_string()).await;
         let (client, client_session) = match result {
             Ok((client, client_session)) => (client, client_session),
             Err(_) => panic!("Can't create client"),
@@ -1239,9 +1239,9 @@ pub mod matrix {
         }
     }
     pub async fn register(
-        homeserver: String,
-        username: String,
-        password: String,
+        homeserver: &String,
+        username: &String,
+        password: &String,
         recaptcha_token: Option<String>,
         session: Option<String>,
     ) -> anyhow::Result<(Client, String), Error> {
@@ -1255,7 +1255,7 @@ pub mod matrix {
             request.auth = Some(uiaa::AuthData::ReCaptcha(x));
         }
 
-        let result = build_client(homeserver).await;
+        let result = build_client(homeserver.to_string()).await;
         let (client, client_session) = match result {
             Ok((client, client_session)) => (client, client_session),
             Err(_) => panic!("Can't create client"),
@@ -1274,13 +1274,13 @@ pub mod matrix {
     }
 
     pub async fn login(
-        homeserver: String,
-        username: String,
-        password: String,
+        homeserver: &String,
+        username: &String,
+        password: &String,
     ) -> anyhow::Result<(Client, String)> {
         info!("No previous session found, logging in…");
 
-        let (client, client_session) = build_client(homeserver).await?;
+        let (client, client_session) = build_client(homeserver.to_string()).await?;
 
         match client
             .login_username(&username, &password)

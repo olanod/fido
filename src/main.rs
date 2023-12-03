@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 use chat::components::atoms::Spinner;
+use chat::hooks::use_auth::use_auth;
 use chat::hooks::use_client::use_client;
 use chat::hooks::use_init_app::{use_init_app, BeforeSession};
 use chat::pages::login::{LoggedIn, Login};
@@ -63,15 +64,16 @@ fn App(cx: Scope) -> Element {
     use_init_app(cx);
 
     let client = use_client(cx);
+    let auth = use_auth(cx);
+
     let matrix_client = use_shared_state::<MatrixClientState>(cx).unwrap();
-    let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
     let before_session =
         use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
 
     let restoring_session = use_ref::<bool>(cx, || true);
 
     use_coroutine(cx, |_: UnboundedReceiver<MatrixClientState>| {
-        to_owned![client, logged_in, restoring_session];
+        to_owned![client, auth, restoring_session];
 
         async move {
             let c = create_client(String::from("https://matrix.org")).await;
@@ -89,7 +91,9 @@ fn App(cx: Scope) -> Element {
                 client.set(MatrixClientState {
                     client: Some(c.clone()),
                 });
-                let x = sync(c.clone(), sync_token, logged_in).await;
+                let x = sync(c.clone(), sync_token).await;
+
+                auth.set_logged_in(true);
 
                 info!("old session {:?}", x);
                 restoring_session.set(false);
@@ -106,7 +110,7 @@ fn App(cx: Scope) -> Element {
                 Some(_) => {
                     rsx!(div {
                         class: "page",
-                        if logged_in.read().is_logged_in {
+                        if auth.is_logged_in().0 {
                             rsx!(
                                 section {
                                     class: "chat",
@@ -152,11 +156,7 @@ fn App(cx: Scope) -> Element {
     }
 }
 
-pub async fn sync(
-    client: Client,
-    initial_sync_token: Option<String>,
-    logged_in: UseSharedState<LoggedIn>,
-) -> anyhow::Result<()> {
+pub async fn sync(client: Client, initial_sync_token: Option<String>) -> anyhow::Result<()> {
     let mut sync_settings = SyncSettings::default();
 
     if let Some(sync_token) = initial_sync_token {
@@ -177,8 +177,6 @@ pub async fn sync(
     }
 
     info!("The client is ready! Listening to new messages…");
-
-    logged_in.write().is_logged_in = true;
 
     Ok(())
 }

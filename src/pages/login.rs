@@ -2,28 +2,18 @@ use std::collections::HashMap;
 
 use dioxus::{html::input_data::keyboard_types, prelude::*};
 use dioxus_std::{translate, i18n::use_i18};
-use gloo::storage::{LocalStorage, errors::StorageError};
+use gloo::storage::LocalStorage;
 use log::info;
-use matrix_sdk::{Client, config::SyncSettings};
-
 use crate::{
     components::{
-        atoms::{MessageInput, input::InputType, Spinner},
+        atoms::{MessageInput, input::InputType, LoadingStatus},
         organisms::{login_form::FormLoginEvent, LoginForm},
     },
-    utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::{login, FullSession}, hooks::{use_client::use_client, use_init_app::BeforeSession},
+    utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::login, hooks::{use_client::use_client, use_init_app::BeforeSession, use_auth::use_auth, use_session::use_session},
 };
 
 #[derive(Debug, Clone)]
-pub struct LoginInfo {
-    pub homeserver: String,
-    pub username: String,
-    pub password: String,
-}
-
-pub struct LoggedIn {
-    pub is_logged_in: bool,
-}
+pub struct LoggedIn(pub bool);
 
 pub enum LoggedInStatus {
     Start,
@@ -31,23 +21,6 @@ pub enum LoggedInStatus {
     Done,
     Persisting,
     LoggedAs(String)
-}
-
-#[inline_props]
-fn LoadingStatus(cx: Scope, text: String) -> Element {
-    cx.render({
-        rsx!(
-            div {
-                class: "column spinner-dual-ring--center",
-                Spinner {}
-
-                p {
-                    style: "color: var(--text-1)",
-                    "{text}"
-                }
-            }
-        )
-    })
 }
 
 pub fn Login(cx: Scope) -> Element {
@@ -112,47 +85,18 @@ pub fn Login(cx: Scope) -> Element {
     ]);
 
     let client = use_client(cx);
+    let auth = use_auth(cx);
+    let session = use_session(cx);
+
     let homeserver = use_state(cx, || String::from(""));
     let username = use_state(cx, || String::from(""));
     let password = use_state(cx, || String::from(""));
     let error = use_state(cx, || None);
 
-    let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
     let before_session =
         use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
 
-    let login_info = use_ref::<LoginInfo>(cx, || LoginInfo {
-        homeserver: String::from(""),
-        username: String::from(""),
-        password: String::from(""),
-    });
-
     let is_loading_loggedin = use_ref::<LoggedInStatus>(cx, || LoggedInStatus::Start);
-
-    let on_update_homeserver = move || {
-        cx.spawn({
-            to_owned![login_info, homeserver, error, is_loading_loggedin];
-
-            async move {
-                let response = Client::builder()
-                    .homeserver_url(&homeserver.get().clone())
-                    .build()
-                    .await;
-                
-                match response {
-                    Ok(client) => {
-                        login_info.with_mut(|info| info.homeserver = homeserver.get().clone());
-                        info!("client: {client:?}");
-                        error.set(None);
-                    }
-                    Err(e) => {
-                        info!("error: {e:?}");
-                        error.set(Some(e.to_string()));
-                    }
-                }
-            }
-        })
-    };
 
     let error_invalid_credentials = i18n_get_key_value(
         &i18n_map,
@@ -162,69 +106,82 @@ pub fn Login(cx: Scope) -> Element {
         &i18n_map, key_login_chat_errors_unknown,
     );
 
+    let on_update_homeserver = move || {
+        cx.spawn({
+            to_owned![homeserver, auth];
+
+            async move {
+                auth.set_server(homeserver.get().clone()).await;
+            }
+        })
+    };
+
     let on_handle_login = move || {
-        login_info.with_mut(|info| info.username = username.get().clone());
-        login_info.with_mut(|info| info.password = password.get().clone());
+        auth.set_username(username.get().clone(), true);
+        auth.set_password(password.get().clone());
 
         cx.spawn({
-            to_owned![logged_in, login_info, username, password, is_loading_loggedin, client, error, error_invalid_credentials, error_unknown];
-
-            info!("{:?}",login_info.read());
+            to_owned![auth, session, username, password, is_loading_loggedin, client, error, error_invalid_credentials, error_unknown, homeserver];
 
             async move {
                 is_loading_loggedin.set(LoggedInStatus::Loading);
-                let response = login(
-                    login_info.read().homeserver.clone(),
-                    login_info.read().username.clone(),
-                    login_info.read().password.clone(),
-                )
-                .await;
-        
-                match response {
-                    Ok((c, serialized_session)) => {
-                        is_loading_loggedin.set(LoggedInStatus::Done);
-                        let x = <LocalStorage as gloo::storage::Storage>::set(
-                            "session_file",
-                            serialized_session,
-                        );
+                let login_config = auth.build();
 
-                        is_loading_loggedin.set(LoggedInStatus::Persisting);
-        
-                        info!("Session persisted in {:?}", x);
-        
-                        let x = sync(c.clone(), None).await;
-        
-                        info!("new session {:?}", x);
-        
-                        
-                        let x = c.whoami().await;
-                        info!("whoami {:?}", x);
+                match login_config {
+                    Ok(info) => {
+                        let response = login(
+                            &info.server.into(),
+                            &info.username,
+                            &info.password,
+                        )
+                        .await;
 
-                        client.set(crate::MatrixClientState { client: Some(c.clone()) });
-                        is_loading_loggedin.set(LoggedInStatus::LoggedAs(c.user_id().unwrap().to_string()));
+                        match response {
+                            Ok((c, serialized_session)) => {
+                                is_loading_loggedin.set(LoggedInStatus::Done);
+                                let _x = <LocalStorage as gloo::storage::Storage>::set(
+                                    "session_file",
+                                    serialized_session,
+                                );
+        
+                                is_loading_loggedin.set(LoggedInStatus::Persisting);
+                
+                                let _x = session.sync(c.clone(), None).await;
+                                
+                                let x = c.whoami().await;
+                                info!("whoami {:?}", x);
+        
+                                client.set(crate::MatrixClientState { client: Some(c.clone()) });
+                                is_loading_loggedin.set(LoggedInStatus::LoggedAs(c.user_id().unwrap().to_string()));
+        
+                                auth.set_logged_in(true)
+                            }
+                            Err(err) => {
+                                info!("error from loggin: {:?}", err.to_string());
+                                is_loading_loggedin.set(LoggedInStatus::Start);
+                                if err
+                                    .to_string()
+                                    .eq("the server returned an error: [403 / M_FORBIDDEN] Invalid username or password")
+                                {
+                                    error.set(Some(error_invalid_credentials))
+                                } else {
+                                    error.set(Some(error_unknown))
+                                }
 
-                        logged_in.write().is_logged_in = true;
-                    }
-                    Err(err) => {
-                        info!("{:?}", err.to_string());
-                        is_loading_loggedin.set(LoggedInStatus::Start);
-                        if err
-                            .to_string()
-                            .eq("the server returned an error: [403 / M_FORBIDDEN] Invalid username or password")
-                        {
-                            error.set(Some(error_invalid_credentials))
-                        } else {
-                            error.set(Some(error_unknown))
+                                homeserver.set(String::new());
+                                username.set(String::new());
+                                password.set(String::new());
+                                
+                                auth.reset()
+                            }
                         }
-        
-                        username.set(String::from(""));
-                        password.set(String::from(""));
-        
-                        login_info.set(LoginInfo {
-                            homeserver: String::from(""),
-                            username: String::from(""),
-                            password: String::from(""),
-                        })
+                    }
+                    Err(e) => {
+                        homeserver.set(String::new());
+                        username.set(String::new());
+                        password.set(String::new());
+                        
+                        auth.reset()
                     }
                 }
             }
@@ -232,16 +189,14 @@ pub fn Login(cx: Scope) -> Element {
     };
 
     render!(
-        if login_info.read().homeserver.len() == 0 {
+        if auth.get().data.server.is_none() {
             rsx!(
-                div {
-                    "lgin"
-                }
                 LoginForm {
                     title: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_message)}",
                     description: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_description)}",
                     button_text: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_cta)}",
                     emoji: "🛰️",
+                    error: if error.get().is_some() { error.get().as_ref() } else { None },
                     on_handle: move |event: FormLoginEvent| match event {
                         FormLoginEvent::FilledForm => on_update_homeserver(),
                         FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
@@ -252,7 +207,7 @@ pub fn Login(cx: Scope) -> Element {
                             MessageInput {
                                 message: "{homeserver.get()}",
                                 placeholder: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_placeholder)}",
-                                error: if homeserver.get().len() > 0 {error.get().as_ref()}else {None},
+                                error: None,
                                 on_input: move |event: FormEvent| {
                                     homeserver.set(event.value.clone())
                                 },
@@ -270,13 +225,14 @@ pub fn Login(cx: Scope) -> Element {
                     ))
                 }
             )
-        } else if login_info.read().username.len() == 0 || login_info.read().password.len() == 0 {
+        } else if auth.get().data.username.is_none() || auth.get().data.password.is_none() {
             rsx!(
                 LoginForm {
                     title: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_title)}",
                     description: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_description)}",
                     button_text: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_cta)}",
                     emoji: "👋",
+                    error: if error.get().is_some() { error.get().as_ref() } else { None },
                     on_handle: move |event: FormLoginEvent| match event {
                         FormLoginEvent::FilledForm => on_handle_login(),
                         FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
@@ -287,17 +243,17 @@ pub fn Login(cx: Scope) -> Element {
                             MessageInput {
                                 message: "{username.get()}",
                                 placeholder: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_username_placeholder)}",
-                                error: if username.get().len() > 0 {error.get().as_ref()}else {None},
+                                error: None,
                                 on_input: move |event: FormEvent| {
                                     username.set(event.value.clone())
                                 },
                                 on_keypress: move |event: KeyboardEvent| {
-                                    if event.code() == keyboard_types::Code::Enter && username.get().len() > 0 {
-                                        login_info.with_mut(|info| info.username = username.get().clone());
+                                    if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() {
+                                        auth.set_username(username.get().clone(), true)
                                     }
                                 },
                                 on_click: move |_| {
-                                    login_info.with_mut(|info| info.username = username.get().clone());
+                                    auth.set_username(username.get().clone(), true)
                                 }
                             }
                         }
@@ -307,18 +263,17 @@ pub fn Login(cx: Scope) -> Element {
                                 itype: InputType::Password,
                                 message: "{password.get()}",
                                 placeholder: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_password_placeholder)}",
-                                error: if password.get().len() > 0 {error.get().as_ref()}else {None},
+                                error: None,
                                 on_input: move |event: FormEvent| {
                                     password.set(event.value.clone())
                                 },
                                 on_keypress: move |event: KeyboardEvent| {
-                                    if event.code() == keyboard_types::Code::Enter && username.get().len() > 0 && password.get().len() > 0 {
-                                        login_info.with_mut(|info| info.password = password.get().clone());
-
+                                    if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() && !password.get().is_empty() {
+                                        // on_handle_login()
                                     }
                                 },
                                 on_click: move |_| {
-                                    login_info.with_mut(|info| info.password = password.get().clone());
+                                    auth.set_password(password.get().clone());
                                 }
                             }
                         }
@@ -354,43 +309,4 @@ pub fn Login(cx: Scope) -> Element {
             }
         }
     )
-}
-
-pub async fn sync(client: Client, initial_sync_token: Option<String>) -> anyhow::Result<()> {
-    let mut sync_settings = SyncSettings::default();
-
-    if let Some(sync_token) = initial_sync_token {
-        sync_settings = sync_settings.token(sync_token);
-    }
-
-    loop {
-        match client.sync_once(sync_settings.clone()).await {
-            Ok(response) => {
-                persist_sync_token(response.next_batch).await?;
-                break;
-            }
-            Err(error) => {
-                info!("An error occurred during initial sync: {error}");
-                info!("Trying again from login…");
-            }
-        }
-    }
-
-    info!("The client is ready! Listening to new messages…");
-
-    Ok(())
-}
-
-pub async fn persist_sync_token(sync_token: String) -> anyhow::Result<()> {
-    let serialized_session: Result<String, StorageError> =
-        <LocalStorage as gloo::storage::Storage>::get("session_file");
-
-    let serialized_session = serialized_session.unwrap();
-    let mut full_session: FullSession = serde_json::from_str(&serialized_session)?;
-
-    full_session.sync_token = Some(sync_token);
-    let serialized_session = serde_json::to_string(&full_session)?;
-    let _ = <LocalStorage as gloo::storage::Storage>::set("session_file", serialized_session);
-
-    Ok(())
 }
