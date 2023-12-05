@@ -197,7 +197,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                             button {
                                 style: "
                                     {login_style}
-                                    color: var(--text-loud);
+                                    color: var(--text-1);
                                 ",
                                 class: "button button--tertiary",
                                 onclick: move |_| {
@@ -211,7 +211,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                             button {
                                 style: "
                                     {login_style}
-                                    color: var(--text-loud);
+                                    color: var(--text-1);
                                 ",
                                 class: "button button--tertiary",
                                 onclick: move |_| {
