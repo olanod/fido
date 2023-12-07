@@ -1,9 +1,18 @@
 use dioxus::prelude::*;
-use log::info;
+use gloo::storage::{errors::StorageError, LocalStorage};
 use matrix_sdk::Client;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::pages::login::LoggedIn;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CacheLogin {
+    pub server: String,
+    pub username: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+}
 
 #[derive(Debug, Clone)]
 pub struct LoginInfo {
@@ -56,6 +65,8 @@ impl LoginInfoBuilder {
 #[allow(clippy::needless_return)]
 pub fn use_auth(cx: &ScopeState) -> &UseAuthState {
     let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
+    let login_cache =
+        use_shared_state::<Option<CacheLogin>>(cx).expect("Unable to read login cache");
 
     let auth_info = use_ref::<LoginInfoBuilder>(cx, || LoginInfoBuilder::new());
     let error = use_state(cx, || None);
@@ -64,6 +75,7 @@ pub fn use_auth(cx: &ScopeState) -> &UseAuthState {
         data: auth_info.clone(),
         error: error.clone(),
         logged_in: logged_in.clone(),
+        login_cache: login_cache.clone(),
     })
 }
 
@@ -72,6 +84,7 @@ pub struct UseAuthState {
     data: UseRef<LoginInfoBuilder>,
     error: UseState<Option<String>>,
     logged_in: UseSharedState<LoggedIn>,
+    login_cache: UseSharedState<Option<CacheLogin>>,
 }
 
 #[derive(Clone)]
@@ -140,6 +153,14 @@ impl UseAuthState {
         });
     }
 
+    pub fn set_login_cache(&self, data: CacheLogin) {
+        *self.login_cache.write() = Some(data)
+    }
+
+    pub fn get_login_cache(&self) -> Option<CacheLogin> {
+        self.login_cache.read().clone()
+    }
+
     pub fn get(&self) -> UseAuth {
         UseAuth {
             data: self.data.read().clone(),
@@ -151,11 +172,27 @@ impl UseAuthState {
     pub fn reset(&self) {
         self.data.set(LoginInfoBuilder::new());
         self.error.set(None);
+
+        <LocalStorage as gloo::storage::Storage>::delete("login_data");
     }
 
     pub fn build(&self) -> Result<LoginInfo, &str> {
-        info!("{:?}", self.data.read());
         self.data.read().clone().build()
+    }
+
+    pub fn persist_data(&self, data: CacheLogin) -> anyhow::Result<(), StorageError> {
+        let serialized_data = serde_json::to_string(&data)?;
+        <LocalStorage as gloo::storage::Storage>::set("login_data", serialized_data)
+    }
+
+    pub fn get_storage_data(&self) -> anyhow::Result<String, StorageError> {
+        <LocalStorage as gloo::storage::Storage>::get("login_data")
+    }
+
+    pub fn is_storage_data(&self) -> bool {
+        let data = Self::get_storage_data(&self);
+
+        data.is_ok()
     }
 
     pub fn is_logged_in(&self) -> LoggedIn {

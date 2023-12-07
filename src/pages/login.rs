@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use dioxus::{html::input_data::keyboard_types, prelude::*};
 use dioxus_std::{translate, i18n::use_i18};
@@ -9,12 +9,13 @@ use crate::{
         atoms::{MessageInput, input::InputType, LoadingStatus},
         organisms::{login_form::FormLoginEvent, LoginForm},
     },
-    utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::login, hooks::{use_client::use_client, use_init_app::BeforeSession, use_auth::use_auth, use_session::use_session},
+    utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::login, hooks::{use_client::use_client, use_init_app::BeforeSession, use_auth::{use_auth, CacheLogin}, use_session::use_session},
 };
 
 #[derive(Debug, Clone)]
 pub struct LoggedIn(pub bool);
 
+#[derive(PartialEq)]
 pub enum LoggedInStatus {
     Start,
     Loading,
@@ -116,7 +117,24 @@ pub fn Login(cx: Scope) -> Element {
         })
     };
 
-    let on_handle_login = move || {
+    let on_handle_clear = Rc::new(move || {
+        cx.spawn({
+            to_owned![homeserver, username, password, auth];
+
+            async move {
+                auth.reset();
+
+                homeserver.set(String::new());
+                username.set(String::new());
+                password.set(String::new());
+            }
+        })
+    });
+
+    let on_handle_clear_clone = on_handle_clear.clone();
+
+    let on_handle_login = Rc::new(move || {
+        auth.set_server(homeserver.get().clone());
         auth.set_username(username.get().clone(), true);
         auth.set_password(password.get().clone());
 
@@ -139,17 +157,26 @@ pub fn Login(cx: Scope) -> Element {
                         match response {
                             Ok((c, serialized_session)) => {
                                 is_loading_loggedin.set(LoggedInStatus::Done);
-                                let _x = <LocalStorage as gloo::storage::Storage>::set(
+
+                                let display_name = match c.account().get_display_name().await {
+                                    Ok(name) => name,
+                                    Err(_) => None
+                                };
+
+                                auth.persist_data(CacheLogin {
+                                    server: homeserver.get().to_string(),
+                                    username: username.get().to_string(),
+                                    display_name
+                                });
+
+                                <LocalStorage as gloo::storage::Storage>::set(
                                     "session_file",
                                     serialized_session,
                                 );
         
                                 is_loading_loggedin.set(LoggedInStatus::Persisting);
                 
-                                let _x = session.sync(c.clone(), None).await;
-                                
-                                let x = c.whoami().await;
-                                info!("whoami {:?}", x);
+                                session.sync(c.clone(), None).await;
         
                                 client.set(crate::MatrixClientState { client: Some(c.clone()) });
                                 is_loading_loggedin.set(LoggedInStatus::LoggedAs(c.user_id().unwrap().to_string()));
@@ -157,7 +184,6 @@ pub fn Login(cx: Scope) -> Element {
                                 auth.set_logged_in(true)
                             }
                             Err(err) => {
-                                info!("error from loggin: {:?}", err.to_string());
                                 is_loading_loggedin.set(LoggedInStatus::Start);
                                 if err
                                     .to_string()
@@ -186,10 +212,88 @@ pub fn Login(cx: Scope) -> Element {
                 }
             }
         })
+    });
+
+    let on_handle_login_key_press = on_handle_login.clone();
+    let on_handle_login_clone = on_handle_login.clone();
+
+    use_coroutine(cx, |_: UnboundedReceiver::<()>| {
+        to_owned![auth, homeserver, username];
+        
+        async move {
+            let data = auth.get_storage_data();
+
+            if let Ok(data) = data {
+                let deserialize_data = serde_json::from_str::<CacheLogin>(&data);
+
+                if let Ok(data) = deserialize_data {
+                    auth.set_login_cache(data.clone());
+
+                    homeserver.set(data.server.clone());
+                    username.set(data.username.clone());
+                    
+                    auth.set_server(data.server.clone()).await;
+                    auth.set_username(data.username.clone(), true);
+                }
+            }
+        }
+    });
+
+    let on_handle_form_event = move |event: FormLoginEvent| match event {
+        FormLoginEvent::FilledForm => on_handle_login_clone(),
+        FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
+        FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+        FormLoginEvent::ClearData => on_handle_clear_clone()
     };
 
     render!(
-        if auth.get().data.server.is_none() {
+        if auth.is_storage_data() && *is_loading_loggedin.read() == LoggedInStatus::Start {
+            let display_name = match auth.get_login_cache() {
+                Some(data) => {
+                    match data.display_name {
+                        Some(name) => name,
+                        None => data.username
+                    }
+                },
+                None => {
+                    String::from("")
+                }
+            };
+
+            rsx!(
+                LoginForm {
+                    title: "Bienvenido {display_name}",
+                    description: "Para desbloquear solo introduce tu constrasena",
+                    button_text: "Desbloquear",
+                    emoji: "👋",
+                    error: if error.get().is_some() { error.get().as_ref() } else { None },
+                    clear_data: true,
+                    on_handle: on_handle_form_event,
+                    body: render!(rsx!(
+                        div {
+                            MessageInput {
+                                itype: InputType::Password,
+                                message: "{password.get()}",
+                                placeholder: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_password_placeholder)}",
+                                error: None,
+                                on_input: move |event: FormEvent| {
+                                    password.set(event.value.clone())
+                                },
+                                on_keypress: move |event: KeyboardEvent| {
+                                    if event.code() == keyboard_types::Code::Enter && !password.get().is_empty() {
+                                        on_handle_login_key_press()
+                                    }
+                                },
+                                on_click: move |_| {
+                                    auth.set_password(password.get().clone())
+                                }
+                            }
+                        }
+                    ))
+                }
+            )
+        } else if auth.get().data.server.is_none() {
+            let on_handle_login = on_handle_login.clone();
             rsx!(
                 LoginForm {
                     title: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_message)}",
@@ -201,6 +305,7 @@ pub fn Login(cx: Scope) -> Element {
                         FormLoginEvent::FilledForm => on_update_homeserver(),
                         FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
                         FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+                        FormLoginEvent::ClearData => on_handle_clear()
                     },
                     body: render!(rsx!(
                         div {
@@ -212,8 +317,7 @@ pub fn Login(cx: Scope) -> Element {
                                     homeserver.set(event.value.clone())
                                 },
                                 on_keypress: move |event: KeyboardEvent| {
-                                    info!("{:?}", event.code());
-                                    if event.code() == keyboard_types::Code::Enter && homeserver.get().len() > 0 {
+                                    if event.code() == keyboard_types::Code::Enter && !homeserver.get().is_empty() {
                                         on_update_homeserver()
                                     }
                                 },
@@ -233,11 +337,7 @@ pub fn Login(cx: Scope) -> Element {
                     button_text: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_cta)}",
                     emoji: "👋",
                     error: if error.get().is_some() { error.get().as_ref() } else { None },
-                    on_handle: move |event: FormLoginEvent| match event {
-                        FormLoginEvent::FilledForm => on_handle_login(),
-                        FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
-                        FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
-                    },
+                    on_handle: on_handle_form_event,
                     body: render!(rsx!(
                         div {
                             MessageInput {
@@ -269,7 +369,7 @@ pub fn Login(cx: Scope) -> Element {
                                 },
                                 on_keypress: move |event: KeyboardEvent| {
                                     if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() && !password.get().is_empty() {
-                                        // on_handle_login()
+                                        on_handle_login_key_press()
                                     }
                                 },
                                 on_click: move |_| {
@@ -304,9 +404,8 @@ pub fn Login(cx: Scope) -> Element {
                 }
                 _ => {
                     rsx!(div{})
-                }
-                
-            }
+                }  
+            }    
         }
     )
 }

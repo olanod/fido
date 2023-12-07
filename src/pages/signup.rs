@@ -144,6 +144,20 @@ pub fn Signup(cx: Scope) -> Element {
         })
     };
 
+    let on_handle_clear = move || {
+        cx.spawn({
+            to_owned![homeserver, username, password, auth];
+
+            async move {
+                auth.reset();
+
+                homeserver.set(String::new());
+                username.set(String::new());
+                password.set(String::new());
+            }
+        })
+    };
+
     let is_loading_loggedin = use_ref::<LoggedInStatus>(cx, || LoggedInStatus::Start);
 
     let on_handle_login = move || {
@@ -171,19 +185,19 @@ pub fn Signup(cx: Scope) -> Element {
                                 Error::Http(HttpError::UiaaError(FromHttpResponseError::Server(
                                     ServerError::Known(flow_error),
                                 ))) => match flow_error {
-                                    uiaa::UiaaResponse::AuthResponse(y) => {
-                                        let completed = &y.completed;
+                                    uiaa::UiaaResponse::AuthResponse(uiaa_info) => {
+                                        let completed = &uiaa_info.completed;
                                         let mut flows_to_complete: Vec<AuthType> = vec![];
 
-                                        y.flows[0].stages.iter().for_each(|f| {
+                                        uiaa_info.flows[0].stages.iter().for_each(|f| {
                                             if completed.iter().find(|e| *e == f).is_none() {
                                                 flows_to_complete.push(f.clone());
                                             }
-                                            session_ref.set(y.session.clone());
+                                            session_ref.set(uiaa_info.session.clone());
 
                                             match f {
                                                 AuthType::ReCaptcha => {
-                                                    let params = y.params.deref().get();
+                                                    let params = uiaa_info.params.deref().get();
                                                     let uiaa_response: Result<
                                                         HashMap<String, _>,
                                                         serde_json::Error,
@@ -279,10 +293,8 @@ pub fn Signup(cx: Scope) -> Element {
 
                         match login_config {
                             Ok(info) => {
-                                let x = info.server.to_string();
-
                                 let response = register(
-                                    &x,
+                                    &info.server.to_string(),
                                     &info.username,
                                     &info.password,
                                     Some(token),
@@ -292,10 +304,8 @@ pub fn Signup(cx: Scope) -> Element {
 
                                 match response {
                                     Ok((ref c, ref serialized_session)) => {
-                                        let x = info.server.to_string();
-
                                         let response =
-                                            login(&x, &info.username, &info.password).await;
+                                            login(&info.server.to_string(), &info.username, &info.password).await;
 
                                         match response {
                                             Ok((c, serialized_session)) => {
@@ -308,10 +318,7 @@ pub fn Signup(cx: Scope) -> Element {
 
                                                 is_loading_loggedin.set(LoggedInStatus::Persisting);
 
-                                                let x = session.sync(c.clone(), None).await;
-
-                                                let x = c.whoami().await;
-                                                info!("whoami {:?}", x);
+                                                session.sync(c.clone(), None).await;
 
                                                 client.set(crate::MatrixClientState {
                                                     client: Some(c.clone()),
@@ -365,6 +372,7 @@ pub fn Signup(cx: Scope) -> Element {
                 FormLoginEvent::FilledForm => on_update_homeserver(),
                 FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
                 FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+                FormLoginEvent::ClearData => on_handle_clear()
             },
             body: render!(rsx!(
                 div {
@@ -403,6 +411,7 @@ pub fn Signup(cx: Scope) -> Element {
                 FormLoginEvent::FilledForm => on_handle_login(),
                 FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
                 FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+                FormLoginEvent::ClearData => on_handle_clear()
             },
             body: render!(rsx!(
                 div {
@@ -467,6 +476,8 @@ pub fn Signup(cx: Scope) -> Element {
                                 FormLoginEvent::FilledForm => on_handle_captcha(),
                                 FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
                                 FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+                                FormLoginEvent::ClearData => on_handle_clear()
+                                
                             },
                             body: render!(rsx!(div {
                                 style: "

@@ -2,9 +2,11 @@ use std::collections::HashMap;
 
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
+use log::info;
 
 use crate::{
-    components::atoms::{Button, Icon, Warning}, hooks::use_init_app::BeforeSession,
+    components::atoms::{Button, Icon, Warning},
+    hooks::{use_auth::use_auth, use_init_app::BeforeSession},
     utils::i18n_get_key_value::i18n_get_key_value,
 };
 
@@ -12,6 +14,7 @@ pub enum FormLoginEvent {
     CreateAccount,
     Login,
     FilledForm,
+    ClearData,
 }
 
 #[derive(Props)]
@@ -23,11 +26,14 @@ pub struct LoginFormProps<'a> {
     #[props(!optional)]
     error: Option<&'a String>,
     body: Element<'a>,
+    #[props(default = false)]
+    clear_data: bool,
     on_handle: EventHandler<'a, FormLoginEvent>,
 }
 
 pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
     let i18 = use_i18(cx);
+    let auth = use_auth(cx);
 
     let key_onboard_login_description = "onboard-login-description";
     let key_onboard_login_cta = "onboard-login-cta";
@@ -161,7 +167,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                         padding-top: 6px;
                         margin: 0 auto;
                     "#;
-    
+
                     rsx!(
                         div {
                             style: "{error_style}",
@@ -191,6 +197,40 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                 style: "{cta_login_style}",
                 small {
                     style: "{login_style}",
+                    if cx.props.clear_data {
+                        let i18n_map = i18n_map.clone();
+                        info!("login_form display_name {:?}", auth.get_login_cache());
+                        let username = match auth.get_login_cache() {
+                            Some(data) => {
+                                Some(data.username)
+                            },
+                            None => {
+                                None
+                            }
+                          };
+
+                        if let Some(username) = username {
+                            rsx!(
+                                p {
+                                    style: "margin-bottom: 8px;",
+                                    "¿No eres {username}?"
+                                    button {
+                                        style: "
+                                            {login_style}
+                                            color: var(--text-1);
+                                        ",
+                                        class: "button button--tertiary",
+                                        onclick: move |_| {
+                                            cx.props.on_handle.call(FormLoginEvent::ClearData)
+                                        },
+                                        "Utilizar otra cuenta",
+                                    }
+                                }
+                            )
+                        } else {
+                            rsx!(div {})
+                        }
+                    }
                     match *before_session.read() {
                         BeforeSession::Login => rsx!(
                             "{i18n_get_key_value(&i18n_map, key_onboard_signup_description)}"
@@ -221,7 +261,6 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                             }
                         )
                     }
-
                 }
             }
         }

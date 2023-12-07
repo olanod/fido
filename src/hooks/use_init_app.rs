@@ -13,6 +13,7 @@ use dioxus::prelude::*;
 use matrix_sdk::encryption::verification::{Emoji, SasVerification};
 use ruma::api::client::uiaa::AuthType;
 
+use super::use_auth::CacheLogin;
 use super::{use_attach::AttachFile, use_modal::ModalState};
 
 pub enum BeforeSession {
@@ -56,6 +57,7 @@ pub fn use_init_app(cx: &ScopeState) {
     use_shared_state_provider::<Option<SasVerification>>(cx, || None);
     use_shared_state_provider::<Option<TimelineThread>>(cx, || None);
 
-    use_shared_state_provider::<BeforeSession>(cx, || BeforeSession::Signup);
+    use_shared_state_provider::<BeforeSession>(cx, || BeforeSession::Login);
+    use_shared_state_provider::<Option<CacheLogin>>(cx, || None);
     use_shared_state_provider::<Vec<AuthType>>(cx, || vec![]);
 }
