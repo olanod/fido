@@ -87,8 +87,6 @@ ul {
 .input__message {
   width: 100%;
   display: flex;
-  position: absolute;
-  bottom: 0;
   padding: 0 0 20px;
 }
 
@@ -147,19 +145,6 @@ ul {
   background: transparent;
   border-radius: var(--size-2) var(--size-2) 0 0;
   width: 100%;
-}
-
-.message-view--replying::before {
-  background: transparent;
-  border-radius: var(--size-1) var(--size-1) 0 0;
-  width: fit-content;
-  color: var(--text-1);
-  font-size: var(--size-1);
-  content: "Respondiendo a";
-  padding: var(--size-0);
-  position: absolute;
-  left: 0;
-  top: calc(-2 * var(--size-0) - var(--size-1));
 }
 
 .room-view {
@@ -225,6 +210,10 @@ ul {
   gap: var(--size-0);
   overflow-y: auto;
   width: 100%;
+}
+
+.messages-list {
+  flex-grow: 1;
 }
 
 .rooms-list {
@@ -452,7 +441,6 @@ ul {
   background: var(--background-button);
   color: var(--text-white);
   display: flex;
-  width: fit-content;
   margin: 0 0 0 auto;
   overflow: auto;
 }

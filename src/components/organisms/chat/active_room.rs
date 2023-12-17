@@ -117,24 +117,31 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     info!("{:?} {:?}", room.get(), *current_room.read());
 
     cx.render(rsx! {
-        Header {
-            text: "{current_room.read().name.clone()}",
-            avatar_element: render!(rsx!(
-                Avatar {
-                    name: (*current_room.read()).name.to_string(),
-                    size: 32,
-                    uri: current_room.read().avatar_uri.clone()
-                  }
-            )),
-            on_event: header_event
-        }
-        List {},
-        InputMessage {
-            message_type: InputType::Message,
-            placeholder: input_placeholder.get().as_str(),
-            on_submit: on_push_message,
-            on_event: input_message_event,
-            on_attach: on_handle_attach
+        div {
+            style: "
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+            ",
+            Header {
+                text: "{current_room.read().name.clone()}",
+                avatar_element: render!(rsx!(
+                    Avatar {
+                        name: (*current_room.read()).name.to_string(),
+                        size: 32,
+                        uri: current_room.read().avatar_uri.clone()
+                    }
+                )),
+                on_event: header_event
+            }
+            List {},
+            InputMessage {
+                message_type: InputType::Message,
+                placeholder: input_placeholder.get().as_str(),
+                on_submit: on_push_message,
+                on_event: input_message_event,
+                on_attach: on_handle_attach
+            }
         }
 
     })

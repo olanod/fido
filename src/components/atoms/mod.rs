@@ -14,6 +14,7 @@ pub mod messages;
 pub mod notification;
 pub mod room;
 pub mod spinner;
+pub mod textarea;
 pub mod user;
 
 pub use attach::Attach;
@@ -32,4 +33,5 @@ pub use messages::*;
 pub use notification::Notification;
 pub use room::RoomView;
 pub use spinner::Spinner;
+pub use textarea::TextareaInput;
 pub use user::UserProfile;

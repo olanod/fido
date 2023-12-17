@@ -1,15 +1,19 @@
-use std::{collections::HashMap, ops::Deref};
+use futures_util::StreamExt;
+use log::info;
+use ruma::MilliSecondsSinceUnixEpoch;
+use serde::{Deserialize, Serialize};
+use std::ops::Deref;
 
 use dioxus::prelude::*;
 use gloo::file::BlobContents;
-use log::info;
 use web_sys::Url;
 
 use crate::{
     components::atoms::{
         hover_menu::{MenuEvent, MenuOption},
-        Avatar, Close, File, HoverMenu, Icon,
+        Avatar, File, HoverMenu,
     },
+    hooks::use_client::use_client,
     services::matrix::matrix::{EventOrigin, ImageType, TimelineMessageType, TimelineRelation},
 };
 
@@ -127,6 +131,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
               font-style: normal;
               font-weight: 400;
               line-height: 20px; /* 125% */
+              white-space: pre-line;
             "#
         }
         EventOrigin::OTHER => {
@@ -137,6 +142,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
               font-style: normal;
               font-weight: 400;
               line-height: 20px; /* 125% */
+              white-space: pre-line;
             "#
         }
     };
@@ -353,26 +359,6 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                 }
               )
             }
-          }
-
-          if cx.props.is_replying {
-            let close_style = r#"
-              cursor: pointer;
-              background: transparent;
-              border: 1px solid transparent;
-              display: flex;
-            "#;
-
-            rsx!(
-              button {
-                style: "{close_style}",
-                onclick: move |_| {cx.props.on_event.call(MenuEvent { option: MenuOption::Close })},
-                Icon {
-                  stroke: "var(--icon-subdued)",
-                  icon: Close
-                }
-              }
-            )
           }
         }
 

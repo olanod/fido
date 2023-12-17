@@ -57,6 +57,11 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
     let content_style = r#"
         margin-top: var(--size-0);
         font-size: var(--font-size-0);
+        white-space: pre-line;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
     "#;
 
     let content_image_style = r#"

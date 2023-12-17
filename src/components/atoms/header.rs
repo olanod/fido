@@ -17,12 +17,10 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
         display: flex;
         gap: 0.5rem;
         align-items: center;
-        position: absolute;
         width: 100%;
         padding: 1.25rem 0;
         background: var(--background);
         font-weight: 600;
-        top: 0;
         font-size: var(--font-size-0)
     "#;
 
