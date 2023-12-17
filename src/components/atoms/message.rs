@@ -1,6 +1,5 @@
 use futures_util::StreamExt;
 use log::info;
-use regex::Regex;
 use ruma::MilliSecondsSinceUnixEpoch;
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;

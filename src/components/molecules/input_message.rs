@@ -7,7 +7,7 @@ use matrix_sdk::ruma::RoomId;
 use crate::{
     components::{atoms::{message::Message, Attach, MessageView, Button, header_main::{HeaderEvent, HeaderCallOptions}, input::InputType, hover_menu::{MenuEvent, MenuOption}, TextareaInput, Close, Icon, Avatar,
     }, molecules::AttachPreview},
-    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment, RoomMember, room_members}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_room::use_room},
+    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment, RoomMember}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_room::use_room},
 };
 
 #[derive(Debug, Clone)]
