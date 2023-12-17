@@ -41,6 +41,9 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
     let key_onboard_signup_description = "onboard-signup-description";
     let key_onboard_signup_cta = "onboard-signup-cta";
 
+    let key_login_chat_saved_another_user = "login-chat-saved-another_user";
+    let key_login_chat_saved_cta_another = "login-chat-saved-cta-another";
+
     let i18n_map = HashMap::from([
         (
             key_onboard_login_description,
@@ -55,6 +58,9 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
             key_onboard_signup_cta,
             translate!(i18, "onboard.signup.cta"),
         ),
+        (key_login_chat_saved_another_user, translate!(i18, "login.chat_steps.saved.another_user")),
+        (key_login_chat_saved_cta_another, translate!(i18, "login.chat_steps.saved.cta_another")),
+
     ]);
 
     let before_session =
@@ -213,7 +219,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                             rsx!(
                                 p {
                                     style: "margin-bottom: 8px;",
-                                    "¿No eres {username}?"
+                                    "{i18n_get_key_value(&i18n_map, key_login_chat_saved_another_user)} {username}?"
                                     button {
                                         style: "
                                             {login_style}
@@ -223,7 +229,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                                         onclick: move |_| {
                                             cx.props.on_handle.call(FormLoginEvent::ClearData)
                                         },
-                                        "Utilizar otra cuenta",
+                                        "{i18n_get_key_value(&i18n_map, key_login_chat_saved_cta_another)}",
                                     }
                                 }
                             )

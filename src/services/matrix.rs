@@ -1221,8 +1221,8 @@ pub mod matrix {
         request.username = Some(&username);
         request.password = Some(&password);
 
-        let x = uiaa::Dummy::new();
-        request.auth = Some(uiaa::AuthData::Dummy(x));
+        let uiaa_dummy = uiaa::Dummy::new();
+        request.auth = Some(uiaa::AuthData::Dummy(uiaa_dummy));
 
         let result = build_client(homeserver.to_string()).await;
         let (client, client_session) = match result {
@@ -1250,9 +1250,9 @@ pub mod matrix {
         request.password = Some(&password);
 
         if let Some(token) = &recaptcha_token {
-            let mut x = uiaa::ReCaptcha::new(&token);
-            x.session = session.as_deref();
-            request.auth = Some(uiaa::AuthData::ReCaptcha(x));
+            let mut uiaa_recaptcha = uiaa::ReCaptcha::new(&token);
+            uiaa_recaptcha.session = session.as_deref();
+            request.auth = Some(uiaa::AuthData::ReCaptcha(uiaa_recaptcha));
         }
 
         let result = build_client(homeserver.to_string()).await;
@@ -1274,9 +1274,9 @@ pub mod matrix {
     }
 
     pub async fn login(
-        homeserver: &String,
-        username: &String,
-        password: &String,
+        homeserver: &str,
+        username: &str,
+        password: &str,
     ) -> anyhow::Result<(Client, String)> {
         info!("No previous session found, logging in…");
 

@@ -18,6 +18,13 @@
                     "placeholder": "https://matrix.org",
                     "cta": "Confirm server"
                 },
+                "saved": {
+                    "title": "Welcome back",
+                    "description": "Unlock only with your password",
+                    "cta": "Unlock",
+                    "another_user": "¿Aren't you",
+                    "cta_another": "Use another account"
+                },
                 "credentials": {
                     "title": "Complete your information",
                     "description": "Create a world, build your future",

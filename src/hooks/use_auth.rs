@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use dioxus::prelude::*;
 use gloo::storage::{errors::StorageError, LocalStorage};
 use matrix_sdk::Client;
@@ -5,6 +7,13 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::pages::login::LoggedIn;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum AuthError {
+    BuildError,
+    InvalidHomeserver,
+    ServerNotFound,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheLogin {
@@ -49,15 +58,20 @@ impl LoginInfoBuilder {
         self.password = Some(password);
     }
 
-    pub fn build(self) -> Result<LoginInfo, &'static str> {
-        if self.server.is_none() || self.username.is_none() || self.password.is_none() {
-            Err("Can't build LoginInfo, some parameters are missing")
-        } else {
+    pub fn build(self) -> Result<LoginInfo, AuthError> {
+        if let Self {
+            server: Some(server),
+            username: Some(username),
+            password: Some(password),
+        } = self
+        {
             Ok(LoginInfo {
-                server: self.server.unwrap(),
-                username: self.username.unwrap(),
-                password: self.password.unwrap(),
+                server,
+                username,
+                password,
             })
+        } else {
+            Err(AuthError::BuildError)
         }
     }
 }
@@ -82,7 +96,7 @@ pub fn use_auth(cx: &ScopeState) -> &UseAuthState {
 #[derive(Clone)]
 pub struct UseAuthState {
     data: UseRef<LoginInfoBuilder>,
-    error: UseState<Option<String>>,
+    error: UseState<Option<AuthError>>,
     logged_in: UseSharedState<LoggedIn>,
     login_cache: UseSharedState<Option<CacheLogin>>,
 }
@@ -90,12 +104,12 @@ pub struct UseAuthState {
 #[derive(Clone)]
 pub struct UseAuth {
     pub data: LoginInfoBuilder,
-    pub error: Option<String>,
+    pub error: Option<AuthError>,
     pub logged_in: LoggedIn,
 }
 
 impl UseAuthState {
-    pub async fn set_server(&self, homeserver: String) {
+    pub async fn set_server(&self, homeserver: Rc<String>) -> Result<(), AuthError> {
         let server_parsed =
             if homeserver.starts_with("http://") || homeserver.starts_with("https://") {
                 Url::parse(&homeserver)
@@ -103,26 +117,28 @@ impl UseAuthState {
                 Url::parse(&format!("https://{homeserver}"))
             };
 
-        match server_parsed {
-            Ok(ref server) => {
-                let response = Client::builder()
+        let result = server_parsed
+            .map_err(|_| AuthError::InvalidHomeserver)
+            .and_then(|server| {
+                Client::builder()
                     .homeserver_url(&server.as_str())
                     .build()
-                    .await;
+                    .await
+                    .map(|_| server)
+                    .map_err(|_| AuthError::ServerNotFound)
+            });
 
-                self.data.with_mut(|l| l.server(server.clone()));
-
-                match response {
-                    Ok(_) => {
-                        self.error.set(None);
-                    }
-                    Err(e) => {
-                        self.error.set(Some(e.to_string()));
-                    }
-                }
+        match result {
+            Ok(server) => {
+                self.data.with_mut(|l| l.server(server));
+                self.error.set(None);
             }
-            Err(e) => self.error.set(Some(e.to_string())),
+            Err(e) => {
+                self.error.set(Some(e));
+            }
         }
+
+        Ok(())
     }
 
     pub fn set_username(&self, username: String, parse: bool) {
@@ -176,7 +192,7 @@ impl UseAuthState {
         <LocalStorage as gloo::storage::Storage>::delete("login_data");
     }
 
-    pub fn build(&self) -> Result<LoginInfo, &str> {
+    pub fn build(&self) -> Result<LoginInfo, AuthError> {
         self.data.read().clone().build()
     }
 

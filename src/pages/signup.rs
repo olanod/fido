@@ -139,7 +139,7 @@ pub fn Signup(cx: Scope) -> Element {
             to_owned![homeserver, auth];
 
             async move {
-                auth.set_server(homeserver.get().clone()).await;
+                auth.set_server(homeserver.current()).await;
             }
         })
     };
@@ -257,7 +257,6 @@ pub fn Signup(cx: Scope) -> Element {
                         info!("response {response:?}");
                     }
                     Err(e) => {
-                        info!("error from build info: {e}");
                         homeserver.set(String::from(""));
                         username.set(String::from(""));
                         password.set(String::from(""));
@@ -340,7 +339,6 @@ pub fn Signup(cx: Scope) -> Element {
                                 }
                             }
                             Err(e) => {
-                                info!("error from build info: {e}");
                                 homeserver.set(String::from(""));
                                 username.set(String::from(""));
                                 password.set(String::from(""));

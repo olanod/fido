@@ -18,6 +18,13 @@
                     "placeholder": "https://matrix.org",
                     "cta": "Confirmar servidor"
                 },
+                "saved": {
+                    "title": "Bienvenido",
+                    "description": "Para desbloquear solo introduce tu contraseña",
+                    "cta": "Desbloquear",
+                    "another_user": "¿No eres",
+                    "cta_another": "Utilizar otra cuenta"
+                },
                 "credentials": {
                     "title": "Completa tu información",
                     "description": "Crea un mundo, construye tu futuro",

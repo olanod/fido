@@ -33,6 +33,10 @@ pub fn Login(cx: Scope) -> Element {
     let key_login_chat_homeserver_placeholder = "login-chat-homeserver-placeholder";
     let key_login_chat_homeserver_cta = "login-chat-homeserver-cta";
 
+    let key_login_chat_saved_title = "login-chat-saved-title";
+    let key_login_chat_saved_description = "login-chat-saved-description";
+    let key_login_chat_saved_cta = "login-chat-saved-cta";
+    
     let key_login_chat_credentials_description = "login-chat-credentials-description";
     let key_login_chat_credentials_title = "login-chat-credentials-title";
 
@@ -62,6 +66,10 @@ pub fn Login(cx: Scope) -> Element {
         (key_login_chat_homeserver_placeholder, translate!(i18, "login.chat_steps.homeserver.placeholder")),
         (key_login_chat_homeserver_cta, translate!(i18, "login.chat_steps.homeserver.cta")),
 
+        (key_login_chat_saved_title, translate!(i18, "login.chat_steps.saved.title")),
+        (key_login_chat_saved_description, translate!(i18, "login.chat_steps.saved.description")),
+        (key_login_chat_saved_cta, translate!(i18, "login.chat_steps.saved.cta")),
+        
         (key_login_chat_credentials_title, translate!(i18, "login.chat_steps.credentials.title")),
         // Traducciones para el fragmento "chat_steps.credentials" dentro de "login"
         (key_login_chat_credentials_description, translate!(i18, "login.chat_steps.credentials.description")),
@@ -112,7 +120,7 @@ pub fn Login(cx: Scope) -> Element {
             to_owned![homeserver, auth];
 
             async move {
-                auth.set_server(homeserver.get().clone()).await;
+                auth.set_server(homeserver.current()).await;
             }
         })
     };
@@ -134,7 +142,7 @@ pub fn Login(cx: Scope) -> Element {
     let on_handle_clear_clone = on_handle_clear.clone();
 
     let on_handle_login = Rc::new(move || {
-        auth.set_server(homeserver.get().clone());
+        auth.set_server(homeserver.current());
         auth.set_username(username.get().clone(), true);
         auth.set_password(password.get().clone());
 
@@ -148,7 +156,7 @@ pub fn Login(cx: Scope) -> Element {
                 match login_config {
                     Ok(info) => {
                         let response = login(
-                            &info.server.into(),
+                            &info.server.to_string(),
                             &info.username,
                             &info.password,
                         )
@@ -232,7 +240,7 @@ pub fn Login(cx: Scope) -> Element {
                     homeserver.set(data.server.clone());
                     username.set(data.username.clone());
                     
-                    auth.set_server(data.server.clone()).await;
+                    auth.set_server(data.server.clone().into()).await;
                     auth.set_username(data.username.clone(), true);
                 }
             }
@@ -262,9 +270,9 @@ pub fn Login(cx: Scope) -> Element {
 
             rsx!(
                 LoginForm {
-                    title: "Bienvenido {display_name}",
-                    description: "Para desbloquear solo introduce tu constrasena",
-                    button_text: "Desbloquear",
+                    title: "{i18n_get_key_value(&i18n_map, key_login_chat_saved_title)} {display_name}",
+                    description: "{i18n_get_key_value(&i18n_map, key_login_chat_saved_description)}",
+                    button_text: "{i18n_get_key_value(&i18n_map, key_login_chat_saved_cta)}",
                     emoji: "👋",
                     error: if error.get().is_some() { error.get().as_ref() } else { None },
                     clear_data: true,
