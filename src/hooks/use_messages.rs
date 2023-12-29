@@ -44,7 +44,6 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
         async move {
             while let Some(true) = rx.next().await {
                 messages_loading.set(true);
-                // messages.write().clear();
 
                 let current_room_id = current_room.read().id.clone();
                 let current_events = limit_events_by_room
@@ -61,9 +60,6 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
 
                 from.set(f);
 
-                // for m in msg.into_iter() {
-                //     messages.write().push(m.clone())
-                // }
                 *messages.write() = msg;
                 let mm = timeline_thread.read().clone();
 

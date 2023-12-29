@@ -26,6 +26,7 @@ pub struct MessageItem {
     pub room_id: String,
     pub msg: String,
     pub reply_to: Option<String>,
+    pub send_to_thread: bool
 }
 
 pub struct MessageEvent {

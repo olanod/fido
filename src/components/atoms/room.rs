@@ -1,12 +1,13 @@
 use dioxus::prelude::*;
 
 use crate::components::atoms::Avatar;
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RoomItem {
     pub avatar_uri: Option<String>,
     pub id: String,
     pub name: String,
     pub is_public: bool,
+    pub is_direct: bool,
 }
 
 #[derive(Props)]

@@ -171,6 +171,10 @@ ul {
   font-weight: 500;
   color: var(--text-1);
   height: 24px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
 }
 
 .room-view__message {
@@ -450,6 +454,7 @@ ul {
   border-radius: 16px;
   background: var(--background-message);
   height: 100%;
+  overflow: auto;
 }
 
 .message--text {

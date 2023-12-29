@@ -4,7 +4,9 @@ use matrix_sdk::ruma::{EventId, RoomId};
 
 use crate::{
     components::molecules::input_message::ReplyingTo,
-    services::matrix::matrix::{send_attachment, Attachment, TimelineMessageThread, TimelineThread},
+    services::matrix::matrix::{
+        send_attachment, Attachment, AttachmentStream, TimelineMessageThread, TimelineThread,
+    },
 };
 
 use super::{use_client::use_client, use_room::use_room};
@@ -17,7 +19,7 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
     let threading_to =
         use_shared_state::<Option<TimelineThread>>(cx).expect("Cannot found thread_to");
 
-    let task_push_attach = use_coroutine(cx, |mut rx: UnboundedReceiver<Attachment>| {
+    let task_push_attach = use_coroutine(cx, |mut rx: UnboundedReceiver<AttachmentStream>| {
         to_owned![client, replying_to, threading_to];
 
         async move {
@@ -48,7 +50,7 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                 send_attachment(
                     &client,
                     &room_id,
-                    &message_item,
+                    &message_item.attachment,
                     reply_event_id,
                     thread_event_id,
                     latest_event_id,
@@ -65,11 +67,11 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
 
 #[derive(Clone)]
 pub struct UseSendMessageState {
-    inner: Coroutine<Attachment>,
+    inner: Coroutine<AttachmentStream>,
 }
 
 impl UseSendMessageState {
-    pub fn send(&self, message: Attachment) {
+    pub fn send(&self, message: AttachmentStream) {
         self.inner.send(message)
     }
 }

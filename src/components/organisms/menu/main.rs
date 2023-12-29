@@ -14,11 +14,18 @@ use crate::{
     services::matrix::matrix::{account, AccountInfo},
 };
 
+pub struct TitleHeaderMain {
+    pub title: String,
+}
+
 pub fn IndexMenu(cx: Scope) -> Element {
     use_shared_state_provider::<CurrentRoom>(cx, || CurrentRoom {
         id: String::new(),
         name: String::new(),
         avatar_uri: None,
+    });
+    use_shared_state_provider::<TitleHeaderMain>(cx, || TitleHeaderMain {
+        title: String::from("Chats"),
     });
     let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
 
@@ -58,13 +65,13 @@ pub fn IndexMenu(cx: Scope) -> Element {
 
     cx.render(rsx!(
         article {
-            if current_room.read().name.is_empty() {
+            // if current_room.read().name.is_empty() {
                 rsx!(
                     HeaderMain{
                         on_event: header_event
                     }
                 )
-            }
+            // }
 
             if *show_menu.read() {
                 rsx!(
