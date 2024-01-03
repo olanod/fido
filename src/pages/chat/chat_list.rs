@@ -42,14 +42,6 @@ pub fn ChatList(cx: Scope) -> Element {
     let title_header =
         use_shared_state::<TitleHeaderMain>(cx).expect("Unable to read title header");
 
-    let options_style = r#"
-        padding: 0px 0 10px;
-        display: flex;
-        flex-direction: row;
-        gap: 10px;
-        width: calc(100vw - 20px);
-    "#;
-
     let on_click_room = move |evt: FormRoomEvent| {
         // nav.push(Route::ChatRoom {
         //     name: evt.room.id.clone(),
@@ -100,19 +92,12 @@ pub fn ChatList(cx: Scope) -> Element {
 
     render! {
         section {
-            style: "{options_style}",
-            class: "options",
+            class: "chat-list options",
             div {
                 ul {
-                    style: r#"
-                        display: flex; 
-                        gap: 8px; 
-                        flex-direction: column;
-                        padding: 10px 0 0;
-                    "#,
+                    class: "chat-list__wrapper",
                     button {
-                        style: "padding: 0px",
-                      class: "button button--tertiary",
+                      class: "button button--tertiary padding-reset",
                       onclick: move |_| {
                           rooms_to_list.set(rooms.get().clone());
                           rooms_filtered.set(rooms.get().clone());
@@ -129,8 +114,7 @@ pub fn ChatList(cx: Scope) -> Element {
                     spaces.get().iter().map(|(space, value)|{
                         rsx!(
                             button {
-                                style: "padding: 0px",
-                                class: "button button--tertiary",
+                                class: "button button--tertiary padding-reset",
                                 onclick: move |_| {
                                     rooms_to_list.set(value.clone());
                                     rooms_filtered.set(value.clone());
@@ -150,23 +134,9 @@ pub fn ChatList(cx: Scope) -> Element {
             }
 
             if !rooms_to_list.read().is_empty() {
-                let rooms_style = r#"
-                    display: flex;
-                    gap: 8px;
-                    flex-direction: column;
-                    width: 100%;
-                    resize: horizontal;
-                    overflow: auto;
-                    width: 30%;
-                    min-width: 90px;
-                    padding: 10px 10px 0px;
-                    border-right: 1px solid var(--border);
-                    height: calc(100vh - 80px);
-                "#;
-
                 rsx!(
                     div {
-                        style: "{rooms_style}",
+                        class: "chat-list__rooms",
                         MessageInput {
                             message: "{pattern}",
                             placeholder: "Buscar",
@@ -205,14 +175,7 @@ pub fn ChatList(cx: Scope) -> Element {
                 let room_tabs = room_tabs.read().clone();
                 rsx!(
                     section {
-                        style: r#"
-                            display: flex;
-                            gap: 12px;
-                            flex-direction: row;
-                            width: 200px;
-                            flex-grow: 1;
-                            height: calc(100vh - 80px);
-                        "#,
+                        class: "chat-list__active-room",
                         ActiveRoom {}
                     }
                 )

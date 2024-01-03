@@ -23,36 +23,6 @@ pub struct AttachProps<'a> {
 }
 
 pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
-    let button_style = r#"
-        cursor: pointer;
-        background: var(--background-button);
-        border: none;
-        border-radius: 100%;
-        max-width: 2.625rem;
-        width: 100%;
-        height: 2.625rem;
-    "#;
-
-    let avatar_style = r#"
-        cursor: pointer;
-        background: var(--neutral-solid-900);
-        border: none;
-        border-radius: 100%;
-        width: 80px;
-        height: 80px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 0;
-        margin: 0 auto;
-    "#;
-
-    let input_attach_style = r#"
-        visibility: hidden;
-        width: 0;
-        display: none;
-    "#;
-
     let on_handle_attach = move |_| {
         let element = GetElement::<web_sys::HtmlInputElement>::get_element_by_id("input_file");
 
@@ -61,35 +31,31 @@ pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
 
     cx.render(rsx!(
         match &cx.props.atype {
-            AttachType::Button => {
+            AttachType::Button =>
                 rsx!(
                     button {
-                        style: "{button_style}",
+                        class: "attach attach--button",
                         onclick: on_handle_attach,
                         Icon {
                             stroke: "var(--icon-white)",
                             icon: Attachment
                         }
                     }
-                )
-            },
-            AttachType::Avatar(element) => {
+                ),
+            AttachType::Avatar(element) =>
                 rsx!(
                     button {
-                        style: "{avatar_style}",
+                        class: "attach attach--avatar",
                         onclick: on_handle_attach,
                         element
                     }
-                )
-            },
+                ),
         }
 
-
-
         input {
-            style: "{input_attach_style}",
             r#type: "file",
             id: "input_file",
+            class: "attach__input",
             oninput: move |event| cx.props.on_click.call(event)
         }
     ))

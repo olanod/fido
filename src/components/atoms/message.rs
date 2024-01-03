@@ -59,92 +59,21 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
         None => vec![MenuOption::CreateThread, MenuOption::Reply],
     });
 
-    let header_style = r#"
-        display: flex;
-        justify-content: space-between;
-    "#;
-
-    let sender_style = r#"
-        color: var(--text-1);
-        font-weight: 500;
-    "#;
-
-    let content_style = r#"
-        font-size: var(--font-size-0);
-        display: flex;
-        gap: 11px;
-        align-items: flex-end;
-        justify-content: space-between;
-    "#;
-
-    let time_style = r#"
-      color: var(--text-disabled);
-      text-align: right;
-      font-family: Inter;
-      font-size: 10px;
-      font-style: italic;
-      font-weight: 400;
-      line-height: 16px; /* 160% */
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-    "#;
-
-    let content_image_style = if cx.props.is_replying {
-        r#"
-          border-radius: var(--size-1);
-          margin-top: var(--size-1);
-          width: 28px;
-        "#
+    let message__content__image = if cx.props.is_replying {
+        "message__content__image--is-replying"
     } else {
-        r#"
-          border-radius: var(--size-1);
-          margin-top: var(--size-1);
-          max-width: 70dvw;
-          width: 100%;
-          max-height: calc(60vh - 30px);
-          object-fit: contain;
-        "#
+        "message__content__image--not-replying"
     };
 
-    let content_video_style = if cx.props.is_replying {
-        r#"
-          border-radius: var(--size-1);
-          margin-top: var(--size-1);
-          width: 28px;
-        "#
+    let message__content__video = if cx.props.is_replying {
+        "message__content__video--is-replying"
     } else {
-        r#"
-          border-radius: var(--size-1);
-          margin-top: var(--size-1);
-          max-width: 70dvw;
-          width: 100%;
-          height: calc(60vh - 30px);
-        "#
+        "message__content__video--not-replying"
     };
 
-    let content_text_style = match cx.props.message.origin {
-        EventOrigin::ME => {
-            r#"
-              color: var(--text-white);
-              font-family: Inter;
-              font-size: 16px;
-              font-style: normal;
-              font-weight: 400;
-              line-height: 20px; /* 125% */
-              white-space: pre-line;
-            "#
-        }
-        EventOrigin::OTHER => {
-            r#"
-              color: var(--text-1);
-              font-family: Inter;
-              font-size: 16px;
-              font-style: normal;
-              font-weight: 400;
-              line-height: 20px; /* 125% */
-              white-space: pre-line;
-            "#
-        }
+    let message__content__text = match cx.props.message.origin {
+        EventOrigin::ME => "message__content--me",
+        EventOrigin::OTHER => "message__content--other",
     };
 
     let message_container = match cx.props.message.origin {
@@ -192,9 +121,9 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
               EventOrigin::OTHER =>
                 rsx!(
                   section {
-                    style: "{header_style}",
+                    class: "message__header",
                     span {
-                      style: "{sender_style}",
+                      class: "message__sender",
                       "{cx.props.message.display_name}"
                     }
                   }
@@ -222,11 +151,11 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                   p {
                     class: "message--text",
                     span {
-                      style: "{content_text_style}",
+                      class: "{message__content__text}",
                       "{t}"
                     }
                     span {
-                      style: "{time_style}",
+                      class: "message__time",
                       "{cx.props.message.time}"
                     }
                   }
@@ -236,7 +165,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                 match i.source.clone().unwrap() {
                   ImageType::URL(url) => {
                     rsx!(img{
-                      style: "{content_image_style}",
+                      class: "{message__content__image}",
                       src: "{url}"
                     })
                   }
@@ -248,7 +177,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
 
                     rsx!(
                       img {
-                        style: "{content_image_style}",
+                        class: "{message__content__image}",
                         src: "{url}"
                       }
                       a {
@@ -261,7 +190,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
               TimelineMessageType::File(file) => {
                 rsx!(
                   div {
-                    style: "margin-top: var(--size-1);",
+                    class: "message__content__file",
                     File {
                       body: file.clone()
                     }
@@ -273,7 +202,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                   match video.source.as_ref().unwrap() {
                     ImageType::URL(url) => {
                       rsx!(video{
-                        style: "{content_video_style}",
+                        class: "{message__content__video}",
                         src: "{url}",
                         controls: true,
                         autoplay: false
@@ -286,7 +215,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                       let url  = Url::create_object_url_with_blob(&blob).unwrap();
 
                       rsx!(video {
-                        style: "{content_video_style}",
+                        class: "{message__content__video}",
                         src: "{url}",
                         controls: true,
                         autoplay: false
@@ -302,19 +231,15 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                 }
               }
               TimelineMessageType::Html(t) => {
-                let html_style = if cx.props.is_replying {
-                  r#"
-                    overflow: hidden;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 3;
-                    -webkit-box-orient: vertical;
-                  "# 
+                let message_content_html = if cx.props.is_replying {
+                  "message__content__html--is-replying"
                 } else {
                   ""
                 };
+
                 rsx!(
                   div {
-                    style: "{html_style}",
+                    class: "{message_content_html}",
                     dangerous_inner_html: "{t}"
                   }
                 )
@@ -325,16 +250,9 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
               // hover_menu_options.set(vec![MenuOption::ShowThread, MenuOption::Reply]);
               rsx!(
                 div {
-                  class: "file",
-                  style: "
-                    gap: 8px;
-                    margin-top: var(--size-1);
-                  ",
+                  class: "file message__content__thread",
                   div {
-                    style: "
-                      display: flex;
-                      gap: 4px;
-                    ",
+                    class: "message__content__thread-container",
                     thread.meta_senders.iter().map(|t| {
                       rsx!(
                           Avatar {
@@ -346,14 +264,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                       })
                   }
                   span {
-                    style: "
-                      color: var(--text-subdued);
-                      font-family: Inter;
-                      font-size: 14px;
-                      font-style: normal;
-                      font-weight: 400;
-                      line-height: 20px;
-                    ",
+                    class: "message__content__thread-count",
                     "{thread.count} respuestas"
                   }
                 }

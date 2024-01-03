@@ -38,7 +38,7 @@ fn Restoring(cx: Scope) -> Element {
                 Spinner {}
 
                 p {
-                    style: "color: var(--text-1)",
+                    class: "restoring__title",
                     translate!(
                         i18,
                         "main.loading.title"
@@ -126,18 +126,12 @@ fn App(cx: Scope) -> Element {
                                 BeforeSession::Login => rsx!(
                                     section {
                                         class: "login",
-                                        style: "
-                                            width: 100%;
-                                        ",
                                         Login {}
                                     }
                                 ),
                                 BeforeSession::Signup => rsx!(
                                     section {
                                         class: "login",
-                                        style: "
-                                            width: 100%;
-                                        ",
                                         Signup {}
                                     }
                                 )

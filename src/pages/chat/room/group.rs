@@ -211,16 +211,6 @@ pub fn RoomGroup(cx: Scope) -> Element {
         });
     };
 
-    let button_style = r#"
-        cursor: pointer;
-        border: none;
-        border-radius: 100%;
-        max-width: 2.625rem;
-        width: fit-content;
-        height: 2.625rem;
-        padding: 0;
-    "#;
-
     render! {
         Header {
             text: "{i18n_get_key_value(&i18n_map, key_group_title)}",
@@ -229,19 +219,10 @@ pub fn RoomGroup(cx: Scope) -> Element {
             }
         }
         if *handle_complete_group.read() {
-            let attach_file_style = r#"
-                height: 100%;
-                width: 100%;
-                object-fit: cover;
-                position: relative;
-                background: var(--background-loud);
-                border-radius: 100%;
-            "#;
-
             let element = if let Some(_) = attach.get()  {
                 render!(rsx!(
                     img {
-                        style: "{attach_file_style}",
+                        class: "group__attach",
                         src: "{attach.get_file().deref()}"
                     }
                 ))
@@ -276,21 +257,14 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     },
                 }
                 p {
-                    style: r#"
-                        margin-top: 24px;
-                    "#,
+                    class: "group__title",
                     "{i18n_get_key_value(&i18n_map, key_group_meta_members_title)}"
                 }
                 users.read().deref().into_iter().map(|u| {
                     if let Some(position) =selected_users.read().profiles.clone().into_iter().position(|selected_p| selected_p.eq(&u.id)) {
                         rsx!(
                             div {
-                                style: r#"
-                                    display: flex;
-                                    gap: 10px;
-                                    justify-content: space-between;
-                                    align-items: center;
-                                "#,
+                                class: "group__users",
                                 RoomView {
                                     displayname: "{u.displayname.clone()}",
                                     avatar_uri: None,
@@ -300,7 +274,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                                     }
                                 }
                                 button {
-                                    style: "{button_style}",
+                                    class: "group__cta--close",
                                     onclick: move |_| {
                                         selected_users.write().profiles.remove(position);
                                     },
@@ -316,16 +290,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     }
                     })
                 div {
-                    style: r#"
-                        position: fixed;
-                        background: var(--background);
-                        height: fit-content;
-                        width: 100%;
-                        padding: 12px 10px;
-                        left: 0;
-                        bottom: 0;
-                    "#,
-                    class: "row",
+                    class: "group__cta__wrapper row",
                     Button {
                         text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_back)}",
                         variant: &Variant::Secondary,
@@ -362,9 +327,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     },
                 }
                 form {
-                    style: r#"
-                        margin-top: 10px;
-                    "#,
+                    class: "group__form",
                     onchange: move |event| {
                         let values = event.values.clone().into_keys().collect::<Vec<String>>();
                         let profiles = selected_users.read().deref().profiles.clone();
@@ -381,10 +344,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                         rsx!(
                             label {
                                 key: "{u.id}",
-                                style: r#"
-                                    display: flex;
-                                    gap: 10px;
-                                "#,
+                                class: "group__checked-users",
                                 input {
                                     r#type: "checkbox",
                                     id: "{u.id}",
@@ -404,16 +364,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     })
                 }
                 div {
-                    style: r#"
-                        position: fixed;
-                        background: var(--background);
-                        height: fit-content;
-                        width: 100%;
-                        padding: 12px 10px;
-                        left: 0;
-                        bottom: 0;
-
-                    "#,
+                    class: "group__cta__wrapper",
                     Button {
                         text: "{i18n_get_key_value(&i18n_map, key_group_select_cta)}",
                         disabled: if selected_users.read().profiles.len() == 0 { true } else { false },

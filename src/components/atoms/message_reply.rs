@@ -27,80 +27,32 @@ pub struct MessageReplyProps {
 }
 
 pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
-    let message_style = r#"
-        width: calc(100% - 30px);
-    "#;
-
-    let header_style = r#"
-        display: flex;
-        justify-content: space-between;
-    "#;
-
-    let sender_style = if cx.props.is_replying_for_me {
-        r#"
-        color: var(--text-white);
-        font-family: Inter;
-        font-size: 12px;
-        font-weight: 500;
-        line-height: 12px; 
-      "#
+    let message_reply_me = if cx.props.is_replying_for_me {
+        "message-reply--is-replying-me"
     } else {
-        r#"
-        color: var(--text-1);
-        font-family: Inter;
-        font-size: 12px;
-        font-weight: 500;
-        line-height: 12px;
-      "#
+        "message-reply--not-replying-me"
     };
 
-    let content_style = r#"
-        margin-top: var(--size-0);
-        font-size: var(--font-size-0);
-        white-space: pre-line;
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-    "#;
-
-    let content_image_style = r#"
-      border-radius: var(--size-1);
-      margin-top: var(--size-1);
-      width: 28px;
-    "#;
-
-    let message_wrapper_style = if cx.props.is_replying_for_me {
-        r#"
-        background: transparent;
-        color: var(--text-white);
-        margin: var(--size-0) 0;
-        padding: 0 var(--size-0);
-        border-left: 2px solid var(--primary-100);
-      "#
+    let message_wrapper_replying_me = if cx.props.is_replying_for_me {
+        "messase-reply__wrapper--is-replying-me"
     } else {
-        r#"
-        margin: var(--size-0) 0;
-        padding: 0 var(--size-0);
-        border-left: 2px solid var(--primary-100);
-      "#
+        "messase-reply__wrapper--not-replying-me"
     };
 
     cx.render(rsx! {
       div {
-        class: "message-view--reply",
-        style: "{message_wrapper_style}",
+        class: "message-view--reply message_wrapper_replying_me",
         Avatar {
           name: cx.props.message.display_name.clone(),
           size: 24,
           uri: cx.props.message.avatar_uri.clone()
         }
         article {
-          style: "{message_style}",
+          class: "message-reply",
           section {
-            style: "{header_style}",
+            class: "message__header",
             span {
-              style: "{sender_style}",
+              class: "{message_reply_me}",
               "{cx.props.message.display_name}"
             }
           }
@@ -108,7 +60,7 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
             TimelineMessageType::Text(t) => {
               rsx!(
                 p {
-                  style: "{content_style}",
+                  class: "message-reply__content--text",
                   "{t}"
                 }
               )
@@ -117,7 +69,7 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
               match i.source.as_ref().unwrap() {
                 ImageType::URL(url) => {
                   rsx!(img{
-                    style: "{content_image_style}",
+                    class: "message-reply__content--media",
                     src: "{url}"
                   })
                 }
@@ -128,7 +80,7 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
                   let object_url = gloo::file::ObjectUrl::from(blob);
 
                   rsx!(img{
-                    style: "{content_image_style}",
+                    class: "message-reply__content--media",
                     src: "{object_url.deref()}"
                   })
                 }
@@ -138,7 +90,7 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
             TimelineMessageType::File(file) => {
               rsx!(
                 div {
-                  style: "margin-top: var(--size-0)",
+                  class: "message-reply__content--file",
                   File {
                     body: file.clone(),
                   }
@@ -148,7 +100,7 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
             TimelineMessageType::Video(i) => {
               rsx!(
                 div {
-                  style: "margin-top: var(--size-0)",
+                  class: "message-reply__content--video",
                   File {
                     body: i.clone(),
                   }
@@ -158,12 +110,7 @@ pub fn MessageReply(cx: Scope<MessageReplyProps>) -> Element {
             TimelineMessageType::Html(t) => {
               rsx!(
                 div {
-                  style: "
-                    overflow: hidden;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 3;
-                    -webkit-box-orient: vertical;
-                  ",
+                  class: "message-reply__content--html",
                   dangerous_inner_html: "{t}"
                 }
               )

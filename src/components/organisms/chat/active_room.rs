@@ -127,15 +127,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     cx.render(rsx! {
             // Room messages
             div {
-                style: "
-                    display: flex;
-                    flex-direction: column;
-                    flex-grow: 1;
-                    max-width: 100%;
-                    width: 60%;
-                    resize: horizontal;
-                    overflow: auto;
-                ",
+                class: "active-room",
                 Header {
                     text: "{current_room.read().name.clone()}",
                     avatar_element: render!(rsx!(
@@ -190,45 +182,18 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                     },
                 };
 
-                let close_style = r#"
-                    cursor: pointer;
-                    background: transparent;
-                    border: 1px solid transparent;
-                    padding: 0;
-                "#;
-
                 rsx!(
                     div {
-                        style: "
-                            display: flex;
-                            flex-direction: column;
-                            flex-grow: 1;
-                            width: 40%;
-                            background: var(--background-modal);
-                            border-radius: 16px;
-                            padding: 12px 12px 0;
-                        ",
+                        class: "active-room__thread",
                         // thread title
                         div {
-                            style: "
-                                padding: 12px;
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                width: 100%;
-                            ",
+                            class: "active-room__thread__head",
                             p {
-                                style: "
-                                    overflow: hidden;
-                                    display: -webkit-box;
-                                    -webkit-line-clamp: 1;
-                                    -webkit-box-orient: vertical;
-                                    width: 80%;
-                                ",
+                                class: "active-room__thread__title",
                                 "Hilo {title_thread}"
                             }
                             button {
-                                style: "{close_style}",
+                                class: "active-room__close",
                                 onclick: move |_| {
                                     *timeline_thread.write() = None
                                 },

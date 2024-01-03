@@ -152,16 +152,6 @@ pub fn Profile(cx: Scope) -> Element {
         }
     });
 
-    let attach_file_style = r#"
-        height: 100%;
-        width: 100%;
-        object-fit: cover;
-        border: 0.5px solid #0001;
-        position: relative;
-        background: var(--background-loud);
-        border-radius: 100%;
-    "#;
-
     let on_handle_attach = move |event: Event<FormData>| {
         cx.spawn({
             to_owned![attach];
@@ -203,7 +193,7 @@ pub fn Profile(cx: Scope) -> Element {
             let element = if let Some(_) = attach.get()  {
                 render!(rsx!(
                     img {
-                        style: "{attach_file_style}",
+                        class: "profile__attach",
                         src: "{attach.get_file().deref()}"
                     }
                 ))
@@ -230,9 +220,7 @@ pub fn Profile(cx: Scope) -> Element {
                     }
 
                     div {
-                        style: "
-                            margin-top: 12px
-                        ",
+                        class: "profile__input",
                         MessageInput{
                             message: "{message}",
                             placeholder: "{i18n_get_key_value(&i18n_map, key_username_placeholder)}",
@@ -249,9 +237,7 @@ pub fn Profile(cx: Scope) -> Element {
                         }
                     }
                     div {
-                        style: "
-                            margin-top: 24px
-                        ",
+                        class: "profile__cta",
                         Button {
                             text: "{i18n_get_key_value(&i18n_map, key_username_cta_update)}",
                             on_click: move |_| {
@@ -287,67 +273,45 @@ pub fn Profile(cx: Scope) -> Element {
                 }
 
                 section {
-                    style: r#"
-                        margin-top: 40px;
-                    "#,
+                    class: "profile__section",
                     h2 {
-                        color: "var(--text-1)",
+                        class: "profile__title",
                         "Informacion de la cuenta"
                     }
 
                     h4 {
-                        style: r#"
-                            margin-top: 24px;
-                            color: var(--text-1);
-                        "#,
+                        class: "profile__subtitle",
                         "Servidor"
                     }
 
                     p {
-                        style: r#"
-                            margin-top: 12px;
-                            color: var(--text-2);
-                        "#,
+                        class: "profile__content",
                         "{advanced_info.read().homeserver.deref()}"
                     }
 
                     h4 {
-                        style: r#"
-                            margin-top: 24px;
-                            color: var(--text-1);
-                        "#,
+                        class: "profile__subtitle",
                         "ID del usuario de Matrix"
                     }
 
                     p {
-                        style: r#"
-                            margin-top: 12px;
-                            color: var(--text-2);
-                        "#,
+                        class: "profile__content",
                         "{advanced_info.read().user_id}"
                     }
 
                     h4 {
-                        style: r#"
-                            margin-top: 24px;
-                            color: var(--text-1);
-                        "#,
+                        class: "profile__subtitle",
                         "Sesion ID"
                     }
 
                     p {
-                        style: r#"
-                            margin-top: 12px;
-                            color: var(--text-2);
-                        "#,
+                        class: "profile__content",
                         "{advanced_info.read().session.device_id}"
                     }
                     if !advanced_info.read().session.is_verified {
                         rsx!(
                             div {
-                                style: "
-                                    margin-top: 24px
-                                ",
+                                class: "profile__cta",
                                 Button {
                                     text: "Verificar esta sesion",
                                     on_click: move |_| {
@@ -360,25 +324,17 @@ pub fn Profile(cx: Scope) -> Element {
                 }
 
                 section {
-                    style: r#"
-                        margin-top: 40px;
-                        color: var(--text-1);
-                    "#,
+                    class: "profile__section",
                     h2 {
                         "{i18n_get_key_value(&i18n_map, key_management_title)}"
                     }
 
                     p {
-                        style: r#"
-                            margin-top: 12px;
-                            color: var(--text-2);
-                        "#,
+                        class: "profile__content",
                         "{i18n_get_key_value(&i18n_map, key_management_deactivate_label)}"
                     }
                     div {
-                        style: "
-                            margin-top: 24px
-                        ",
+                        class: "profile__cta",
                         Button {
                             text: "{i18n_get_key_value(&i18n_map, key_management_deactivate_cta_deactivate)}",
                             on_click: move |_| {

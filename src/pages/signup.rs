@@ -393,10 +393,7 @@ pub fn Signup(cx: Scope) -> Element {
 
                             },
                             body: render!(rsx!(div {
-                                style: "
-                                    display: flex;
-                                    justify-content: center;
-                                ",
+                                class: "signup__flow",
                                 id: "recaptcha-container",
                             }))
                         }

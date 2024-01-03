@@ -48,129 +48,21 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
         ),
     ]);
 
-    let container_style = r#"
-        position: fixed;
-        height: 100vh;
-        width: 100vw;
-        top: 0;
-        left: 0;
-    "#;
-
-    let shadow_style = r#"
-        position: absolute;
-        background: var(--background-shadow);
-        height: 100%;
-        width: 100%;
-        z-index: 10;
-    "#;
-
-    let modal_style = r#"
-        position: absolute;
-        bottom: 0;
-        width: 100%;
-        background: var(--background);
-        padding: 24px 18px 32px;
-        border-radius: 28px 28px 0px 0px;
-        z-index: 20;
-    "#;
-
-    let title_container_style = r#"
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-    "#;
-
-    let account_style = r#"
-        width: 100%;
-        display: flex;
-        gap: 10px
-    "#;
-
-    let username_style = r#"
-        color: var(--text-1);
-        text-align: center;
-        font-family: Inter;
-        font-size: 18px;
-        font-style: normal;
-        font-weight: 600;
-        line-height: 24px; /* 133.333% */
-        text-align: left;
-    "#;
-
-    let message_style = r#"
-        color: var(--text-2);
-        
-        font-size: 14px;
-        font-style: normal;
-        font-weight: 600;
-        line-height: 18px; /* 128.571% */
-        text-align: left;
-    "#;
-
-    let close_style = r#"
-        cursor: pointer;
-        background: transparent;
-        -webkit-box-shadow: 0px 0px 30px 0px rgba(0,0,0,0.54);
-        -moz-box-shadow: 0px 0px 30px 0px rgba(0,0,0,0.54);
-        box-shadow: 0px 0px 30px 0px rgba(0,0,0,0.54);
-        border: 1px solid transparent;
-        border-radius: 100%;
-        padding: 0;
-        height: fit-content;
-        width: fit-content;
-        display: flex;
-        justify-content: center;
-    "#;
-
-    let cta_container_style = r#"
-        width: 100%;
-        display: flex;
-        gap: 8px;
-        margin-top: 36px;
-    "#;
-
-    let cta_style = r#"
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        padding: 2px;
-        align-items: center;
-        border: 1px solid transparent;
-        cursor: pointer;
-    "#;
-
-    let cta_title_style = r#"
-        overflow: hidden;
-        color: var(--text-1);
-        text-align: center;
-        text-overflow: ellipsis;
-        whitespace: nowrap;
-        
-        /* Label/XSmall */
-        font-family: Inter;
-        font-size: 12px;
-        font-style: normal;
-        font-weight: 500;
-        line-height: 18px; /* 133.333% */
-    "#;
-
     cx.render(rsx! {
         section {
-            style: "{container_style}",
+            class: "modal",
             div {
-                style: "{shadow_style}",
+                class: "modal__cta--hide",
                 onclick: move |event| {
                     cx.props.on_close.call(event)
                 },
             }
             div {
-                style: "{modal_style}",
-                class: "fadeIn",
+                class: "modal__wrapper fadeIn",
                 article {
-                    style: "{title_container_style}",
+                    class: "modal__title",
                     div {
-                        style: "{account_style}",
-
+                        class: "modal__user",
                         if let Some(account) = modal.get().account {
                             let i18n_map = i18n_map.clone();
                             rsx!(
@@ -181,11 +73,11 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                                 }
                                 div {
                                     p {
-                                        style: "{username_style}",
+                                        class: "modal__user__title",
                                         "{account.name}, {i18n_get_key_value(&i18n_map, key_modal_title)}"
                                     }
                                     p {
-                                        style: "{message_style}",
+                                        class: "modal__user__subtitle",
                                         "{i18n_get_key_value(&i18n_map, key_modal_subtitle)}"
                                     }
                                 }
@@ -193,7 +85,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                         }
                     }
                     button {
-                        style: "{close_style}",
+                        class: "modal__cta--close",
                         onclick: move |event| {cx.props.on_close.call(event)},
                         Icon {
                             stroke: "var(--icon-subdued)",
@@ -202,9 +94,9 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                     }
                 }
                 article {
-                    style: "{cta_container_style}",
+                    class: "modal__cta__container",
                     button {
-                        style: "{cta_style}",
+                        class: "modal__cta__wrapper",
                         onclick: move |_| {
                             cx.props.on_click.call(ModalForm { value: RoomType::CHAT })
                         },
@@ -213,12 +105,12 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                             icon: NewChat
                         }
                         span {
-                            style: "{cta_title_style}",
+                            class: "modal__cta__title",
                             "{i18n_get_key_value(&i18n_map, key_modal_option_dm)}"
                         }
                     }
                     button {
-                        style: "{cta_style}",
+                        class: "modal__cta__wrapper",
                         onclick: move |_| {
                             cx.props.on_click.call(ModalForm { value: RoomType::GROUP })
                         },
@@ -227,12 +119,12 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                             icon: Group
                         }
                         span {
-                            style: "{cta_title_style}",
+                            class: "modal__cta__title",
                             "{i18n_get_key_value(&i18n_map, key_modal_option_group)}"
                         }
                     }
                     button {
-                        style: "{cta_style}",
+                        class: "modal__cta__wrapper",
                         onclick: move |_| {
                             cx.props.on_click.call(ModalForm { value: RoomType::CHANNEL })
                         },
@@ -241,7 +133,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                             icon: ChatConversation
                         }
                         span {
-                            style: "{cta_title_style}",
+                            class: "modal__cta__title",
                             "{i18n_get_key_value(&i18n_map, key_modal_option_channel)}"
                         }
                     }

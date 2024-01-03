@@ -234,62 +234,33 @@ pub fn Verify(cx: Scope, id: String) -> Element {
         if !*is_verified.read() {
             rsx!(
                 h2 {
-                    style: r#"
-                        margin-top: 40px;
-                        color: var(--text-1);
-                    "#,
+                    class: "verify__title",
                     "Verificar sesion"
                 }
 
                 div {
-                    style: "
-                        margin-top: 24px
-                    ",
-
+                    class: "verify__spacer",
                     match emoji.get(){
                         Some(sas) => {
                             let emojis = sas.emoji().expect("emoji shoudl be available now");
 
                                 rsx!(
                                     p {
-                                        style: r#"
-                                            margin-top: 12px;
-                                            color: var(--text-2);
-                                        "#,
+                                        class: "verify__description",
                                         "Verifica si los emojis coinciden con la otra sesion, en el mismo orden"
                                     }
                                     div {
-                                        style: "
-                                            display: grid;
-                                            grid-template-columns: repeat(4, 25%);
-                                            grid-template-rows: 80px 80px;
-                                            gap: 8px;
-                                            width: calc(100% - 24px);
-                                            margin-top: 24px;
-                                        ",
+                                        class: "verify__wrapper",
                                         emojis.into_iter().map(|emoji| {
                                             rsx!(
                                                 div {
-                                                    style: "
-                                                        display: flex;
-                                                        flex-direction: column;
-                                                        gap: 8px;
-                                                        padding: 8px;
-                                                        border-radius: 4px;
-                                                        box-shadow: 0px 0px 4px 0px rgba(0,0,0,0.25);
-                                                        align-items: center;
-                                                    ",
+                                                    class: "verify__emojis",
                                                     span {
-                                                        style: "
-                                                            font-size: 30px;
-                                                        ",
+                                                        class: "verify__method__title",
                                                         "{emoji.symbol}"
                                                     }
                                                     p {
-                                                        style: "
-                                                            font-size: 12px;
-                                                            color: var(--text-1);
-                                                        ",
+                                                        class: "verify__method__description",
                                                         "{emoji.description}"
                                                     }
                                                 }
@@ -297,10 +268,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                                         })
                                     }
                                     div {
-                                        style: "
-                                            margin-top: 24px;
-                                        ",
-                                        class: "row",
+                                        class: "verify__spacer row",
                                         Button {
                                             text: "No coincide",
                                             on_click: move |_| {
@@ -320,9 +288,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                         None => {
                             rsx!(
                                 div {
-                                    style: r#"
-                                        color: var(--text-2);
-                                    "#,
+                                    class: "verify__info",
                                     "Para inicar la verificacion, ve a otro dispositivo desde el que iniciaste sesion y solicita la verificacion"
                                 }
                             )
@@ -335,18 +301,12 @@ pub fn Verify(cx: Scope, id: String) -> Element {
         }else {
             rsx!(
                 h2 {
-                    style: r#"
-                        margin-top: 40px;
-                        color: var(--text-1);
-                    "#,
+                    class: "verify__title--verified",
                     "Verificacion completada"
                 }
 
                 p {
-                    style: r#"
-                        margin-top: 12px;
-                        color: var(--text-2);
-                    "#,
+                    class: "verify__description--verified",
                     "Haz verificado este dispositivo."
                 }
             )

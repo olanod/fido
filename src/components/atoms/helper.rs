@@ -13,43 +13,23 @@ pub struct HelperProps<'a> {
 }
 
 pub fn Helper<'a>(cx: Scope<'a, HelperProps<'a>>) -> Element<'a> {
-    let helper_style = r#"
-        width: fit-content;
-        height: fit-content;
-        min-height: 100px;
-        min-width: 150px;
-        max-width: 390px;
-        color: var(--text-1);
-        border-radius: var(--size-1);
-        padding: var(--size-3);
-        transition: opacity 0.2s ease-out, background-color 0.2s ease-out;
-        background: var(--background-button);
-        text-align: left;
-        border: 1px solid transparent;
-    "#;
     cx.render(rsx!(
         section {
-          style: helper_style,
+          class: "helper",
           span {
             h3 {
                 "{cx.props.helper.title}"
             },
             p {
-                style: r"
-                padding-top: var(--size-0);
-            ",
+                class: "helper__description",
                 "{cx.props.helper.description}"
             },
             h4 {
-                style: r"
-                padding-top: var(--size-2);
-            ",
+                class: "helper__title",
                 "Ejemplo"
             },
             p {
-                style: r"
-                padding-top: var(--size-0);
-            ",
+                class: "helper__description",
                 "{cx.props.helper.example}"
             }
           }

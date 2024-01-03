@@ -41,13 +41,9 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
     let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to load Replying to");
     let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to load timeline thread");
     
-    let list_style = match timeline_thread.read().deref() {
-        Some(_)=> "
-            padding-bottom: 12px;
-        ",
-        None => "
-            padding: 0px;
-        "
+    let messages_list_thread = match timeline_thread.read().deref() {
+        Some(_)=> "messages-list--is-thread",
+        None => "messages-list--not-thread"
     };
 
     use_effect(cx, (on_scroll,), |(_,)| {
@@ -61,8 +57,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
 
     cx.render(rsx! {  
         div {
-            style: "{list_style}",
-            class:"messages-list",
+            class:"messages-list messages_list_thread",
             onmounted: move |event| {
                 event.data.get_raw_element()
                     .ok()
@@ -72,12 +67,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
             },
             rsx!(
                 div {
-                    style: "
-                        display: flex;
-                        flex-direction: column-reverse;
-                        background: var(--background);
-                        border-radius: 8px;
-                    ",
+                    class: "messages-list__wrapper",
                     onmounted: move |event| {
                         event.data.get_raw_element()
                             .ok()
