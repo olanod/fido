@@ -255,10 +255,6 @@ ul {
   color: var(--text-1);
 }
 
-.messages-list {
-  width: 100vw !important;
-}
-
 .messages-list,
 .list,
 .rooms-list {
@@ -908,6 +904,12 @@ ul {
 .user__content {
   color: var(--text-1);
   font-weight: 500;
+}
+
+.attach__input {
+  visibility: hidden;
+  width: 0;
+  display: none;
 }
 
 .attach__wrapper--image {
