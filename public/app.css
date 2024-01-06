@@ -525,7 +525,12 @@ ul {
   overflow: auto;
 }
 
-.message--text {
+.message__content {
+  display: flex;
+  flex-direction: column;
+}
+
+.message__container__content {
   font-size: var(--font-size-0);
   display: flex;
   gap: 11px;
@@ -545,13 +550,17 @@ ul {
   text-transform: uppercase;
 }
 
+<<<<<<< HEAD
 .message__content {}
 
+=======
+>>>>>>> 3b78905 (ref: split messages)
 .message__sender {
   color: var(--text-1);
   font-weight: 500;
 }
 
+<<<<<<< HEAD
 .message__content--me {
   color: var(--text-white);
   font-family: Inter;
@@ -574,6 +583,8 @@ ul {
   white-space: pre-line;
 }
 
+=======
+>>>>>>> 3b78905 (ref: split messages)
 .message__content__image--is-replying {
   border-radius: var(--size-1);
   margin-top: var(--size-1);

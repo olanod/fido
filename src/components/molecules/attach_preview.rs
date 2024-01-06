@@ -19,8 +19,6 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
     let on_handle_card = move |_| cx.props.on_event.call(HeaderCallOptions::CLOSE);
 
     cx.render(rsx!(if let Some(file) = attach.get() {
-        info!("{:?}", file.content_type.type_());
-
         match file.content_type.type_() {
             mime::IMAGE => {
                 rsx!(
@@ -77,7 +75,8 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
                                         size: Some(file.size),
                                         body: file.name,
                                         source: None,
-                                    }
+                                    },
+                                    is_reply: false
                                 }
 
                                 div {

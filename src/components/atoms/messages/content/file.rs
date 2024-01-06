@@ -3,21 +3,22 @@ use dioxus::prelude::*;
 use crate::{
     components::atoms::{Attachment, Icon},
     services::matrix::matrix::FileContent,
+    utils::nice_bytes::nice_bytes,
 };
-
-pub enum Size {
-    BYTES(u32),
-    KB(u32),
-    MB(u32),
-    GB(u32),
-}
 
 #[derive(PartialEq, Props)]
 pub struct FileProps {
     body: FileContent,
+    is_reply: bool,
 }
 
-pub fn File(cx: Scope<FileProps>) -> Element {
+pub fn File<'a>(cx: Scope<'a, FileProps>) -> Element<'a> {
+    let message_reply = if cx.props.is_reply {
+        "message-reply__content--file"
+    } else {
+        ""
+    };
+
     cx.render(rsx!(
         section {
             class: "file",
@@ -27,7 +28,7 @@ pub fn File(cx: Scope<FileProps>) -> Element {
                     stroke: "var(--icon-white)",
                     icon: Attachment
                 }
-                
+
                 span {
                     class: "file__description",
                     "{cx.props.body.body}"
@@ -45,27 +46,4 @@ pub fn File(cx: Scope<FileProps>) -> Element {
             }
         }
     ))
-}
-
-fn nice_bytes(x: f64) -> String {
-    let units = vec![
-        "bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB",
-    ];
-    let mut l = 0;
-    let mut n = x;
-
-    while n >= 1024.0 && l < units.len() - 1 {
-        n /= 1024.0;
-        l += 1;
-    }
-
-    format!(
-        "{:.1} {}",
-        n,
-        if n < 10.0 && l > 0 {
-            units[l]
-        } else {
-            units[l]
-        }
-    )
 }
