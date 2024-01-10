@@ -1,4 +1,4 @@
-use crate::{hooks::use_notification::UseNotificationState, pages::chat::chat::{NotificationItem, NotificationHandle, NotificationType}};
+use crate::hooks::use_notification::{UseNotificationState, NotificationItem, NotificationHandle, NotificationType};
 
 pub fn handle_notification(item: NotificationItem, notification: UseNotificationState) {
     notification.set(item);

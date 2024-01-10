@@ -3,7 +3,6 @@ use std::{collections::HashMap, rc::Rc};
 use dioxus::{html::input_data::keyboard_types, prelude::*};
 use dioxus_std::{translate, i18n::use_i18};
 use gloo::storage::LocalStorage;
-use log::info;
 use crate::{
     components::{
         atoms::{MessageInput, input::InputType, LoadingStatus},

@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use log::info;
 use std::ops::Deref;
 
 use crate::{

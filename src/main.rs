@@ -1,8 +1,9 @@
 #![allow(non_snake_case)]
-use chat::components::atoms::Spinner;
+use chat::components::atoms::{LoadingStatus, Notification, Spinner};
 use chat::hooks::use_auth::use_auth;
 use chat::hooks::use_client::use_client;
 use chat::hooks::use_init_app::{use_init_app, BeforeSession};
+use chat::hooks::use_notification::{use_notification, NotificationType};
 use chat::pages::login::{LoggedIn, Login};
 use chat::pages::route::Route;
 use chat::pages::signup::Signup;
@@ -28,27 +29,6 @@ fn main() {
 static EN_US: &str = include_str!("./locales/en-US.json");
 static ES_ES: &str = include_str!("./locales/es-ES.json");
 
-fn Restoring(cx: Scope) -> Element {
-    let i18 = use_i18(cx);
-
-    cx.render({
-        rsx!(
-            div {
-                class: "column spinner-dual-ring--center",
-                Spinner {}
-
-                p {
-                    class: "restoring__title",
-                    translate!(
-                        i18,
-                        "main.loading.title"
-                    ),
-                }
-            }
-        )
-    })
-}
-
 fn App(cx: Scope) -> Element {
     use_init_i18n(
         cx,
@@ -65,6 +45,8 @@ fn App(cx: Scope) -> Element {
 
     let client = use_client(cx);
     let auth = use_auth(cx);
+    let notification = use_notification(cx);
+    let i18 = use_i18(cx);
 
     let matrix_client = use_shared_state::<MatrixClientState>(cx).unwrap();
     let before_session =
@@ -105,6 +87,32 @@ fn App(cx: Scope) -> Element {
     });
 
     render! {
+        if notification.get().show {
+            rsx!(
+                Notification {
+                    title: "{notification.get().title}",
+                    body: "{notification.get().body}",
+                    on_click: move |_| {
+                       match notification.get().handle.value {
+                            NotificationType::Click => {
+
+                            },
+                            NotificationType::AcceptSas(sas, redirect) => {
+                                cx.spawn({
+                                    async move {
+                                        let x = sas.accept().await;
+                                        todo!()
+                                    }
+                                });
+                            }
+                            NotificationType::None => {
+
+                            }
+                       }
+                    }
+                }
+            )
+        }
         rsx!(
             match &matrix_client.read().client {
                 Some(_) => {
@@ -119,7 +127,12 @@ fn App(cx: Scope) -> Element {
                             )
                         } else if *restoring_session.read() {
                             rsx!(
-                                Restoring {}
+                                LoadingStatus {
+                                    text: translate!(
+                                        i18,
+                                        "main.loading.title"
+                                    ),
+                                }
                             )
                         } else {
                             match *before_session.read() {

@@ -10,17 +10,14 @@ use ruma::events::room::message::Relation;
 
 use crate::{
     components::{
-        atoms::{
-            message::{Message, Messages},
-            MessageReply,
-        },
-        molecules::rooms::CurrentRoom,
+        atoms::message::Messages, molecules::rooms::CurrentRoom,
         organisms::chat::utils::handle_notification,
     },
-    pages::chat::chat::{MessageEvent, NotificationHandle, NotificationItem, NotificationType},
+    hooks::use_notification::{NotificationHandle, NotificationItem, NotificationType},
+    pages::chat::chat::MessageEvent,
     services::matrix::matrix::{
-        format_head_thread, format_original_any_room_message_event, format_relation_from_event,
-        room_member, TimelineMessageType, TimelineRelation, TimelineThread,
+        format_original_any_room_message_event, format_relation_from_event, room_member,
+        TimelineMessageType, TimelineRelation, TimelineThread,
     },
 };
 
@@ -29,11 +26,14 @@ use super::{use_client::use_client, use_notification::use_notification};
 #[allow(clippy::needless_return)]
 pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
     let client = use_client(cx).get();
-    let messages = use_shared_state::<Messages>(cx).unwrap();
-    let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
-    let handler_added = use_ref(cx, || false);
     let notification = use_notification(cx);
-    let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).unwrap();
+
+    let handler_added = use_ref(cx, || false);
+    
+    let messages = use_shared_state::<Messages>(cx).expect("Unable to use Messages");
+    let current_room = use_shared_state::<CurrentRoom>(cx).expect("Unable to use CurrentRoom");
+    let timeline_thread =
+        use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to use TimelineThread");
 
     let task_sender = use_coroutine(cx, |mut rx: UnboundedReceiver<MessageEvent>| {
         to_owned![
@@ -210,39 +210,41 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                         });
                     }
                     info!("after write");
-                    // let room_name = if let Some(name) = message_event.room.name() {
-                    //     name
-                    // } else {
-                    //     let mut name = String::from("Unknown name room");
-                    //     let me = client.whoami().await.unwrap();
-                    //     let users = message_event.room.members().await;
 
-                    //     if let Ok(members) = users {
-                    //         let member = members
-                    //             .into_iter()
-                    //             .find(|member| !member.user_id().eq(&me.user_id));
+                    let room_name = match message_event.room.name() {
+                        Some(name) => name,
+                        None => {
+                            let mut name = String::from("Unknown name room");
+                            let me = client.whoami().await.unwrap();
+                            let users = message_event.room.members().await;
 
-                    //         if let Some(m) = member {
-                    //             let n = m.name();
+                            if let Ok(members) = users {
+                                let member = members
+                                    .into_iter()
+                                    .find(|member| !member.user_id().eq(&me.user_id));
 
-                    //             name = String::from(n);
-                    //         }
-                    //     }
+                                if let Some(m) = member {
+                                    let n = m.name();
 
-                    //     name
-                    // };
+                                    name = String::from(n);
+                                }
+                            }
 
-                    // handle_notification(
-                    //     NotificationItem {
-                    //         title: String::from(room_name),
-                    //         body: String::from(plain_message),
-                    //         show: true,
-                    //         handle: NotificationHandle {
-                    //             value: NotificationType::Click,
-                    //         },
-                    //     },
-                    //     notification.to_owned(),
-                    // );
+                            name
+                        }
+                    };
+
+                    handle_notification(
+                        NotificationItem {
+                            title: String::from(room_name),
+                            body: String::from(plain_message),
+                            show: true,
+                            handle: NotificationHandle {
+                                value: NotificationType::Click,
+                            },
+                        },
+                        notification.to_owned(),
+                    );
                 }
             }
         }

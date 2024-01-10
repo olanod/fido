@@ -1,6 +1,5 @@
 use dioxus::prelude::*;
 use futures_util::StreamExt;
-use log::info;
 use matrix_sdk::ruma::{
     events::room::message::{MessageType, TextMessageEventContent},
     EventId, RoomId,
@@ -9,7 +8,7 @@ use matrix_sdk::ruma::{
 use crate::{
     components::{molecules::input_message::ReplyingTo, organisms::chat::utils::handle_command},
     pages::chat::chat::MessageItem,
-    services::matrix::matrix::{send_message, TimelineMessageThread, TimelineThread},
+    services::matrix::matrix::{send_message, TimelineThread},
 };
 
 use super::use_client::use_client;

@@ -1,6 +1,5 @@
 use dioxus::prelude::*;
 
-use crate::pages::chat::chat::NotificationHandle;
 #[derive(Props)]
 pub struct ButtonProps<'a> {
     title: &'a str,

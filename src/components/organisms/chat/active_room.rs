@@ -3,14 +3,13 @@ use std::{collections::HashMap, ops::Deref};
 use dioxus::prelude::*;
 use dioxus_router::prelude::use_navigator;
 use dioxus_std::{i18n::use_i18, translate};
-use log::info;
 
 use crate::{
     components::{
         atoms::{
             header_main::{HeaderCallOptions, HeaderEvent},
             input::InputType,
-            ArrowLeft, Avatar, Close, Header, Icon,
+            Avatar, Close, Header, Icon,
         },
         molecules::{
             input_message::{FormMessageEvent, ReplyingTo},
