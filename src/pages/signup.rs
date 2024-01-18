@@ -4,9 +4,9 @@ use dioxus::{html::input_data::keyboard_types, prelude::*};
 use dioxus_std::{i18n::use_i18, translate};
 use gloo::storage::{LocalStorage, Storage};
 use log::info;
-use matrix_sdk::{Client, Error, HttpError};
+use matrix_sdk::{Error, HttpError};
 use ruma::api::{
-    client::uiaa::{self, AuthType},
+    client::uiaa::{self, AuthType, UiaaResponse},
     error::{FromHttpResponseError, ServerError},
 };
 use serde_json::Value;
@@ -17,8 +17,13 @@ use crate::{
         atoms::{input::InputType, MessageInput, Spinner},
         organisms::{login_form::FormLoginEvent, LoginForm},
     },
-    hooks::{use_client::use_client, use_init_app::BeforeSession},
-    pages::login::{sync, LoggedIn, LoggedInStatus, LoginInfo},
+    hooks::{
+        use_auth::{use_auth, UseAuthState},
+        use_client::use_client,
+        use_init_app::BeforeSession,
+        use_session::use_session,
+    },
+    pages::login::LoggedInStatus,
     services::matrix::matrix::{login, prepare_register, register},
     utils::i18n_get_key_value::i18n_get_key_value,
 };
@@ -111,17 +116,19 @@ pub fn Signup(cx: Scope) -> Element {
     ]);
 
     let client = use_client(cx);
+    let auth = use_auth(cx);
+    let session = use_session(cx);
+
     let homeserver = use_state(cx, || String::from(""));
     let username = use_state(cx, || String::from(""));
     let password = use_state(cx, || String::from(""));
     let error = use_state(cx, || None);
 
-    let logged_in = use_shared_state::<LoggedIn>(cx).expect("Unable to use Logged in");
     let before_session =
         use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
 
     let flows = use_ref::<Vec<AuthType>>(cx, || vec![]);
-    let session = use_ref::<Option<String>>(cx, || None);
+    let session_ref = use_ref::<Option<String>>(cx, || None);
 
     #[wasm_bindgen]
     extern "C" {
@@ -129,33 +136,22 @@ pub fn Signup(cx: Scope) -> Element {
         fn onloadCallback();
     }
 
-    let login_info = use_ref::<LoginInfo>(cx, || LoginInfo {
-        homeserver: String::from(""),
-        username: String::from(""),
-        password: String::from(""),
-    });
-
     let on_update_homeserver = move || {
         cx.spawn({
-            to_owned![login_info, homeserver, error];
+            to_owned![homeserver, auth];
 
             async move {
-                let response = Client::builder()
-                    .homeserver_url(&homeserver.get().clone())
-                    .build()
-                    .await;
+                auth.set_server(homeserver.current()).await;
+            }
+        })
+    };
 
-                match response {
-                    Ok(client) => {
-                        login_info.with_mut(|info| info.homeserver = homeserver.get().clone());
-                        info!("client: {client:?}");
-                        error.set(None);
-                    }
-                    Err(e) => {
-                        info!("error: {e:?}");
-                        error.set(Some(e.to_string()));
-                    }
-                }
+    let on_handle_clear = move || {
+        cx.spawn({
+            to_owned![homeserver, username, password, auth];
+
+            async move {
+                reset_login_info(&auth, &homeserver, &username, &password);
             }
         })
     };
@@ -163,76 +159,45 @@ pub fn Signup(cx: Scope) -> Element {
     let is_loading_loggedin = use_ref::<LoggedInStatus>(cx, || LoggedInStatus::Start);
 
     let on_handle_login = move || {
-        login_info.with_mut(|info| info.username = username.get().clone());
-        login_info.with_mut(|info| info.password = password.get().clone());
+        auth.set_username(username.get().clone(), false);
+        auth.set_password(password.get().clone());
 
         cx.spawn({
-            to_owned![logged_in, login_info, username, password, client, error, flows, session];
-
-            info!("{:?}", login_info.read());
+            to_owned![
+                auth,
+                username,
+                password,
+                client,
+                error,
+                flows,
+                session_ref,
+                homeserver
+            ];
 
             async move {
-                let response = prepare_register(
-                    login_info.read().homeserver.clone(),
-                    login_info.read().username.clone(),
-                    login_info.read().password.clone(),
-                )
-                .await;
+                let login_config = auth.build();
 
-                match response {
-                    Ok(_) => todo!(),
-                    Err(ref error) => match error {
-                        Error::Http(HttpError::UiaaError(FromHttpResponseError::Server(
-                            ServerError::Known(x),
-                        ))) => match x {
-                            uiaa::UiaaResponse::AuthResponse(y) => {
-                                let completed = &y.completed;
-                                let mut flows_to_complete: Vec<AuthType> = vec![];
+                let Ok(info) = login_config else {
+                    reset_login_info(&auth, &homeserver, &username, &password);
+                    return;
+                };
+                let response =
+                    prepare_register(info.server.as_str(), &info.username, &info.password).await;
 
-                                y.flows[0].stages.iter().for_each(|f| {
-                                    if completed.iter().find(|e| *e == f).is_none() {
-                                        flows_to_complete.push(f.clone());
-                                    }
-                                    session.set(y.session.clone());
-
-                                    match f {
-                                        AuthType::ReCaptcha => {
-                                            let x = y.params.deref().get();
-                                            let uiaa_response: Result<
-                                                HashMap<String, _>,
-                                                serde_json::Error,
-                                            > = serde_json::from_str(x);
-
-                                            match uiaa_response {
-                                                Ok(u) => {
-                                                    let m = u.get("m.login.recaptcha");
-
-                                                    if let Some(Value::Object(ref recaptcha)) = m {
-                                                        if let Some(Value::String(public_key)) =
-                                                            recaptcha.get("public_key")
-                                                        {
-                                                            gloo::storage::LocalStorage::set(
-                                                                "sitekey",
-                                                                public_key.clone(),
-                                                            );
-                                                        }
-                                                    }
-                                                }
-                                                Err(_) => todo!(),
-                                            };
-                                        }
-                                        _ => {
-                                            info!("Unsuported flow");
-                                        }
-                                    }
-                                });
-
-                                flows.set(flows_to_complete)
-                            }
-                            _ => todo!(),
-                        },
-                        _ => {}
-                    },
+                if let Err(Error::Http(HttpError::UiaaError(FromHttpResponseError::Server(
+                    ServerError::Known(ref f_error),
+                )))) = response
+                {
+                    flow_error(
+                        &auth,
+                        &homeserver,
+                        &username,
+                        &password,
+                        &session_ref,
+                        &error,
+                        &f_error,
+                        &flows,
+                    )
                 }
 
                 info!("response {response:?}");
@@ -243,101 +208,91 @@ pub fn Signup(cx: Scope) -> Element {
     let on_handle_captcha = move || {
         cx.spawn({
             to_owned![
-                login_info,
+                auth,
                 client,
                 error,
-                session,
+                session_ref,
                 is_loading_loggedin,
-                logged_in,
-                before_session
+                before_session,
+                session,
+                homeserver,
+                username,
+                password
             ];
 
             async move {
                 let recaptcha_token = <LocalStorage as gloo::storage::Storage>::get("recaptcha");
-                let session_id = session.read().clone();
-                match recaptcha_token {
-                    Ok(token) => {
-                        let response = register(
-                            login_info.read().homeserver.clone(),
-                            login_info.read().username.clone(),
-                            login_info.read().password.clone(),
-                            Some(token),
-                            session_id,
-                        )
-                        .await;
+                let session_id = session_ref.read().clone();
+                let Ok(token) = recaptcha_token else {
+                    info!("token not found");
+                    return;
+                };
 
-                        match response {
-                            Ok((ref c, ref serialized_session)) => {
-                                let response = login(
-                                    login_info.read().homeserver.clone(),
-                                    login_info.read().username.clone(),
-                                    login_info.read().password.clone(),
-                                )
-                                .await;
+                let Ok(info) = auth.build() else {
+                    reset_login_info(&auth, &homeserver, &username, &password);
+                    return;
+                };
 
-                                match response {
-                                    Ok((c, serialized_session)) => {
-                                        is_loading_loggedin.set(LoggedInStatus::Done);
-                                        let x = <LocalStorage as gloo::storage::Storage>::set(
-                                            "session_file",
-                                            serialized_session,
-                                        );
+                let response = register(
+                    &info.server.to_string(),
+                    &info.username,
+                    &info.password,
+                    Some(token),
+                    session_id,
+                )
+                .await
+                .expect("TODO: handle failed registration");
 
-                                        is_loading_loggedin.set(LoggedInStatus::Persisting);
+                let Ok((c, serialized_session)) =
+                    login(info.server.as_str(), &info.username, &info.password).await
+                else {
+                    is_loading_loggedin.set(LoggedInStatus::Start);
+                    *before_session.write() = BeforeSession::Login;
+                    return;
+                };
 
-                                        info!("Session persisted in {:?}", x);
+                is_loading_loggedin.set(LoggedInStatus::Done);
 
-                                        let x = sync(c.clone(), None).await;
+                <LocalStorage as gloo::storage::Storage>::set("session_file", serialized_session);
 
-                                        info!("new session {:?}", x);
+                is_loading_loggedin.set(LoggedInStatus::Persisting);
 
-                                        let x = c.whoami().await;
-                                        info!("whoami {:?}", x);
+                session.sync(c.clone(), None).await;
 
-                                        client.set(crate::MatrixClientState {
-                                            client: Some(c.clone()),
-                                        });
-                                        is_loading_loggedin.set(LoggedInStatus::LoggedAs(
-                                            c.user_id().unwrap().to_string(),
-                                        ));
+                client.set(crate::MatrixClientState {
+                    client: Some(c.clone()),
+                });
 
-                                        logged_in.write().is_logged_in = true;
-                                    }
-                                    Err(err) => {
-                                        info!("{:?}", err.to_string());
-                                        is_loading_loggedin.set(LoggedInStatus::Start);
-                                        *before_session.write() = BeforeSession::Login
-                                    }
-                                }
-                            }
-                            Err(error) => todo!(),
-                        }
-                    }
-                    Err(_) => {
-                        info!("token not found");
-                    }
-                }
+                is_loading_loggedin.set(LoggedInStatus::LoggedAs(c.user_id().unwrap().to_string()));
+
+                auth.set_logged_in(true);
             }
         })
     };
 
-    render!(if login_info.read().homeserver.len() == 0 {
+    render!(if auth.get().data.server.is_none() {
         rsx!(LoginForm {
             title: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_message)}",
             description: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_description)}",
             button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_cta)}",
             emoji: "🛰️",
+            error: if error.get().is_some() {
+                error.get().as_ref()
+            } else {
+                None
+            },
             on_handle: move |event: FormLoginEvent| match event {
                 FormLoginEvent::FilledForm => on_update_homeserver(),
                 FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
                 FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+                FormLoginEvent::ClearData => on_handle_clear(),
             },
             body: render!(rsx!(
                 div {
                     MessageInput {
                         message: "{homeserver.get()}",
                         placeholder: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_placeholder)}",
-                        error: if homeserver.get().len() > 0 {error.get().as_ref()}else {None},
+                        error: None,
                         on_input: move |event: FormEvent| {
                             homeserver.set(event.value.clone())
                         },
@@ -354,33 +309,39 @@ pub fn Signup(cx: Scope) -> Element {
                 }
             ))
         })
-    } else if login_info.read().username.len() == 0 || login_info.read().password.len() == 0 {
+    } else if auth.get().data.username.is_none() || auth.get().data.password.is_none() {
         rsx!(LoginForm {
             title: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_title)}",
             description: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_description)}",
             button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_cta)}",
             emoji: "✍️",
+            error: if error.get().is_some() {
+                error.get().as_ref()
+            } else {
+                None
+            },
             on_handle: move |event: FormLoginEvent| match event {
                 FormLoginEvent::FilledForm => on_handle_login(),
                 FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
                 FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+                FormLoginEvent::ClearData => on_handle_clear(),
             },
             body: render!(rsx!(
                 div {
                     MessageInput {
                         message: "{username.get()}",
                         placeholder: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_username_placeholder)}",
-                        error: if username.get().len() > 0 {error.get().as_ref()}else {None},
+                        error: None,
                         on_input: move |event: FormEvent| {
                             username.set(event.value.clone())
                         },
                         on_keypress: move |event: KeyboardEvent| {
-                            if event.code() == keyboard_types::Code::Enter && username.get().len() > 0 {
-                                login_info.with_mut(|info| info.username = username.get().clone());
+                            if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() {
+                                auth.set_username(username.get().clone(), false)
                             }
                         },
                         on_click: move |_| {
-                            login_info.with_mut(|info| info.username = username.get().clone());
+                            auth.set_username(username.get().clone(), false)
                         }
                     }
                 }
@@ -390,18 +351,17 @@ pub fn Signup(cx: Scope) -> Element {
                         itype: InputType::Password,
                         message: "{password.get()}",
                         placeholder: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_password_placeholder)}",
-                        error: if password.get().len() > 0 {error.get().as_ref()}else {None},
+                        error: None,
                         on_input: move |event: FormEvent| {
                             password.set(event.value.clone())
                         },
                         on_keypress: move |event: KeyboardEvent| {
-                            if event.code() == keyboard_types::Code::Enter && username.get().len() > 0 && password.get().len() > 0 {
-                                login_info.with_mut(|info| info.password = password.get().clone());
-
+                            if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() && !password.get().is_empty() {
+                                auth.set_password(password.get().clone());
                             }
                         },
                         on_click: move |_| {
-                            login_info.with_mut(|info| info.password = password.get().clone());
+                            auth.set_password(password.get().clone());
                         }
                     }
                 }
@@ -424,10 +384,13 @@ pub fn Signup(cx: Scope) -> Element {
                             description: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_description)}",
                             button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_cta)}",
                             emoji: "✍️",
+                            error: if error.get().is_some() { error.get().as_ref() } else { None },
                             on_handle: move |event: FormLoginEvent| match event {
                                 FormLoginEvent::FilledForm => on_handle_captcha(),
                                 FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
                                 FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+                                FormLoginEvent::ClearData => on_handle_clear()
+
                             },
                             body: render!(rsx!(div {
                                 style: "
@@ -452,4 +415,80 @@ pub fn Signup(cx: Scope) -> Element {
             }
         )
     })
+}
+
+fn flow_error(
+    auth: &UseAuthState,
+    homeserver: &UseState<String>,
+    username: &UseState<String>,
+    password: &UseState<String>,
+    session_ref: &UseRef<Option<String>>,
+    error: &UseState<Option<String>>,
+    f_error: &UiaaResponse,
+    flows: &UseRef<Vec<AuthType>>,
+) {
+    match f_error {
+        uiaa::UiaaResponse::AuthResponse(uiaa_info) => {
+            let completed = &uiaa_info.completed;
+            let mut flows_to_complete: Vec<AuthType> = vec![];
+
+            uiaa_info.flows[0].stages.iter().for_each(|f| {
+                if completed.iter().find(|e| *e == f).is_none() {
+                    flows_to_complete.push(f.clone());
+                }
+                session_ref.set(uiaa_info.session.clone());
+
+                match f {
+                    AuthType::ReCaptcha => {
+                        let params = uiaa_info.params.deref().get();
+                        let uiaa_response = serde_json::from_str(params);
+
+                        set_site_key(uiaa_response)
+                    }
+                    _ => {
+                        info!("Unsuported flow");
+                    }
+                }
+            });
+
+            flows.set(flows_to_complete)
+        }
+        uiaa::UiaaResponse::MatrixError(e) => {
+            reset_login_info(&auth, &homeserver, &username, &password);
+
+            error.set(Some(e.message.clone()));
+        }
+        _ => {
+            reset_login_info(&auth, &homeserver, &username, &password);
+
+            error.set(Some(String::from("Unspecified error")));
+        }
+    }
+}
+
+fn reset_login_info(
+    auth: &UseAuthState,
+    homeserver: &UseState<String>,
+    username: &UseState<String>,
+    password: &UseState<String>,
+) {
+    homeserver.set(String::from(""));
+    username.set(String::from(""));
+    password.set(String::from(""));
+    auth.reset();
+}
+
+fn set_site_key(uiaa_response: Result<HashMap<String, Value>, serde_json::Error>) {
+    match uiaa_response {
+        Ok(u) => {
+            let m = u.get("m.login.recaptcha");
+
+            if let Some(Value::Object(ref recaptcha)) = m {
+                if let Some(Value::String(public_key)) = recaptcha.get("public_key") {
+                    gloo::storage::LocalStorage::set("sitekey", public_key.clone());
+                }
+            }
+        }
+        Err(_) => todo!(),
+    };
 }

@@ -1,16 +1,14 @@
 use std::collections::HashMap;
 
-use crate::{hooks::use_client::use_client, pages::login::LoggedIn};
+use crate::hooks::use_auth::use_auth;
+use crate::hooks::use_client::use_client;
 use crate::utils::i18n_get_key_value::i18n_get_key_value;
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
 use gloo::storage::LocalStorage;
 use log::info;
 
-use crate::components::{
-    atoms::{ChatConversation, Icon, LogOut, MenuItem, UserCircle},
-    
-};
+use crate::components::atoms::{ChatConversation, Icon, LogOut, MenuItem, UserCircle};
 
 use dioxus_router::prelude::*;
 
@@ -35,7 +33,7 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
 
     let nav = use_navigator(cx);
     let client = use_client(cx).get();
-    let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
+    let auth = use_auth(cx);
 
     let menu_style = r#"
         width: 100%;
@@ -58,7 +56,7 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
 
     let log_out = move || {
         cx.spawn({
-            to_owned![client, logged_in];
+            to_owned![client, auth];
 
             async move {
                 
@@ -82,7 +80,7 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
                     Err(err) => todo!(),
                 }
 
-                logged_in.write().is_logged_in = false;
+                auth.set_logged_in(false)
             }
         });
     };

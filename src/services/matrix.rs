@@ -616,7 +616,7 @@ pub mod matrix {
     pub async fn deserialize_any_timeline_event(
         ev: AnySyncTimelineEvent,
         room: &Room,
-        logged_user_id: &String,
+        logged_user_id: &str,
         client: &Client,
     ) -> Option<TimelineRelation> {
         match ev {
@@ -690,7 +690,7 @@ pub mod matrix {
     pub async fn deserialize_timeline_event(
         ev: AnyTimelineEvent,
         room: &Room,
-        logged_user_id: &String,
+        logged_user_id: &str,
         client: &Client,
     ) -> Option<TimelineMessage> {
         match ev {
@@ -722,7 +722,7 @@ pub mod matrix {
         n: &MessageType,
         event: OwnedEventId,
         member: &RoomMember,
-        logged_user_id: &String,
+        logged_user_id: &str,
         time: MilliSecondsSinceUnixEpoch,
         client: &Client,
     ) -> Option<TimelineMessage> {
@@ -1062,7 +1062,7 @@ pub mod matrix {
         room: &Room,
         message_result: TimelineMessage,
         member: &RoomMember,
-        logged_user_id: &String,
+        logged_user_id: &str,
         time: MilliSecondsSinceUnixEpoch,
         client: &Client,
     ) -> Option<TimelineRelation> {
@@ -1213,18 +1213,18 @@ pub mod matrix {
     use matrix_sdk::ruma::api::client::account::register::v3::Request as RegistrationRequest;
 
     pub async fn prepare_register(
-        homeserver: String,
-        username: String,
-        password: String,
+        homeserver: &str,
+        username: &str,
+        password: &str,
     ) -> anyhow::Result<(Client, String), Error> {
         let mut request = RegistrationRequest::new();
         request.username = Some(&username);
         request.password = Some(&password);
 
-        let x = uiaa::Dummy::new();
-        request.auth = Some(uiaa::AuthData::Dummy(x));
+        let uiaa_dummy = uiaa::Dummy::new();
+        request.auth = Some(uiaa::AuthData::Dummy(uiaa_dummy));
 
-        let result = build_client(homeserver).await;
+        let result = build_client(homeserver.to_string()).await;
         let (client, client_session) = match result {
             Ok((client, client_session)) => (client, client_session),
             Err(_) => panic!("Can't create client"),
@@ -1239,9 +1239,9 @@ pub mod matrix {
         }
     }
     pub async fn register(
-        homeserver: String,
-        username: String,
-        password: String,
+        homeserver: &str,
+        username: &str,
+        password: &str,
         recaptcha_token: Option<String>,
         session: Option<String>,
     ) -> anyhow::Result<(Client, String), Error> {
@@ -1250,12 +1250,12 @@ pub mod matrix {
         request.password = Some(&password);
 
         if let Some(token) = &recaptcha_token {
-            let mut x = uiaa::ReCaptcha::new(&token);
-            x.session = session.as_deref();
-            request.auth = Some(uiaa::AuthData::ReCaptcha(x));
+            let mut uiaa_recaptcha = uiaa::ReCaptcha::new(&token);
+            uiaa_recaptcha.session = session.as_deref();
+            request.auth = Some(uiaa::AuthData::ReCaptcha(uiaa_recaptcha));
         }
 
-        let result = build_client(homeserver).await;
+        let result = build_client(homeserver.to_string()).await;
         let (client, client_session) = match result {
             Ok((client, client_session)) => (client, client_session),
             Err(_) => panic!("Can't create client"),
@@ -1274,13 +1274,13 @@ pub mod matrix {
     }
 
     pub async fn login(
-        homeserver: String,
-        username: String,
-        password: String,
+        homeserver: &str,
+        username: &str,
+        password: &str,
     ) -> anyhow::Result<(Client, String)> {
         info!("No previous session found, logging in…");
 
-        let (client, client_session) = build_client(homeserver).await?;
+        let (client, client_session) = build_client(homeserver.to_string()).await?;
 
         match client
             .login_username(&username, &password)

@@ -21,7 +21,12 @@ pub struct UseClientState {
 
 impl UseClientState {
     pub fn get(&self) -> Client {
-        self.inner.read().deref().client.clone().unwrap()
+        self.inner
+            .read()
+            .deref()
+            .client
+            .clone()
+            .expect("Client not provided")
     }
 
     pub fn set(&self, client: MatrixClientState) {
