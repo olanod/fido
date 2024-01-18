@@ -616,7 +616,7 @@ pub mod matrix {
     pub async fn deserialize_any_timeline_event(
         ev: AnySyncTimelineEvent,
         room: &Room,
-        logged_user_id: &String,
+        logged_user_id: &str,
         client: &Client,
     ) -> Option<TimelineRelation> {
         match ev {
@@ -690,7 +690,7 @@ pub mod matrix {
     pub async fn deserialize_timeline_event(
         ev: AnyTimelineEvent,
         room: &Room,
-        logged_user_id: &String,
+        logged_user_id: &str,
         client: &Client,
     ) -> Option<TimelineMessage> {
         match ev {
@@ -722,7 +722,7 @@ pub mod matrix {
         n: &MessageType,
         event: OwnedEventId,
         member: &RoomMember,
-        logged_user_id: &String,
+        logged_user_id: &str,
         time: MilliSecondsSinceUnixEpoch,
         client: &Client,
     ) -> Option<TimelineMessage> {
@@ -1062,7 +1062,7 @@ pub mod matrix {
         room: &Room,
         message_result: TimelineMessage,
         member: &RoomMember,
-        logged_user_id: &String,
+        logged_user_id: &str,
         time: MilliSecondsSinceUnixEpoch,
         client: &Client,
     ) -> Option<TimelineRelation> {
@@ -1213,9 +1213,9 @@ pub mod matrix {
     use matrix_sdk::ruma::api::client::account::register::v3::Request as RegistrationRequest;
 
     pub async fn prepare_register(
-        homeserver: &String,
-        username: &String,
-        password: &String,
+        homeserver: &str,
+        username: &str,
+        password: &str,
     ) -> anyhow::Result<(Client, String), Error> {
         let mut request = RegistrationRequest::new();
         request.username = Some(&username);

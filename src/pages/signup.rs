@@ -177,15 +177,12 @@ pub fn Signup(cx: Scope) -> Element {
             async move {
                 let login_config = auth.build();
 
-                let response = match login_config {
-                    Ok(info) => {
-                        prepare_register(&info.server.into(), &info.username, &info.password).await
-                    }
-                    Err(_) => {
-                        reset_login_info(&auth, &homeserver, &username, &password);
-                        return;
-                    }
+                let Ok(info) = login_config else {
+                    reset_login_info(&auth, &homeserver, &username, &password);
+                    return;
                 };
+                let response =
+                    prepare_register(info.server.as_str(), &info.username, &info.password).await;
 
                 if let Err(Error::Http(HttpError::UiaaError(FromHttpResponseError::Server(
                     ServerError::Known(ref f_error),
@@ -226,20 +223,14 @@ pub fn Signup(cx: Scope) -> Element {
             async move {
                 let recaptcha_token = <LocalStorage as gloo::storage::Storage>::get("recaptcha");
                 let session_id = session_ref.read().clone();
-                let token = match recaptcha_token {
-                    Ok(token) => token,
-                    Err(_) => {
-                        info!("token not found");
-                        return;
-                    }
+                let Ok(token) = recaptcha_token else {
+                    info!("token not found");
+                    return;
                 };
 
-                let info = match auth.build() {
-                    Ok(info) => info,
-                    Err(_) => {
-                        reset_login_info(&auth, &homeserver, &username, &password);
-                        return;
-                    }
+                let Ok(info) = auth.build() else {
+                    reset_login_info(&auth, &homeserver, &username, &password);
+                    return;
                 };
 
                 let response = register(
@@ -249,44 +240,32 @@ pub fn Signup(cx: Scope) -> Element {
                     Some(token),
                     session_id,
                 )
-                .await;
+                .await
+                .expect("TODO: handle failed registration");
 
-                let login_response = match response {
-                    Ok((ref c, ref serialized_session)) => {
-                        login(&info.server.to_string(), &info.username, &info.password).await
-                    }
-
-                    Err(error) => todo!(),
+                let Ok((c, serialized_session)) =
+                    login(info.server.as_str(), &info.username, &info.password).await
+                else {
+                    is_loading_loggedin.set(LoggedInStatus::Start);
+                    *before_session.write() = BeforeSession::Login;
+                    return;
                 };
 
-                match login_response {
-                    Ok((c, serialized_session)) => {
-                        is_loading_loggedin.set(LoggedInStatus::Done);
+                is_loading_loggedin.set(LoggedInStatus::Done);
 
-                        <LocalStorage as gloo::storage::Storage>::set(
-                            "session_file",
-                            serialized_session,
-                        );
+                <LocalStorage as gloo::storage::Storage>::set("session_file", serialized_session);
 
-                        is_loading_loggedin.set(LoggedInStatus::Persisting);
+                is_loading_loggedin.set(LoggedInStatus::Persisting);
 
-                        session.sync(c.clone(), None).await;
+                session.sync(c.clone(), None).await;
 
-                        client.set(crate::MatrixClientState {
-                            client: Some(c.clone()),
-                        });
+                client.set(crate::MatrixClientState {
+                    client: Some(c.clone()),
+                });
 
-                        is_loading_loggedin
-                            .set(LoggedInStatus::LoggedAs(c.user_id().unwrap().to_string()));
+                is_loading_loggedin.set(LoggedInStatus::LoggedAs(c.user_id().unwrap().to_string()));
 
-                        auth.set_logged_in(true);
-                    }
-                    Err(err) => {
-                        info!("{:?}", err.to_string());
-                        is_loading_loggedin.set(LoggedInStatus::Start);
-                        *before_session.write() = BeforeSession::Login
-                    }
-                }
+                auth.set_logged_in(true);
             }
         })
     };
