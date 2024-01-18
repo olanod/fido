@@ -6,7 +6,7 @@ use gloo::storage::{LocalStorage, Storage};
 use log::info;
 use matrix_sdk::{Error, HttpError};
 use ruma::api::{
-    client::uiaa::{self, AuthType},
+    client::uiaa::{self, AuthType, UiaaResponse},
     error::{FromHttpResponseError, ServerError},
 };
 use serde_json::Value;
@@ -18,7 +18,9 @@ use crate::{
         organisms::{login_form::FormLoginEvent, LoginForm},
     },
     hooks::{
-        use_auth::use_auth, use_client::use_client, use_init_app::BeforeSession,
+        use_auth::{use_auth, UseAuthState},
+        use_client::use_client,
+        use_init_app::BeforeSession,
         use_session::use_session,
     },
     pages::login::LoggedInStatus,
@@ -149,11 +151,7 @@ pub fn Signup(cx: Scope) -> Element {
             to_owned![homeserver, username, password, auth];
 
             async move {
-                auth.reset();
-
-                homeserver.set(String::new());
-                username.set(String::new());
-                password.set(String::new());
+                reset_login_info(&auth, &homeserver, &username, &password);
             }
         })
     };
@@ -165,105 +163,47 @@ pub fn Signup(cx: Scope) -> Element {
         auth.set_password(password.get().clone());
 
         cx.spawn({
-            to_owned![auth, username, password, client, error, flows, session_ref, homeserver];
+            to_owned![
+                auth,
+                username,
+                password,
+                client,
+                error,
+                flows,
+                session_ref,
+                homeserver
+            ];
 
             async move {
                 let login_config = auth.build();
 
-                match login_config {
+                let response = match login_config {
                     Ok(info) => {
-                        let response = prepare_register(
-                            &info.server.into(),
-                            &info.username,
-                            &info.password,
-                        )
-                        .await;
-
-                        match response {
-                            Ok(_) => todo!(),
-                            Err(ref e) => match e {
-                                Error::Http(HttpError::UiaaError(FromHttpResponseError::Server(
-                                    ServerError::Known(flow_error),
-                                ))) => match flow_error {
-                                    uiaa::UiaaResponse::AuthResponse(uiaa_info) => {
-                                        let completed = &uiaa_info.completed;
-                                        let mut flows_to_complete: Vec<AuthType> = vec![];
-
-                                        uiaa_info.flows[0].stages.iter().for_each(|f| {
-                                            if completed.iter().find(|e| *e == f).is_none() {
-                                                flows_to_complete.push(f.clone());
-                                            }
-                                            session_ref.set(uiaa_info.session.clone());
-
-                                            match f {
-                                                AuthType::ReCaptcha => {
-                                                    let params = uiaa_info.params.deref().get();
-                                                    let uiaa_response: Result<
-                                                        HashMap<String, _>,
-                                                        serde_json::Error,
-                                                    > = serde_json::from_str(params);
-
-                                                    match uiaa_response {
-                                                        Ok(u) => {
-                                                            let m = u.get("m.login.recaptcha");
-
-                                                            if let Some(Value::Object(ref recaptcha)) = m {
-                                                                if let Some(Value::String(public_key)) =
-                                                                    recaptcha.get("public_key")
-                                                                {
-                                                                    gloo::storage::LocalStorage::set(
-                                                                        "sitekey",
-                                                                        public_key.clone(),
-                                                                    );
-                                                                }
-                                                            }
-                                                        }
-                                                        Err(_) => todo!(),
-                                                    };
-                                                }
-                                                _ => {
-                                                    info!("Unsuported flow");
-                                                }
-                                            }
-                                        });
-
-                                        flows.set(flows_to_complete)
-                                    }
-                                    uiaa::UiaaResponse::MatrixError(e) => {
-                                        homeserver.set(String::new());
-                                        username.set(String::new());
-                                        password.set(String::new());
-                                        
-                                        auth.reset();
-
-                                        error.set(Some(e.message.clone()));
-                                    }
-                                    _ => {
-                                        homeserver.set(String::new());
-                                        username.set(String::new());
-                                        password.set(String::new());
-
-                                        auth.reset();
-                                        
-                                        error.set(Some(String::from("Unspecified error")));
-                                    },
-                                },
-                                _ => {
-                                    todo!()
-                                }
-                            },
-                        }
-
-                        info!("response {response:?}");
+                        prepare_register(&info.server.into(), &info.username, &info.password).await
                     }
-                    Err(e) => {
-                        homeserver.set(String::from(""));
-                        username.set(String::from(""));
-                        password.set(String::from(""));
-
-                        auth.reset()
+                    Err(_) => {
+                        reset_login_info(&auth, &homeserver, &username, &password);
+                        return;
                     }
+                };
+
+                if let Err(Error::Http(HttpError::UiaaError(FromHttpResponseError::Server(
+                    ServerError::Known(ref f_error),
+                )))) = response
+                {
+                    flow_error(
+                        &auth,
+                        &homeserver,
+                        &username,
+                        &password,
+                        &session_ref,
+                        &error,
+                        &f_error,
+                        &flows,
+                    )
                 }
+
+                info!("response {response:?}");
             }
         })
     };
@@ -286,69 +226,65 @@ pub fn Signup(cx: Scope) -> Element {
             async move {
                 let recaptcha_token = <LocalStorage as gloo::storage::Storage>::get("recaptcha");
                 let session_id = session_ref.read().clone();
-                match recaptcha_token {
-                    Ok(token) => {
-                        let login_config = auth.build();
-
-                        match login_config {
-                            Ok(info) => {
-                                let response = register(
-                                    &info.server.to_string(),
-                                    &info.username,
-                                    &info.password,
-                                    Some(token),
-                                    session_id,
-                                )
-                                .await;
-
-                                match response {
-                                    Ok((ref c, ref serialized_session)) => {
-                                        let response =
-                                            login(&info.server.to_string(), &info.username, &info.password).await;
-
-                                        match response {
-                                            Ok((c, serialized_session)) => {
-                                                is_loading_loggedin.set(LoggedInStatus::Done);
-                                                let x =
-                                                    <LocalStorage as gloo::storage::Storage>::set(
-                                                        "session_file",
-                                                        serialized_session,
-                                                    );
-
-                                                is_loading_loggedin.set(LoggedInStatus::Persisting);
-
-                                                session.sync(c.clone(), None).await;
-
-                                                client.set(crate::MatrixClientState {
-                                                    client: Some(c.clone()),
-                                                });
-                                                is_loading_loggedin.set(LoggedInStatus::LoggedAs(
-                                                    c.user_id().unwrap().to_string(),
-                                                ));
-
-                                                auth.set_logged_in(true);
-                                            }
-                                            Err(err) => {
-                                                info!("{:?}", err.to_string());
-                                                is_loading_loggedin.set(LoggedInStatus::Start);
-                                                *before_session.write() = BeforeSession::Login
-                                            }
-                                        }
-                                    }
-                                    Err(error) => todo!(),
-                                }
-                            }
-                            Err(e) => {
-                                homeserver.set(String::from(""));
-                                username.set(String::from(""));
-                                password.set(String::from(""));
-
-                                auth.reset()
-                            }
-                        }
-                    }
+                let token = match recaptcha_token {
+                    Ok(token) => token,
                     Err(_) => {
                         info!("token not found");
+                        return;
+                    }
+                };
+
+                let info = match auth.build() {
+                    Ok(info) => info,
+                    Err(_) => {
+                        reset_login_info(&auth, &homeserver, &username, &password);
+                        return;
+                    }
+                };
+
+                let response = register(
+                    &info.server.to_string(),
+                    &info.username,
+                    &info.password,
+                    Some(token),
+                    session_id,
+                )
+                .await;
+
+                let login_response = match response {
+                    Ok((ref c, ref serialized_session)) => {
+                        login(&info.server.to_string(), &info.username, &info.password).await
+                    }
+
+                    Err(error) => todo!(),
+                };
+
+                match login_response {
+                    Ok((c, serialized_session)) => {
+                        is_loading_loggedin.set(LoggedInStatus::Done);
+
+                        <LocalStorage as gloo::storage::Storage>::set(
+                            "session_file",
+                            serialized_session,
+                        );
+
+                        is_loading_loggedin.set(LoggedInStatus::Persisting);
+
+                        session.sync(c.clone(), None).await;
+
+                        client.set(crate::MatrixClientState {
+                            client: Some(c.clone()),
+                        });
+
+                        is_loading_loggedin
+                            .set(LoggedInStatus::LoggedAs(c.user_id().unwrap().to_string()));
+
+                        auth.set_logged_in(true);
+                    }
+                    Err(err) => {
+                        info!("{:?}", err.to_string());
+                        is_loading_loggedin.set(LoggedInStatus::Start);
+                        *before_session.write() = BeforeSession::Login
                     }
                 }
             }
@@ -370,7 +306,7 @@ pub fn Signup(cx: Scope) -> Element {
                 FormLoginEvent::FilledForm => on_update_homeserver(),
                 FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
                 FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
-                FormLoginEvent::ClearData => on_handle_clear()
+                FormLoginEvent::ClearData => on_handle_clear(),
             },
             body: render!(rsx!(
                 div {
@@ -409,7 +345,7 @@ pub fn Signup(cx: Scope) -> Element {
                 FormLoginEvent::FilledForm => on_handle_login(),
                 FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
                 FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
-                FormLoginEvent::ClearData => on_handle_clear()
+                FormLoginEvent::ClearData => on_handle_clear(),
             },
             body: render!(rsx!(
                 div {
@@ -475,7 +411,7 @@ pub fn Signup(cx: Scope) -> Element {
                                 FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
                                 FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
                                 FormLoginEvent::ClearData => on_handle_clear()
-                                
+
                             },
                             body: render!(rsx!(div {
                                 style: "
@@ -500,4 +436,80 @@ pub fn Signup(cx: Scope) -> Element {
             }
         )
     })
+}
+
+fn flow_error(
+    auth: &UseAuthState,
+    homeserver: &UseState<String>,
+    username: &UseState<String>,
+    password: &UseState<String>,
+    session_ref: &UseRef<Option<String>>,
+    error: &UseState<Option<String>>,
+    f_error: &UiaaResponse,
+    flows: &UseRef<Vec<AuthType>>,
+) {
+    match f_error {
+        uiaa::UiaaResponse::AuthResponse(uiaa_info) => {
+            let completed = &uiaa_info.completed;
+            let mut flows_to_complete: Vec<AuthType> = vec![];
+
+            uiaa_info.flows[0].stages.iter().for_each(|f| {
+                if completed.iter().find(|e| *e == f).is_none() {
+                    flows_to_complete.push(f.clone());
+                }
+                session_ref.set(uiaa_info.session.clone());
+
+                match f {
+                    AuthType::ReCaptcha => {
+                        let params = uiaa_info.params.deref().get();
+                        let uiaa_response = serde_json::from_str(params);
+
+                        set_site_key(uiaa_response)
+                    }
+                    _ => {
+                        info!("Unsuported flow");
+                    }
+                }
+            });
+
+            flows.set(flows_to_complete)
+        }
+        uiaa::UiaaResponse::MatrixError(e) => {
+            reset_login_info(&auth, &homeserver, &username, &password);
+
+            error.set(Some(e.message.clone()));
+        }
+        _ => {
+            reset_login_info(&auth, &homeserver, &username, &password);
+
+            error.set(Some(String::from("Unspecified error")));
+        }
+    }
+}
+
+fn reset_login_info(
+    auth: &UseAuthState,
+    homeserver: &UseState<String>,
+    username: &UseState<String>,
+    password: &UseState<String>,
+) {
+    homeserver.set(String::from(""));
+    username.set(String::from(""));
+    password.set(String::from(""));
+    auth.reset();
+}
+
+fn set_site_key(uiaa_response: Result<HashMap<String, Value>, serde_json::Error>) {
+    match uiaa_response {
+        Ok(u) => {
+            let m = u.get("m.login.recaptcha");
+
+            if let Some(Value::Object(ref recaptcha)) = m {
+                if let Some(Value::String(public_key)) = recaptcha.get("public_key") {
+                    gloo::storage::LocalStorage::set("sitekey", public_key.clone());
+                }
+            }
+        }
+        Err(_) => todo!(),
+    };
 }

@@ -1239,9 +1239,9 @@ pub mod matrix {
         }
     }
     pub async fn register(
-        homeserver: &String,
-        username: &String,
-        password: &String,
+        homeserver: &str,
+        username: &str,
+        password: &str,
         recaptcha_token: Option<String>,
         session: Option<String>,
     ) -> anyhow::Result<(Client, String), Error> {

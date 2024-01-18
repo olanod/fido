@@ -78,7 +78,7 @@ impl LoginInfoBuilder {
 
 #[allow(clippy::needless_return)]
 pub fn use_auth(cx: &ScopeState) -> &UseAuthState {
-    let logged_in = use_shared_state::<LoggedIn>(cx).unwrap();
+    let logged_in = use_shared_state::<LoggedIn>(cx).expect("Unable to use LoggedIn");
     let login_cache =
         use_shared_state::<Option<CacheLogin>>(cx).expect("Unable to read login cache");
 
@@ -117,16 +117,14 @@ impl UseAuthState {
                 Url::parse(&format!("https://{homeserver}"))
             };
 
-        let result = server_parsed
-            .map_err(|_| AuthError::InvalidHomeserver)
-            .and_then(|server| {
-                Client::builder()
-                    .homeserver_url(&server.as_str())
-                    .build()
-                    .await
-                    .map(|_| server)
-                    .map_err(|_| AuthError::ServerNotFound)
-            });
+        let server = server_parsed.map_err(|_| AuthError::InvalidHomeserver)?;
+
+        let result = Client::builder()
+            .homeserver_url(&server.as_str())
+            .build()
+            .await
+            .map(|_| server)
+            .map_err(|_| AuthError::ServerNotFound);
 
         match result {
             Ok(server) => {

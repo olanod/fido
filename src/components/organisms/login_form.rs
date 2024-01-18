@@ -58,9 +58,14 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
             key_onboard_signup_cta,
             translate!(i18, "onboard.signup.cta"),
         ),
-        (key_login_chat_saved_another_user, translate!(i18, "login.chat_steps.saved.another_user")),
-        (key_login_chat_saved_cta_another, translate!(i18, "login.chat_steps.saved.cta_another")),
-
+        (
+            key_login_chat_saved_another_user,
+            translate!(i18, "login.chat_steps.saved.another_user"),
+        ),
+        (
+            key_login_chat_saved_cta_another,
+            translate!(i18, "login.chat_steps.saved.cta_another"),
+        ),
     ]);
 
     let before_session =
@@ -205,37 +210,28 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                     style: "{login_style}",
                     if cx.props.clear_data {
                         let i18n_map = i18n_map.clone();
-                        info!("login_form display_name {:?}", auth.get_login_cache());
-                        let username = match auth.get_login_cache() {
-                            Some(data) => {
-                                Some(data.username)
-                            },
-                            None => {
-                                None
-                            }
-                          };
 
-                        if let Some(username) = username {
-                            rsx!(
-                                p {
-                                    style: "margin-bottom: 8px;",
-                                    "{i18n_get_key_value(&i18n_map, key_login_chat_saved_another_user)} {username}?"
-                                    button {
-                                        style: "
-                                            {login_style}
-                                            color: var(--text-1);
-                                        ",
-                                        class: "button button--tertiary",
-                                        onclick: move |_| {
-                                            cx.props.on_handle.call(FormLoginEvent::ClearData)
-                                        },
-                                        "{i18n_get_key_value(&i18n_map, key_login_chat_saved_cta_another)}",
+                        auth.get_login_cache().map(|data| {
+                            render!(
+                                rsx!(
+                                    p {
+                                        style: "margin-bottom: 8px;",
+                                        "{i18n_get_key_value(&i18n_map, key_login_chat_saved_another_user)} {data.username}?"
+                                        button {
+                                            style: "
+                                                {login_style}
+                                                color: var(--text-1);
+                                            ",
+                                            class: "button button--tertiary",
+                                            onclick: move |_| {
+                                                cx.props.on_handle.call(FormLoginEvent::ClearData)
+                                            },
+                                            "{i18n_get_key_value(&i18n_map, key_login_chat_saved_cta_another)}",
+                                        }
                                     }
-                                }
+                                )
                             )
-                        } else {
-                            rsx!(div {})
-                        }
+                        })
                     }
                     match *before_session.read() {
                         BeforeSession::Login => rsx!(
