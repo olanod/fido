@@ -412,7 +412,7 @@ ul {
   gap: 10px;
 }
 
-.row > * {
+.row>* {
   flex: 1;
 }
 
@@ -481,11 +481,11 @@ ul {
   color: var(--text-1);
 }
 
-.hover-menu > ul > li > button {
+.hover-menu>ul>li>button {
   cursor: pointer;
 }
 
-.hover-menu > ul > li:not(:last-child) {
+.hover-menu>ul>li:not(:last-child) {
   border-bottom: 1px solid var(--border);
 }
 
@@ -545,8 +545,7 @@ ul {
   text-transform: uppercase;
 }
 
-.message__content {
-}
+.message__content {}
 
 .message__sender {
   color: var(--text-1);
@@ -559,7 +558,8 @@ ul {
   font-size: 16px;
   font-style: normal;
   font-weight: 400;
-  line-height: 20px; /* 125% */
+  line-height: 20px;
+  /* 125% */
   white-space: pre-line;
 }
 
@@ -569,7 +569,8 @@ ul {
   font-size: 16px;
   font-style: normal;
   font-weight: 400;
-  line-height: 20px; /* 125% */
+  line-height: 20px;
+  /* 125% */
   white-space: pre-line;
 }
 
@@ -1182,7 +1183,8 @@ ul {
   font-size: 24px;
   font-style: normal;
   font-weight: 500;
-  line-height: 32px; /* 133.333% */
+  line-height: 32px;
+  /* 133.333% */
   letter-spacing: -0.24px;
   padding-top: 6px;
   margin: auto;
@@ -1246,8 +1248,7 @@ ul {
   margin-bottom: 8px;
 }
 
-.group {
-}
+.group {}
 
 .group__attach {
   height: 100%;
@@ -1372,8 +1373,7 @@ ul {
   margin-top: 24px;
 }
 
-.verify {
-}
+.verify {}
 
 .verify__title {
   margin-top: 40px;
@@ -1459,4 +1459,15 @@ ul {
 
 .room-new__items {
   margin-top: 10px;
+}
+
+.page--clamp {
+  max-width: 50%;
+  margin: 0 auto;
+}
+
+@media only screen and (max-width: 768px) {
+  .page--clamp {
+    max-width: 100%;
+  }
 }

@@ -270,148 +270,153 @@ pub fn Signup(cx: Scope) -> Element {
         })
     };
 
-    render!(if auth.get().data.server.is_none() {
-        rsx!(LoginForm {
-            title: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_message)}",
-            description: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_description)}",
-            button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_cta)}",
-            emoji: "🛰️",
-            error: if error.get().is_some() {
-                error.get().as_ref()
+    render!(
+        div {
+            class: "page--clamp",
+            if auth.get().data.server.is_none() {
+                rsx!(LoginForm {
+                    title: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_message)}",
+                    description: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_description)}",
+                    button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_cta)}",
+                    emoji: "🛰️",
+                    error: if error.get().is_some() {
+                        error.get().as_ref()
+                    } else {
+                        None
+                    },
+                    on_handle: move |event: FormLoginEvent| match event {
+                        FormLoginEvent::FilledForm => on_update_homeserver(),
+                        FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
+                        FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+                        FormLoginEvent::ClearData => on_handle_clear(),
+                    },
+                    body: render!(rsx!(
+                        div {
+                            MessageInput {
+                                message: "{homeserver.get()}",
+                                placeholder: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_placeholder)}",
+                                error: None,
+                                on_input: move |event: FormEvent| {
+                                    homeserver.set(event.value.clone())
+                                },
+                                on_keypress: move |event: KeyboardEvent| {
+                                    info!("{:?}", event.code());
+                                    if event.code() == keyboard_types::Code::Enter && homeserver.get().len() > 0 {
+                                        on_update_homeserver()
+                                    }
+                                },
+                                on_click: move |_| {
+                                    on_update_homeserver()
+                                }
+                            }
+                        }
+                    ))
+                })
+            } else if auth.get().data.username.is_none() || auth.get().data.password.is_none() {
+                rsx!(LoginForm {
+                    title: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_title)}",
+                    description: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_description)}",
+                    button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_cta)}",
+                    emoji: "✍️",
+                    error: if error.get().is_some() {
+                        error.get().as_ref()
+                    } else {
+                        None
+                    },
+                    on_handle: move |event: FormLoginEvent| match event {
+                        FormLoginEvent::FilledForm => on_handle_login(),
+                        FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
+                        FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+                        FormLoginEvent::ClearData => on_handle_clear(),
+                    },
+                    body: render!(rsx!(
+                        div {
+                            MessageInput {
+                                message: "{username.get()}",
+                                placeholder: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_username_placeholder)}",
+                                error: None,
+                                on_input: move |event: FormEvent| {
+                                    username.set(event.value.clone())
+                                },
+                                on_keypress: move |event: KeyboardEvent| {
+                                    if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() {
+                                        auth.set_username(username.get().clone(), false)
+                                    }
+                                },
+                                on_click: move |_| {
+                                    auth.set_username(username.get().clone(), false)
+                                }
+                            }
+                        }
+
+                        div {
+                            MessageInput {
+                                itype: InputType::Password,
+                                message: "{password.get()}",
+                                placeholder: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_password_placeholder)}",
+                                error: None,
+                                on_input: move |event: FormEvent| {
+                                    password.set(event.value.clone())
+                                },
+                                on_keypress: move |event: KeyboardEvent| {
+                                    if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() && !password.get().is_empty() {
+                                        auth.set_password(password.get().clone());
+                                    }
+                                },
+                                on_click: move |_| {
+                                    auth.set_password(password.get().clone());
+                                }
+                            }
+                        }
+                    ))
+                })
+            } else if flows.read().len() > 0 {
+                let f = flows.read();
+                let flows = f.clone();
+
+                let mut element = rsx!(div {});
+
+                for flow in flows.iter() {
+                    let i18n_map = i18n_map.clone();
+                    element = match flow {
+                        AuthType::ReCaptcha => rsx!(
+                            div {
+                                onmounted: move |_| onloadCallback(),
+                                LoginForm {
+                                    title: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_title)}",
+                                    description: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_description)}",
+                                    button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_cta)}",
+                                    emoji: "✍️",
+                                    error: if error.get().is_some() { error.get().as_ref() } else { None },
+                                    on_handle: move |event: FormLoginEvent| match event {
+                                        FormLoginEvent::FilledForm => on_handle_captcha(),
+                                        FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
+                                        FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+                                        FormLoginEvent::ClearData => on_handle_clear()
+
+                                    },
+                                    body: render!(rsx!(div {
+                                        class: "signup__flow",
+                                        id: "recaptcha-container",
+                                    }))
+                                }
+                            }
+                        ),
+                        _ => rsx!(div {}),
+                    };
+                }
+
+                element
             } else {
-                None
-            },
-            on_handle: move |event: FormLoginEvent| match event {
-                FormLoginEvent::FilledForm => on_update_homeserver(),
-                FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
-                FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
-                FormLoginEvent::ClearData => on_handle_clear(),
-            },
-            body: render!(rsx!(
-                div {
-                    MessageInput {
-                        message: "{homeserver.get()}",
-                        placeholder: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_placeholder)}",
-                        error: None,
-                        on_input: move |event: FormEvent| {
-                            homeserver.set(event.value.clone())
-                        },
-                        on_keypress: move |event: KeyboardEvent| {
-                            info!("{:?}", event.code());
-                            if event.code() == keyboard_types::Code::Enter && homeserver.get().len() > 0 {
-                                on_update_homeserver()
-                            }
-                        },
-                        on_click: move |_| {
-                            on_update_homeserver()
-                        }
-                    }
-                }
-            ))
-        })
-    } else if auth.get().data.username.is_none() || auth.get().data.password.is_none() {
-        rsx!(LoginForm {
-            title: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_title)}",
-            description: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_description)}",
-            button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_cta)}",
-            emoji: "✍️",
-            error: if error.get().is_some() {
-                error.get().as_ref()
-            } else {
-                None
-            },
-            on_handle: move |event: FormLoginEvent| match event {
-                FormLoginEvent::FilledForm => on_handle_login(),
-                FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
-                FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
-                FormLoginEvent::ClearData => on_handle_clear(),
-            },
-            body: render!(rsx!(
-                div {
-                    MessageInput {
-                        message: "{username.get()}",
-                        placeholder: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_username_placeholder)}",
-                        error: None,
-                        on_input: move |event: FormEvent| {
-                            username.set(event.value.clone())
-                        },
-                        on_keypress: move |event: KeyboardEvent| {
-                            if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() {
-                                auth.set_username(username.get().clone(), false)
-                            }
-                        },
-                        on_click: move |_| {
-                            auth.set_username(username.get().clone(), false)
-                        }
-                    }
-                }
-
-                div {
-                    MessageInput {
-                        itype: InputType::Password,
-                        message: "{password.get()}",
-                        placeholder: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_password_placeholder)}",
-                        error: None,
-                        on_input: move |event: FormEvent| {
-                            password.set(event.value.clone())
-                        },
-                        on_keypress: move |event: KeyboardEvent| {
-                            if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() && !password.get().is_empty() {
-                                auth.set_password(password.get().clone());
-                            }
-                        },
-                        on_click: move |_| {
-                            auth.set_password(password.get().clone());
-                        }
-                    }
-                }
-            ))
-        })
-    } else if flows.read().len() > 0 {
-        let f = flows.read();
-        let flows = f.clone();
-
-        let mut element = rsx!(div {});
-
-        for flow in flows.iter() {
-            let i18n_map = i18n_map.clone();
-            element = match flow {
-                AuthType::ReCaptcha => rsx!(
+                rsx!(
                     div {
-                        onmounted: move |_| onloadCallback(),
-                        LoginForm {
-                            title: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_title)}",
-                            description: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_description)}",
-                            button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_cta)}",
-                            emoji: "✍️",
-                            error: if error.get().is_some() { error.get().as_ref() } else { None },
-                            on_handle: move |event: FormLoginEvent| match event {
-                                FormLoginEvent::FilledForm => on_handle_captcha(),
-                                FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
-                                FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
-                                FormLoginEvent::ClearData => on_handle_clear()
-
-                            },
-                            body: render!(rsx!(div {
-                                class: "signup__flow",
-                                id: "recaptcha-container",
-                            }))
-                        }
+                        class: "column spinner-dual-ring--center",
+                        Spinner {}
                     }
-                ),
-                _ => rsx!(div {}),
-            };
-        }
-
-        element
-    } else {
-        rsx!(
-            div {
-                class: "column spinner-dual-ring--center",
-                Spinner {}
+                )
             }
-        )
-    })
+        }
+    )
 }
 
 fn flow_error(

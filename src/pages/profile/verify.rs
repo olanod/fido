@@ -231,85 +231,88 @@ pub fn Verify(cx: Scope, id: String) -> Element {
     };
 
     render! {
-        if !*is_verified.read() {
-            rsx!(
-                h2 {
-                    class: "verify__title",
-                    "Verificar sesion"
-                }
+        div {
+            class: "page--clamp",
+            if !*is_verified.read() {
+                rsx!(
+                    h2 {
+                        class: "verify__title",
+                        "Verificar sesion"
+                    }
 
-                div {
-                    class: "verify__spacer",
-                    match emoji.get(){
-                        Some(sas) => {
-                            let emojis = sas.emoji().expect("emoji shoudl be available now");
+                    div {
+                        class: "verify__spacer",
+                        match emoji.get(){
+                            Some(sas) => {
+                                let emojis = sas.emoji().expect("emoji shoudl be available now");
 
-                                rsx!(
-                                    p {
-                                        class: "verify__description",
-                                        "Verifica si los emojis coinciden con la otra sesion, en el mismo orden"
-                                    }
-                                    div {
-                                        class: "verify__wrapper",
-                                        emojis.into_iter().map(|emoji| {
-                                            rsx!(
-                                                div {
-                                                    class: "verify__emojis",
-                                                    span {
-                                                        class: "verify__method__title",
-                                                        "{emoji.symbol}"
+                                    rsx!(
+                                        p {
+                                            class: "verify__description",
+                                            "Verifica si los emojis coinciden con la otra sesion, en el mismo orden"
+                                        }
+                                        div {
+                                            class: "verify__wrapper",
+                                            emojis.into_iter().map(|emoji| {
+                                                rsx!(
+                                                    div {
+                                                        class: "verify__emojis",
+                                                        span {
+                                                            class: "verify__method__title",
+                                                            "{emoji.symbol}"
+                                                        }
+                                                        p {
+                                                            class: "verify__method__description",
+                                                            "{emoji.description}"
+                                                        }
                                                     }
-                                                    p {
-                                                        class: "verify__method__description",
-                                                        "{emoji.description}"
-                                                    }
+                                                )
+                                            })
+                                        }
+                                        div {
+                                            class: "verify__spacer row",
+                                            Button {
+                                                text: "No coincide",
+                                                on_click: move |_| {
+                                                    on_handle_cancel(sas.clone());
                                                 }
-                                            )
-                                        })
-                                    }
+                                            }
+                                            Button {
+                                                text: "Si, coincide",
+                                                on_click: move |_| {
+                                                    on_handle_confirm(sas.clone());
+                                                }
+                                            }
+                                        }
+                                    )
+
+                            }
+                            None => {
+                                rsx!(
                                     div {
-                                        class: "verify__spacer row",
-                                        Button {
-                                            text: "No coincide",
-                                            on_click: move |_| {
-                                                on_handle_cancel(sas.clone());
-                                            }
-                                        }
-                                        Button {
-                                            text: "Si, coincide",
-                                            on_click: move |_| {
-                                                on_handle_confirm(sas.clone());
-                                            }
-                                        }
+                                        class: "verify__info",
+                                        "Para inicar la verificacion, ve a otro dispositivo desde el que iniciaste sesion y solicita la verificacion"
                                     }
                                 )
+                            }
 
                         }
-                        None => {
-                            rsx!(
-                                div {
-                                    class: "verify__info",
-                                    "Para inicar la verificacion, ve a otro dispositivo desde el que iniciaste sesion y solicita la verificacion"
-                                }
-                            )
-                        }
-
                     }
-                }
 
-            )
-        }else {
-            rsx!(
-                h2 {
-                    class: "verify__title--verified",
-                    "Verificacion completada"
-                }
+                )
+            } else {
+                rsx!(
+                    h2 {
+                        class: "verify__title--verified",
+                        "Verificacion completada"
+                    }
 
-                p {
-                    class: "verify__description--verified",
-                    "Haz verificado este dispositivo."
-                }
-            )
+                    p {
+                        class: "verify__description--verified",
+                        "Haz verificado este dispositivo."
+                    }
+                )
+            }
         }
     }
 }
