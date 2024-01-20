@@ -65,13 +65,11 @@ pub fn IndexMenu(cx: Scope) -> Element {
 
     cx.render(rsx!(
         article {
-            // if current_room.read().name.is_empty() {
-                rsx!(
-                    HeaderMain{
-                        on_event: header_event
-                    }
-                )
-            // }
+            rsx!(
+                HeaderMain{
+                    on_event: header_event
+                }
+            )
 
             if *show_menu.read() {
                 rsx!(

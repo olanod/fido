@@ -59,19 +59,19 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
         None => vec![MenuOption::CreateThread, MenuOption::Reply],
     });
 
-    let message__content__image = if cx.props.is_replying {
+    let message_content_image = if cx.props.is_replying {
         "message__content__image--is-replying"
     } else {
         "message__content__image--not-replying"
     };
 
-    let message__content__video = if cx.props.is_replying {
+    let message_content_video = if cx.props.is_replying {
         "message__content__video--is-replying"
     } else {
         "message__content__video--not-replying"
     };
 
-    let message__content__text = match cx.props.message.origin {
+    let message_content_text = match cx.props.message.origin {
         EventOrigin::ME => "message__content--me",
         EventOrigin::OTHER => "message__content--other",
     };
@@ -151,7 +151,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                   p {
                     class: "message--text",
                     span {
-                      class: "{message__content__text}",
+                      class: "{message_content_text}",
                       "{t}"
                     }
                     span {
@@ -165,7 +165,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                 match i.source.clone().unwrap() {
                   ImageType::URL(url) => {
                     rsx!(img{
-                      class: "{message__content__image}",
+                      class: "{message_content_image}",
                       src: "{url}"
                     })
                   }
@@ -177,7 +177,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
 
                     rsx!(
                       img {
-                        class: "{message__content__image}",
+                        class: "{message_content_image}",
                         src: "{url}"
                       }
                       a {
@@ -202,7 +202,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                   match video.source.as_ref().unwrap() {
                     ImageType::URL(url) => {
                       rsx!(video{
-                        class: "{message__content__video}",
+                        class: "{message_content_video}",
                         src: "{url}",
                         controls: true,
                         autoplay: false
@@ -215,7 +215,7 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
                       let url  = Url::create_object_url_with_blob(&blob).unwrap();
 
                       rsx!(video {
-                        class: "{message__content__video}",
+                        class: "{message_content_video}",
                         src: "{url}",
                         controls: true,
                         autoplay: false

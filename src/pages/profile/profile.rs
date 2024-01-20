@@ -340,13 +340,13 @@ pub fn Profile(cx: Scope) -> Element {
                             Button {
                                 text: "{i18n_get_key_value(&i18n_map, key_management_deactivate_cta_deactivate)}",
                                 on_click: move |_| {
-                                    // cx.spawn({
-                                    //     to_owned!(client);
+                                    cx.spawn({
+                                        to_owned!(client);
 
-                                    //     async move {
-                                    //         client.accoutn
-                                    //     }
-                                    // })
+                                        async move {
+
+                                        }
+                                    })
                                 }
                             }
                         }

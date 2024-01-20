@@ -166,19 +166,19 @@ pub fn ActiveRoom(cx: Scope) -> Element {
 
                 let title_thread = match x {
                     TimelineMessageType::Image(file) => {
-                        String::from(file.body.clone())
+                        file.body.clone()
                     },
                     TimelineMessageType::Text(text) => {
-                        String::from(text.clone())
+                        text.clone()
                     },
                     TimelineMessageType::Html(html) => {
-                        String::from(html.clone())
+                        html.clone()
                     },
                     TimelineMessageType::File(file) => {
-                        String::from(file.body.clone())
+                        file.body.clone()
                     },
                     TimelineMessageType::Video(file) => {
-                        String::from(file.body.clone())
+                        file.body.clone()
                     },
                 };
 
