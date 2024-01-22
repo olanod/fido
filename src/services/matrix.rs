@@ -1,5 +1,9 @@
 pub mod matrix {
-    use std::time::{Duration, UNIX_EPOCH};
+    use std::{
+        collections::HashMap,
+        ops::Deref,
+        time::{Duration, UNIX_EPOCH},
+    };
 
     use chrono::{DateTime, Local, Utc};
     use log::info;
@@ -61,6 +65,11 @@ pub mod matrix {
         pub body: String,
         pub(crate) data: Vec<u8>,
         pub content_type: Mime,
+    }
+
+    pub struct AttachmentStream {
+        pub attachment: Attachment,
+        pub send_to_thread: bool,
     }
 
     pub async fn create_client(homeserver_url_str: String) -> Client {
@@ -236,15 +245,22 @@ pub mod matrix {
         });
     }
 
-    pub async fn list_rooms(client: &Client) -> Vec<RoomItem> {
+    pub struct Conversations {
+        pub rooms: Vec<RoomItem>,
+        pub spaces: HashMap<RoomItem, Vec<RoomItem>>,
+    }
+
+    pub async fn list_rooms_and_spaces(client: &Client) -> Conversations {
         let mut rooms = Vec::new();
-        let x = client.joined_rooms();
+        let mut spaces = HashMap::new();
 
-        // info!("{x:?}");
         for room in client.joined_rooms() {
-            let x = room.avatar_url();
+            let is_direct = room.is_direct();
+            let is_space = room.is_space();
 
-            let avatar_uri: Option<String> = match x {
+            let avatar_url = room.avatar_url();
+
+            let avatar_uri: Option<String> = match avatar_url {
                 Some(avatar) => {
                     let (server, id) = avatar.parts().unwrap();
                     let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=48&height=48&method=crop", server, id);
@@ -254,12 +270,19 @@ pub mod matrix {
             };
 
             if let Some(name) = room.name() {
-                rooms.push(RoomItem {
+                let room = RoomItem {
                     avatar_uri: avatar_uri,
                     id: room.room_id().to_string(),
                     name: name,
                     is_public: room.is_public(),
-                })
+                    is_direct,
+                };
+
+                if is_space {
+                    spaces.insert(room, vec![]);
+                } else {
+                    rooms.push(room);
+                }
             } else {
                 let me = client.whoami().await.unwrap();
                 let users = room.members().await;
@@ -277,16 +300,38 @@ pub mod matrix {
                             id: room.room_id().to_string(),
                             name: String::from(name),
                             is_public: room.is_public(),
+                            is_direct,
                         })
                     }
                 }
             }
         }
 
-        rooms
+        let mut to_list_rooms = vec![];
+
+        for (key, value) in spaces.iter_mut() {
+            rooms.iter().for_each(|room| {
+                let room_homeserver = room.id.split(":").collect::<Vec<&str>>()[1];
+                let space_homeserver = key.id.split(":").collect::<Vec<&str>>()[1];
+
+                if room_homeserver.eq(space_homeserver) && !room.is_direct && !room.id.eq(&key.id) {
+                    value.push(room.clone());
+                } else {
+                    to_list_rooms.push(room.clone());
+                }
+            });
+        }
+
+        info!("final rooms {:#?}, ", to_list_rooms);
+        info!("final spaces {:#?}, ", spaces);
+
+        Conversations {
+            rooms: to_list_rooms,
+            spaces: spaces,
+        }
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(PartialEq, Debug, Clone)]
     pub struct RoomMember {
         pub id: String,
         pub name: String,
@@ -442,7 +487,7 @@ pub mod matrix {
         ME,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(PartialEq, Debug, Clone)]
     pub struct TimelineMessage {
         pub event_id: Option<String>,
         pub sender: RoomMember,
@@ -451,19 +496,19 @@ pub mod matrix {
         pub time: String,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(PartialEq, Debug, Clone)]
     pub struct TimelineMessageReply {
         pub event: TimelineMessage,
         pub reply: Option<TimelineMessage>,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(PartialEq, Debug, Clone)]
     pub struct TimelineMessageThread {
         pub event_id: String,
         pub thread: Vec<TimelineMessage>,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(PartialEq, Debug, Clone)]
     pub struct TimelineThread {
         pub event_id: String,
         pub thread: Vec<TimelineMessage>,
@@ -471,7 +516,7 @@ pub mod matrix {
         pub count: usize,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(PartialEq, Debug, Clone)]
     pub enum TimelineRelation {
         None(TimelineMessage),
         Reply(TimelineMessageReply),

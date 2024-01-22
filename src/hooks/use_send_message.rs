@@ -32,23 +32,31 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                     let room_id = RoomId::parse(message_item.room_id).unwrap();
                     let thread_to = threading_to.read().clone();
 
-                    let reply_event_id = if let Some(e) = message_item.reply_to {
-                        Some(EventId::parse(e).unwrap())
-                    } else {
-                        None
+                    let reply_event_id = match message_item.reply_to {
+                        Some(e) => Some(EventId::parse(e).unwrap()),
+                        None => None,
                     };
 
-                    let thread_event_id = if let Some(e) = &thread_to {
-                        Some(EventId::parse(e.event_id.clone()).unwrap())
-                    } else {
-                        None
+                    let thread_event_id = match &thread_to {
+                        Some(e) => {
+                            if message_item.send_to_thread {
+                                Some(EventId::parse(e.event_id.clone()).unwrap())
+                            } else {
+                                None
+                            }
+                        }
+                        None => None,
                     };
 
-                    let latest_event_id = if let Some(e) = thread_to {
-                        let x = e.latest_event;
-                        Some(EventId::parse(x).unwrap())
-                    } else {
-                        None
+                    let latest_event_id = match thread_to {
+                        Some(e) => {
+                            if message_item.send_to_thread {
+                                Some(EventId::parse(e.latest_event).unwrap())
+                            } else {
+                                None
+                            }
+                        }
+                        None => None,
                     };
 
                     send_message(

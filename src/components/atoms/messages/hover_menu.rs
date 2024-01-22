@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::components::atoms::{Icon, Layers, Reply, FileDownload};
+use crate::components::atoms::{FileDownload, Icon, Layers, Reply};
 
 #[derive(Debug, Clone)]
 pub enum MenuOption {
@@ -23,19 +23,9 @@ pub struct HoverMenuProps<'a> {
 }
 
 pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
-    let option_style = r#"
-        border: 1px solid transparent;
-        width: 100%;
-        text-align: left;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 8px;
-    "#;
-
     cx.render(rsx!(
         section {
-            class: "hover_menu",
+            class: "hover-menu",
             ul {
                 for option in &cx.props.options {
                     match option {
@@ -43,7 +33,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                             rsx!(
                                 li {
                                     button {
-                                        style: "{option_style}",
+                                        class: "hover-menu__option",
                                         onclick: move |_| {
                                             cx.props.on_click.call(MenuEvent {option: MenuOption::Reply })
                                         },
@@ -52,7 +42,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                             icon: Reply
                                         }
                                         span {
-                                            style: "color: var(--text-1)",
+                                            class: "hover-menu__option__title",
                                             "Responder"
                                         }
                                     }
@@ -63,7 +53,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                             rsx!(
                                 li {
                                     button {
-                                        style: "{option_style}",
+                                        class: "hover-menu__option",
                                         onclick: move |_| {
                                             cx.props.on_click.call(MenuEvent {option: MenuOption::ShowThread })
                                         },
@@ -72,7 +62,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                             icon: Layers
                                         }
                                         span {
-                                            style: "color: var(--text-1)",
+                                            class: "hover-menu__option__title",
                                             "Ver hilo"
                                         }
                                     }
@@ -83,7 +73,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                             rsx!(
                                 li {
                                     button {
-                                        style: "{option_style}",
+                                        class: "hover-menu__option",
                                         onclick: move |_| {
                                             cx.props.on_click.call(MenuEvent {option: MenuOption::CreateThread })
                                         },
@@ -92,7 +82,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                             icon: Layers
                                         }
                                         span {
-                                            style: "color: var(--text-1)",
+                                            class: "hover-menu__option__title",
                                             "Crear hilo"
                                         }
                                     }
@@ -103,7 +93,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                             rsx!(
                                 li {
                                     button {
-                                        style: "{option_style}",
+                                        class: "hover-menu__option",
                                         onclick: move |_| {
                                             cx.props.on_click.call(MenuEvent {option: MenuOption::Download })
                                         },
@@ -112,7 +102,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                             icon: FileDownload
                                         }
                                         span {
-                                            style: "color: var(--text-1)",
+                                            class: "hover-menu__option__title",
                                             "Descargar"
                                         }
                                     }

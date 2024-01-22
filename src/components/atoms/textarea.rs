@@ -21,12 +21,7 @@ pub fn TextareaInput<'a>(cx: Scope<'a, TextareaInputProps<'a>>) -> Element<'a> {
 
     cx.render(rsx!(
         section {
-            style: r#"
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-                width: 100%
-            "#,
+            class: "textarea",
             if let Some(value) = cx.props.label {
                 rsx!(
                     label {
@@ -45,12 +40,8 @@ pub fn TextareaInput<'a>(cx: Scope<'a, TextareaInputProps<'a>>) -> Element<'a> {
                         .map(|html_element| textarea_wrapper_ref.set(Some(Box::new(html_element.clone()))));
                     },
                 textarea {
-                    style: "
-                        resize: none;
-                        overflow: hidden;
-                        height: 20px;
-                    ",
-                    class: "input",
+                    id: "textarea",
+                    class: "textarea__wrapper input",
                     value: cx.props.value,
                     placeholder: "{cx.props.placeholder}",
                     onmounted: move |event| {
@@ -129,8 +120,7 @@ pub fn TextareaInput<'a>(cx: Scope<'a, TextareaInputProps<'a>>) -> Element<'a> {
                     }
                 }
                 button {
-                    class: "input__cta",
-                    style: "height: 20px",
+                    class: "textarea__cta input__cta",
                     onclick: move |event| cx.props.on_click.call(event),
                     Icon {
                         stroke: "var(--icon-subdued)",

@@ -26,6 +26,7 @@ pub struct MessageItem {
     pub room_id: String,
     pub msg: String,
     pub reply_to: Option<String>,
+    pub send_to_thread: bool
 }
 
 pub struct MessageEvent {
@@ -63,13 +64,6 @@ pub fn Chat(cx: Scope) -> Element {
     let navigator = use_navigator(cx);
 
     use_listen_message(cx);
-
-    let _centered = r#"
-        width:100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    "#;
 
     render! {
         if notification.get().show {

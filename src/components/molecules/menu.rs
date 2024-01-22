@@ -35,25 +35,6 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
     let client = use_client(cx).get();
     let auth = use_auth(cx);
 
-    let menu_style = r#"
-        width: 100%;
-        height: calc(100% - 75px);
-        background: #0006;
-        z-index: 100;
-        position: absolute;
-    "#;
-
-    let content_style = r#"
-        width: 75%;
-        height: 100%;
-        background: var(--background);
-        z-index: 1000;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        padding-right: 16px;
-    "#;
-
     let log_out = move || {
         cx.spawn({
             to_owned![client, auth];
@@ -87,9 +68,9 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
     
     cx.render(rsx! {
         div {
-            style: "{menu_style}",
+            class: "menu",
             div {
-                style: "{content_style}",
+                class: "menu__content",
                 ul {
                     li {
                         MenuItem {

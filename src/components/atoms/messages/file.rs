@@ -29,7 +29,7 @@ pub fn File(cx: Scope<FileProps>) -> Element {
                 }
                 
                 span {
-                    style: "color: var(--text-1)",
+                    class: "file__description",
                     "{cx.props.body.body}"
                 }
                 if let Some(size) = cx.props.body.size {
@@ -37,7 +37,7 @@ pub fn File(cx: Scope<FileProps>) -> Element {
 
                     rsx!(
                         span {
-                            style: "color: var(--text-1)",
+                            class: "file__description",
                             "{size}"
                         }
                     )

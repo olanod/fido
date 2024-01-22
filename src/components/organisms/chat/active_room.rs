@@ -10,7 +10,7 @@ use crate::{
         atoms::{
             header_main::{HeaderCallOptions, HeaderEvent},
             input::InputType,
-            Avatar, Header,
+            ArrowLeft, Avatar, Close, Header, Icon,
         },
         molecules::{
             input_message::{FormMessageEvent, ReplyingTo},
@@ -19,13 +19,13 @@ use crate::{
         },
     },
     hooks::{
-        use_room::use_room, use_send_attach::use_send_attach, use_send_message::use_send_message,
+        use_messages::{use_messages, UseMessages},
+        use_room::use_room,
+        use_send_attach::use_send_attach,
+        use_send_message::use_send_message,
     },
-    pages::{
-        chat::chat::{ListHeight, MessageItem},
-        route::Route,
-    },
-    services::matrix::matrix::Attachment,
+    pages::{chat::chat::MessageItem, route::Route},
+    services::matrix::matrix::{Attachment, AttachmentStream, TimelineMessageType, TimelineThread},
     utils::i18n_get_key_value::i18n_get_key_value,
 };
 
@@ -59,7 +59,14 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     let send_attach = use_send_attach(cx);
 
     let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).unwrap();
-    let height = use_shared_state::<ListHeight>(cx).unwrap();
+    let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).unwrap();
+    let use_m = use_messages(cx);
+    let UseMessages {
+        messages,
+        isLoading: is_loading,
+        limit: _,
+        task: _,
+    } = use_m.get();
 
     let input_placeholder =
         use_state::<String>(cx, || i18n_get_key_value(&i18n_map, "inputs-plain-message"));
@@ -81,18 +88,17 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     };
 
     let input_message_event = move |evt: HeaderEvent| {
-        to_owned![replying_to, height];
+        to_owned![replying_to];
 
         match evt.value {
             HeaderCallOptions::CLOSE => {
                 *replying_to.write() = None;
-                height.write().height = "height: calc(100vh - 72px - 82px );".to_string();
             }
             _ => {}
         }
     };
 
-    let on_push_message = move |evt: FormMessageEvent| {
+    let on_push_message = move |evt: FormMessageEvent, send_to_thread: bool| {
         let mut reply_to = None;
 
         if let Some(r) = replying_to.read().deref() {
@@ -103,6 +109,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
             room_id: room.get().id.clone(),
             msg: evt.value,
             reply_to,
+            send_to_thread,
         });
 
         input_message_event(HeaderEvent {
@@ -110,39 +117,121 @@ pub fn ActiveRoom(cx: Scope) -> Element {
         });
     };
 
-    let on_handle_attach = move |event: Attachment| {
-        send_attach.send(event);
+    let on_handle_attach = move |attachment: Attachment, send_to_thread: bool| {
+        send_attach.send(AttachmentStream {
+            attachment,
+            send_to_thread,
+        });
     };
 
-    info!("{:?} {:?}", room.get(), *current_room.read());
-
     cx.render(rsx! {
-        div {
-            style: "
-                display: flex;
-                flex-direction: column;
-                height: 100vh;
-            ",
-            Header {
-                text: "{current_room.read().name.clone()}",
-                avatar_element: render!(rsx!(
-                    Avatar {
-                        name: (*current_room.read()).name.to_string(),
-                        size: 32,
-                        uri: current_room.read().avatar_uri.clone()
+            // Room messages
+            div {
+                class: "active-room",
+                Header {
+                    text: "{current_room.read().name.clone()}",
+                    avatar_element: render!(rsx!(
+                        Avatar {
+                            name: (*current_room.read()).name.to_string(),
+                            size: 32,
+                            uri: current_room.read().avatar_uri.clone()
+                        }
+                    )),
+                    on_event: header_event
+                }
+                List {
+                    messages: messages.clone(),
+                    thread: None,
+                    is_loading: is_loading,
+                    on_scroll: move |_| {
+                        use_m.loadmore(current_room.read().id.clone());
                     }
-                )),
-                on_event: header_event
+                },
+                InputMessage {
+                    message_type: InputType::Message,
+                    placeholder: input_placeholder.get().as_str(),
+                    on_submit: move |event| {
+                        on_push_message(event, false)
+                    },
+                    on_event: input_message_event,
+                    on_attach: move |event|{
+                        on_handle_attach(event, false)
+                    }
+                }
             }
-            List {},
-            InputMessage {
-                message_type: InputType::Message,
-                placeholder: input_placeholder.get().as_str(),
-                on_submit: on_push_message,
-                on_event: input_message_event,
-                on_attach: on_handle_attach
-            }
-        }
 
+            if let Some(t) = timeline_thread.read().deref() {
+                let head_message = &t.thread[t.thread.len() - 1];
+                let x = &head_message.body;
+
+                let title_thread = match x {
+                    TimelineMessageType::Image(file) => {
+                        file.body.clone()
+                    },
+                    TimelineMessageType::Text(text) => {
+                        text.clone()
+                    },
+                    TimelineMessageType::Html(html) => {
+                        html.clone()
+                    },
+                    TimelineMessageType::File(file) => {
+                        file.body.clone()
+                    },
+                    TimelineMessageType::Video(file) => {
+                        file.body.clone()
+                    },
+                };
+
+                rsx!(
+                    div {
+                        class: "active-room__thread",
+                        // thread title
+                        div {
+                            class: "active-room__thread__head",
+                            p {
+                                class: "active-room__thread__title",
+                                "Hilo {title_thread}"
+                            }
+                            button {
+                                class: "active-room__close",
+                                onclick: move |_| {
+                                    *timeline_thread.write() = None
+                                },
+                                Icon {
+                                    stroke: "var(--icon-subdued)",
+                                    icon: Close,
+                                    height: 24,
+                                    width: 24
+                                }
+                            }
+                        }
+
+
+                        // thread messages
+
+
+                        List {
+                            messages: vec![],
+                            thread: Some(t.thread.clone()),
+                            is_loading: is_loading,
+                            on_scroll: move |_| {
+                                use_m.loadmore(current_room.read().id.clone());
+                            }
+                        },
+                        InputMessage {
+                            message_type: InputType::Message,
+                            placeholder: input_placeholder.get().as_str(),
+                            on_submit: move |event| {
+                                on_push_message(event, true)
+                            },
+                            on_event: input_message_event,
+                            on_attach: move |event|{
+                                on_handle_attach(event, true)
+                            }
+                        }
+
+                    }
+                )
+            }
     })
 }

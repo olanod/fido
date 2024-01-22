@@ -8,62 +8,19 @@ pub struct CardProps<'a> {
 }
 
 pub fn Card<'a>(cx: Scope<'a, CardProps<'a>>) -> Element<'a> {
-    let attach_style = r#"
-        width: 100%;
-        height: fit-content;
-        padding: 16px;
-        -webkit-box-shadow: 0px -4px 16px -12px rgba(0,0,0,0.54);
-        -moz-box-shadow: 0px -4px 16px -12px rgba(0,0,0,0.54);
-        box-shadow: 0px -4px 16px -12px rgba(0,0,0,0.54);
-        background: var(--background);
-    "#;
-
-    let attach_container_style = r#"
-        height: 70px;
-        width: 70px;
-        position: relative;
-    "#;
-
-    let attach_file_style = r#"
-        height: 100%;
-        width: 100%;
-        object-fit: contain;
-        border: 0.5px solid #0001;
-        position: relative;
-        background: var(--background-loud);
-    "#;
-
-    let close_style = r#"
-        cursor: pointer;
-        background: var(--background);
-        -webkit-box-shadow: 0px 0px 30px 0px rgba(0,0,0,0.54);
-        -moz-box-shadow: 0px 0px 30px 0px rgba(0,0,0,0.54);
-        box-shadow: 0px 0px 30px 0px rgba(0,0,0,0.54);
-        position: absolute;
-        border: 1px solid transparent;
-        right: -5px;
-        top: -5px;
-        border-radius: 100%;
-        padding: 0;
-        height: fit-content;
-        width: fit-content;
-        display: flex;
-        justify-content: center;
-    "#;
-
     cx.render(rsx!(
         section {
-            style: "{attach_style}",
+            class: "card",
             onclick: move |event| cx.props.on_click.call(event),
             div {
-                style: "{attach_container_style}",
+                class: "card-container",
                 img {
-                    style: "{attach_file_style}",
+                    class: "card__media",
                     src: "{cx.props.file}"
                 }
 
                 button {
-                    style: "{close_style}",
+                    class: "card__cta",
                     onclick: move |event| {cx.props.on_click.call(event)},
                     Icon {
                         stroke: "var(--text-1)",

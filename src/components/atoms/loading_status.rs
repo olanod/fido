@@ -11,7 +11,7 @@ pub fn LoadingStatus(cx: Scope, text: String) -> Element {
                 Spinner {}
 
                 p {
-                    style: "color: var(--text-1)",
+                    class: "loading__title",
                     "{text}"
                 }
             }

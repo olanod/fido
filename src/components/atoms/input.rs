@@ -25,10 +25,8 @@ pub struct MessageInputProps<'a> {
 }
 
 pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
-    let error_container_style = if let Some(_) = cx.props.error {
-        r#"
-            box-shadow: 0px 0px 0px 1px var(--secondary-red-100), 0px 0px 0px 2px var(--background-white), 0px 0px 0px 3px rgba(223, 28, 65, 0.24), 0px 1px 2px 0px rgba(150, 19, 44, 0.32);
-        "#
+    let input_error_container = if let Some(_) = cx.props.error {
+        "input--error-container"
     } else {
         ""
     };
@@ -42,12 +40,7 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
 
     cx.render(rsx!(
         section {
-            style: r#"
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-                width: 100%
-            "#,
+            class: "input__wrapper",
             if let Some(value) = cx.props.label {
                 rsx!(
                     label {
@@ -57,9 +50,7 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                 )
             }
             div {
-                style: "{error_container_style}",
-                class: "input-wrapper",
-
+                class: "input-wrapper input_error_container",
                 match cx.props.itype {
                     InputType::Search => {
                         rsx!(
@@ -74,8 +65,6 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                     }
                 }
 
-
-
                 input {
                     r#type: "{input_type}",
                     class: "input",
@@ -87,8 +76,7 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
 
                 if cx.props.message.len() > 0 {
                    match cx.props.itype {
-                    InputType::Message => {
-                        rsx!(
+                        InputType::Message => rsx!(
                             button {
                                 class: "input__cta",
                                 onclick: move |event| cx.props.on_click.call(event),
@@ -97,31 +85,15 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                                     icon: Send
                                 }
                             }
-                        )
-                    }
-                    _ => {
-                        rsx!(div {})
-                    }
+                        ),
+                        _ => rsx!(div {})
                    }
                 }
             }
             if let Some(error) = cx.props.error {
-                let error_style = r#"
-                    display: flex;
-                    gap: 2px;
-                    color: var(--secondary-red-100);
-                    font-family: Inter;
-                    font-size: 12px;
-                    font-style: normal;
-                    font-weight: 400;
-                    line-height: 16px; 
-                    align-items: center;
-                    padding-top: 6px;
-                "#;
-
                 rsx!(
                     div {
-                        style: "{error_style}",
+                        class: "input--error",
                         Icon {
                             stroke: "var(--secondary-red-100)",
                             height: 16,

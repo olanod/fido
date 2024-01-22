@@ -161,9 +161,7 @@ pub fn RoomNew(cx: Scope) -> Element {
             if let Some(user) = user.get() {
                 rsx!(
                     div {
-                        style: r#"
-                            margin-top: 10px;
-                        "#,
+                        class: "room-new__items",
                         RoomView {
                             displayname: "{user.displayname}",
                             avatar_uri: user.avatar_uri.clone(),

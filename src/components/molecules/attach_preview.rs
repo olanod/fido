@@ -16,19 +16,6 @@ pub struct AttachPreviewProps<'a> {
 pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
     let attach = use_attach(cx);
 
-    let attach_file_style = r#"
-        height: 100%;
-        width: 100%;
-        object-fit: contain;
-        border: 0.5px solid #0001;
-        position: relative;
-        background: var(--background-loud);
-    "#;
-
-    let attach_preview = r#"
-        height: 100%;
-    "#;
-
     let on_handle_card = move |_| cx.props.on_event.call(HeaderCallOptions::CLOSE);
 
     cx.render(rsx!(if let Some(file) = attach.get() {
@@ -38,9 +25,9 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
             mime::IMAGE => {
                 rsx!(
                     article {
-                        style: "{attach_preview}",
+                        class: "attach__wrapper--image",
                         img {
-                            style: "{attach_file_style}",
+                            class: "attach__content--image",
                             src: "{attach.get_file().deref()}"
                         }
                     }
@@ -54,26 +41,15 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
             mime::VIDEO => {
                 rsx!(
                     article {
-                        style: "
-                            height: 100%;
-                            display: flex;
-                            justify-content: center;
-                            background: var(--background);
-                            flex-direction: column;
-                        ",
+                        class: "attach__wrapper--video",
                         video {
-                            style: "
-                                height: 70%;
-                            ",
+                            class: "attach__content--video",
                             src: "{attach.get_file().deref()}",
                             controls: true,
                             autoplay: true
                         }
                         div {
-                            style: "
-                                margin: 24px auto;
-                                width: 50%;
-                            ",
+                            class: "attach__cta--video",
                             Button {
                                 text: "Cancelar",
                                 variant: &Variant::Secondary,
@@ -87,35 +63,15 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
             _ => {
                 rsx!(
                     article {
-                        style: "
-                            height: 100%;
-                            background: var(--background);
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                            flex-direction: column;
-                        ",
+                        class: "attach__wrapper--file",
                         div {
-                            style: "
-                                background: var(--background-modal);
-                                padding: 24px;
-                                border-radius: 16px;
-                            ",
+                            class: "attach__content--file",
                             h2 {
-                                style: "
-                                    color: var(--text-1);
-                                    font-family: Inter;
-                                    font-size: 24px;
-                                    font-style: normal;
-                                    font-weight: 500;
-                                    line-height: 32px; /* 133.333% */
-                                    letter-spacing: -0.24px;
-                                    text-align: left;
-                                ",
+                                class: "attach__title--file",
                                 "Subir archivo"
                             }
                             div {
-                                style: "margin-top: 24px;",
+                                class: "attach__spacer",
                                 File {
                                     body: FileContent {
                                         size: Some(file.size),
@@ -125,11 +81,11 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
                                 }
 
                                 div {
-                                    style: "margin-top: 24px;",
-                                        Button {
-                                            text: "Cancelar",
-                                            variant: &Variant::Secondary,
-                                            on_click: on_handle_card
+                                    class: "attach__spacer",
+                                    Button {
+                                        text: "Cancelar",
+                                        variant: &Variant::Secondary,
+                                        on_click: on_handle_card
                                     }
                                 }
                             }

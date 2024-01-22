@@ -12,39 +12,11 @@ pub struct HeaderProps<'a> {
 }
 
 pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
-    let nav_style = r#"
-        color: var(--text-1);
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        width: 100%;
-        padding: 1.25rem 0;
-        background: var(--background);
-        font-weight: 600;
-        font-size: var(--font-size-0)
-    "#;
-
-    let close_style = r#"
-      cursor: pointer;
-      background: transparent;
-      border: 1px solid transparent;
-      padding: 0;
-    "#;
-
-    let title_style = r#"
-      color: var(--text-1);
-      font-family: Inter;
-      font-size: 18px;
-      font-style: normal;
-      font-weight: 500;
-      line-height: 24px; /* 133.333% */
-    "#;
-
     cx.render(rsx!(
         nav {
-          style: "{nav_style}",
+          class: "nav",
           button {
-            style: "{close_style}",
+            class: "nav__cta",
             onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })},
             Icon {
               stroke: "var(--text-1)",
@@ -59,7 +31,7 @@ pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
             )
           }
           span {
-            style: "{title_style}",
+            class: "nav__title",
             "{cx.props.text}"
           }
       }

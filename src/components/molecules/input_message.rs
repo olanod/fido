@@ -43,12 +43,6 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
         flex-direction: column;
     "#);
 
-    let container_style = r#"
-        display: flex;
-        gap: 0.75rem;
-        align-items: flex-end;
-    "#;
-
     let on_handle_send_attach = move || {
         attach.reset();
         wrapper_style.set(r#"
@@ -120,30 +114,15 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
         class: "input__message",
 
         if let Some(replying) = replying_to.read().deref() {
-            let close_style = r#"
-                cursor: pointer;
-                background: transparent;
-                border: 1px solid transparent;
-                display: flex;
-            "#;
-              
             rsx!(
                 div {
-                    style: "
-                      display: flex;
-                      justify-content: space-between;
-                      align-items: center;
-                      padding: 8px 0 4px; 
-                    ",
+                    class: "input__message__replying",
                     span {
-                        style: "
-                            color: var(--text-1);
-                            font-size: var(--size-1);
-                        ",
+                        class: "input__message__title",
                         "Respondiendo a "
                     }
                     button {
-                      style: "{close_style}",
+                      class: "input__message__close",
                       onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })},
                       Icon {
                         stroke: "var(--icon-subdued)",
@@ -186,7 +165,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
         } 
 
         div {
-            style: "{container_style}", 
+            class: "input__message__container",
             if let Some(_) = &cx.props.on_attach {
                 rsx!(
                     Attach {

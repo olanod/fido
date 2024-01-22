@@ -152,16 +152,6 @@ pub fn Profile(cx: Scope) -> Element {
         }
     });
 
-    let attach_file_style = r#"
-        height: 100%;
-        width: 100%;
-        object-fit: cover;
-        border: 0.5px solid #0001;
-        position: relative;
-        background: var(--background-loud);
-        border-radius: 100%;
-    "#;
-
     let on_handle_attach = move |event: Event<FormData>| {
         cx.spawn({
             to_owned![attach];
@@ -192,208 +182,177 @@ pub fn Profile(cx: Scope) -> Element {
     let avatar = current_profile.read().avatar.clone();
 
     render! {
-        if *is_loading_profile.read() {
-            rsx!(
-                div {
-                    class: "spinner-dual-ring--center",
-                    Spinner {}
-                }
-            )
-        } else {
-            let element = if let Some(_) = attach.get()  {
-                render!(rsx!(
-                    img {
-                        style: "{attach_file_style}",
-                        src: "{attach.get_file().deref()}"
+        div {
+            class: "page--clamp",
+            if *is_loading_profile.read() {
+                rsx!(
+                    div {
+                        class: "spinner-dual-ring--center",
+                        Spinner {}
                     }
-                ))
-            } else {
-
-                render!(
-                    rsx!(
-                        Avatar {
-                          name: displayname,
-                          size: 80,
-                          uri: avatar
-                        }
-                    )
                 )
-            };
-
-            let message = current_profile.read().deref().displayname.clone();
-
-            rsx!(
-                section {
-                    Attach {
-                        atype: AttachType::Avatar(element),
-                        on_click: on_handle_attach
-                    }
-
-                    div {
-                        style: "
-                            margin-top: 12px
-                        ",
-                        MessageInput{
-                            message: "{message}",
-                            placeholder: "{i18n_get_key_value(&i18n_map, key_username_placeholder)}",
-                            label: "{i18n_get_key_value(&i18n_map, key_username_label)}",
-                            error: None,
-                            on_input: move |event: Event<FormData>| {
-                                current_profile.with_mut(|p| p.displayname = event.value.clone() );
-                            },
-                            on_keypress: move |_| {
-                            },
-                            on_click: move |_| {
-
-                            },
+            } else {
+                let element = if let Some(_) = attach.get()  {
+                    render!(rsx!(
+                        img {
+                            class: "profile__attach",
+                            src: "{attach.get_file().deref()}"
                         }
-                    }
-                    div {
-                        style: "
-                            margin-top: 24px
-                        ",
-                        Button {
-                            text: "{i18n_get_key_value(&i18n_map, key_username_cta_update)}",
-                            on_click: move |_| {
-                                cx.spawn({
-                                    to_owned![client, original_profile, current_profile, attach];
+                    ))
+                } else {
 
-                                    async move {
-                                        if !original_profile.read().displayname.eq(&current_profile.read().displayname) {
-                                            let x = client.get().account().set_display_name(Some(current_profile.read().displayname.as_str())).await;
-                                            info!("{x:?}");
-                                            match x {
-                                                Ok(_)=> {}
-                                                Err(_)=> {}
-                                            }
-                                        }
-
-                                        if let Some(y) = attach.get() {
-                                            let x = client.get().account().upload_avatar(&mime::IMAGE_PNG, &y.data).await;
-                                            info!("{x:?}");
-                                            match x {
-                                                Ok(url)=> {
-                                                    let x = client.get().account().set_avatar_url(Some(&url)).await;
-                                                    info!("{x:?}");
-                                                }
-                                                Err(_)=> {}
-                                            }
-                                        }
-                                    }
-                                })
-                            }
-                        }
-                    }
-                }
-
-                section {
-                    style: r#"
-                        margin-top: 40px;
-                    "#,
-                    h2 {
-                        color: "var(--text-1)",
-                        "Informacion de la cuenta"
-                    }
-
-                    h4 {
-                        style: r#"
-                            margin-top: 24px;
-                            color: var(--text-1);
-                        "#,
-                        "Servidor"
-                    }
-
-                    p {
-                        style: r#"
-                            margin-top: 12px;
-                            color: var(--text-2);
-                        "#,
-                        "{advanced_info.read().homeserver.deref()}"
-                    }
-
-                    h4 {
-                        style: r#"
-                            margin-top: 24px;
-                            color: var(--text-1);
-                        "#,
-                        "ID del usuario de Matrix"
-                    }
-
-                    p {
-                        style: r#"
-                            margin-top: 12px;
-                            color: var(--text-2);
-                        "#,
-                        "{advanced_info.read().user_id}"
-                    }
-
-                    h4 {
-                        style: r#"
-                            margin-top: 24px;
-                            color: var(--text-1);
-                        "#,
-                        "Sesion ID"
-                    }
-
-                    p {
-                        style: r#"
-                            margin-top: 12px;
-                            color: var(--text-2);
-                        "#,
-                        "{advanced_info.read().session.device_id}"
-                    }
-                    if !advanced_info.read().session.is_verified {
+                    render!(
                         rsx!(
-                            div {
-                                style: "
-                                    margin-top: 24px
-                                ",
-                                Button {
-                                    text: "Verificar esta sesion",
-                                    on_click: move |_| {
-                                        navigator.push(Route::Verify { id: String::from("fidoid") });
-                                    }
-                                }
+                            Avatar {
+                              name: displayname,
+                              size: 80,
+                              uri: avatar
                             }
                         )
-                    }
-                }
+                    )
+                };
 
-                section {
-                    style: r#"
-                        margin-top: 40px;
-                        color: var(--text-1);
-                    "#,
-                    h2 {
-                        "{i18n_get_key_value(&i18n_map, key_management_title)}"
-                    }
+                let message = current_profile.read().deref().displayname.clone();
 
-                    p {
-                        style: r#"
-                            margin-top: 12px;
-                            color: var(--text-2);
-                        "#,
-                        "{i18n_get_key_value(&i18n_map, key_management_deactivate_label)}"
-                    }
-                    div {
-                        style: "
-                            margin-top: 24px
-                        ",
-                        Button {
-                            text: "{i18n_get_key_value(&i18n_map, key_management_deactivate_cta_deactivate)}",
-                            on_click: move |_| {
-                                // cx.spawn({
-                                //     to_owned!(client);
+                rsx!(
+                    section {
+                        Attach {
+                            atype: AttachType::Avatar(element),
+                            on_click: on_handle_attach
+                        }
 
-                                //     async move {
-                                //         client.accoutn
-                                //     }
-                                // })
+                        div {
+                            class: "profile__input",
+                            MessageInput{
+                                message: "{message}",
+                                placeholder: "{i18n_get_key_value(&i18n_map, key_username_placeholder)}",
+                                label: "{i18n_get_key_value(&i18n_map, key_username_label)}",
+                                error: None,
+                                on_input: move |event: Event<FormData>| {
+                                    current_profile.with_mut(|p| p.displayname = event.value.clone() );
+                                },
+                                on_keypress: move |_| {
+                                },
+                                on_click: move |_| {
+
+                                },
+                            }
+                        }
+                        div {
+                            class: "profile__cta",
+                            Button {
+                                text: "{i18n_get_key_value(&i18n_map, key_username_cta_update)}",
+                                on_click: move |_| {
+                                    cx.spawn({
+                                        to_owned![client, original_profile, current_profile, attach];
+
+                                        async move {
+                                            if !original_profile.read().displayname.eq(&current_profile.read().displayname) {
+                                                let x = client.get().account().set_display_name(Some(current_profile.read().displayname.as_str())).await;
+                                                info!("{x:?}");
+                                                match x {
+                                                    Ok(_)=> {}
+                                                    Err(_)=> {}
+                                                }
+                                            }
+
+                                            if let Some(y) = attach.get() {
+                                                let x = client.get().account().upload_avatar(&mime::IMAGE_PNG, &y.data).await;
+                                                info!("{x:?}");
+                                                match x {
+                                                    Ok(url)=> {
+                                                        let x = client.get().account().set_avatar_url(Some(&url)).await;
+                                                        info!("{x:?}");
+                                                    }
+                                                    Err(_)=> {}
+                                                }
+                                            }
+                                        }
+                                    })
+                                }
                             }
                         }
                     }
-                }
-            )
+
+                    section {
+                        class: "profile__section",
+                        h2 {
+                            class: "profile__title",
+                            "Informacion de la cuenta"
+                        }
+
+                        h4 {
+                            class: "profile__subtitle",
+                            "Servidor"
+                        }
+
+                        p {
+                            class: "profile__content",
+                            "{advanced_info.read().homeserver.deref()}"
+                        }
+
+                        h4 {
+                            class: "profile__subtitle",
+                            "ID del usuario de Matrix"
+                        }
+
+                        p {
+                            class: "profile__content",
+                            "{advanced_info.read().user_id}"
+                        }
+
+                        h4 {
+                            class: "profile__subtitle",
+                            "Sesion ID"
+                        }
+
+                        p {
+                            class: "profile__content",
+                            "{advanced_info.read().session.device_id}"
+                        }
+                        if !advanced_info.read().session.is_verified {
+                            rsx!(
+                                div {
+                                    class: "profile__cta",
+                                    Button {
+                                        text: "Verificar esta sesion",
+                                        on_click: move |_| {
+                                            navigator.push(Route::Verify { id: String::from("fidoid") });
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    section {
+                        class: "profile__section",
+                        h2 {
+                            "{i18n_get_key_value(&i18n_map, key_management_title)}"
+                        }
+
+                        p {
+                            class: "profile__content",
+                            "{i18n_get_key_value(&i18n_map, key_management_deactivate_label)}"
+                        }
+                        div {
+                            class: "profile__cta",
+                            Button {
+                                text: "{i18n_get_key_value(&i18n_map, key_management_deactivate_cta_deactivate)}",
+                                on_click: move |_| {
+                                    cx.spawn({
+                                        to_owned!(client);
+
+                                        async move {
+
+                                        }
+                                    })
+                                }
+                            }
+                        }
+                    }
+                )
+            }
         }
     }
 }
