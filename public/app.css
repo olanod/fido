@@ -145,7 +145,7 @@ ul {
 }
 
 .notification {
-  background: white;
+  background: var(--background-modal);
   color: var(--text-1);
   border: 1px solid transparent;
   width: 100%;
@@ -162,12 +162,14 @@ ul {
 .notification__title {
   font-size: var(--font-size-0);
   font-weight: bold;
+  color: var(--text-1);
 }
 
 .notification__body {
   font-size: var(--font-size-0);
   white-space: nowrap;
   overflow: hidden;
+  color: var(--text-1);
   text-overflow: ellipsis;
   margin-top: var(--size-0);
 }
@@ -550,17 +552,13 @@ ul {
   text-transform: uppercase;
 }
 
-<<<<<<< HEAD
 .message__content {}
 
-=======
->>>>>>> 3b78905 (ref: split messages)
 .message__sender {
   color: var(--text-1);
   font-weight: 500;
 }
 
-<<<<<<< HEAD
 .message__content--me {
   color: var(--text-white);
   font-family: Inter;
@@ -583,8 +581,6 @@ ul {
   white-space: pre-line;
 }
 
-=======
->>>>>>> 3b78905 (ref: split messages)
 .message__content__image--is-replying {
   border-radius: var(--size-1);
   margin-top: var(--size-1);
