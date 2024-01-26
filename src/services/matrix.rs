@@ -1,6 +1,7 @@
 pub mod matrix {
     use std::{
         collections::HashMap,
+        io::{self, ErrorKind},
         ops::Deref,
         time::{Duration, UNIX_EPOCH},
     };
@@ -47,7 +48,10 @@ pub mod matrix {
         Client, Error, HttpError, HttpResult,
     };
     use mime::Mime;
-    use ruma::events::room::message::Thread;
+    use ruma::{
+        api::client::message::send_message_event::v3::Response, events::room::message::Thread,
+        OwnedMxcUri, UserId,
+    };
     use url::Url;
 
     use crate::{
@@ -76,7 +80,9 @@ pub mod matrix {
         info!("create client ");
         let homeserver_url =
             Url::parse(&homeserver_url_str).expect("Couldn't parse the homeserver URL");
-        let client = Client::new(homeserver_url).await.unwrap();
+        let client = Client::new(homeserver_url)
+            .await
+            .expect("can't handle new Client: create_client");
 
         client
     }
@@ -97,7 +103,10 @@ pub mod matrix {
             Ok(res) => {
                 info!("res: {:?}", res);
                 info!("Syncing");
-                client.sync_once(SyncSettings::default()).await.unwrap();
+                client
+                    .sync_once(SyncSettings::default())
+                    .await
+                    .expect("can't sync: login_and_sync");
 
                 return Ok(String::from("Welcome"));
             }
@@ -112,7 +121,10 @@ pub mod matrix {
 
     pub async fn join_room(client: &Client, room_id: &RoomId) {
         info!("Joining room");
-        client.join_room_by_id(&room_id).await.unwrap();
+        client
+            .join_room_by_id(&room_id)
+            .await
+            .expect("can't join room: join_room");
     }
 
     pub async fn send_message(
@@ -122,31 +134,27 @@ pub mod matrix {
         reply_to: Option<OwnedEventId>,
         thread_to: Option<OwnedEventId>,
         latest_event: Option<OwnedEventId>,
-    ) {
-        let room = client.get_joined_room(&room_id).unwrap();
+    ) -> Result<Response, Error> {
+        let room = client
+            .get_joined_room(&room_id)
+            .expect("can't get joined room: send_message");
         let tx_id = TransactionId::new();
 
-        info!("Sending message");
-        info!(
-            "reply: {:?} \thread_to: {:?} \nlatest_event: {:?}",
-            reply_to.clone(),
-            thread_to.clone(),
-            latest_event.clone()
-        );
-        let mut x = RoomMessageEventContent::new(msg);
+        let mut event_content = RoomMessageEventContent::new(msg);
 
         match reply_to {
             Some(r) => {
-                x.relates_to = Some(matrix_sdk::ruma::events::room::message::Relation::Reply {
-                    in_reply_to: InReplyTo::new(r.clone()),
-                });
+                event_content.relates_to =
+                    Some(matrix_sdk::ruma::events::room::message::Relation::Reply {
+                        in_reply_to: InReplyTo::new(r.clone()),
+                    });
 
                 if let Some(t) = &thread_to {
                     let thread = Thread::reply(t.clone(), r);
 
-                    x.relates_to = Some(matrix_sdk::ruma::events::room::message::Relation::Thread(
-                        thread,
-                    ));
+                    event_content.relates_to = Some(
+                        matrix_sdk::ruma::events::room::message::Relation::Thread(thread),
+                    );
                 }
             }
             None => {}
@@ -157,86 +165,86 @@ pub mod matrix {
                 if let Some(t) = &thread_to {
                     let thread = Thread::plain(t.clone(), l);
 
-                    x.relates_to = Some(matrix_sdk::ruma::events::room::message::Relation::Thread(
-                        thread,
-                    ));
+                    event_content.relates_to = Some(
+                        matrix_sdk::ruma::events::room::message::Relation::Thread(thread),
+                    );
                 }
             }
             None => {}
         }
 
-        info!("thread: {x:#?}");
-        room.send(x, Some(&tx_id)).await.unwrap();
+        room.send(event_content, Some(&tx_id)).await
+    }
+
+    pub async fn upload_attachment(
+        client: &Client,
+        attach: &Attachment,
+    ) -> Result<ruma::api::client::media::create_content::v3::Response, Error> {
+        client
+            .media()
+            .upload(&attach.content_type, &attach.data)
+            .await
     }
 
     pub async fn send_attachment(
         client: &Client,
         room_id: &RoomId,
+        uri: &OwnedMxcUri,
         attach: &Attachment,
         reply_to: Option<OwnedEventId>,
         thread_to: Option<OwnedEventId>,
         latest_event: Option<OwnedEventId>,
-    ) {
-        let room = client.get_joined_room(&room_id).unwrap();
+    ) -> Result<Response, Error> {
+        let room = client
+            .get_joined_room(&room_id)
+            .expect("can't get joined room: send_attachment");
 
-        info!("Sending attachment");
-
-        // TODO: send related message
-        let upload_response = client
-            .media()
-            .upload(&attach.content_type, &attach.data)
-            .await
-            .unwrap();
-
-        let uri = upload_response.content_uri;
-
-        let y = match attach.content_type.type_() {
+        let message_type = match attach.content_type.type_() {
             mime::IMAGE => {
-                let xx = ImageMessageEventContent::plain(attach.body.clone(), uri, None);
+                let event_content =
+                    ImageMessageEventContent::plain(attach.body.clone(), uri.clone(), None);
 
-                let x = MessageType::Image(xx);
-                Some(x)
+                MessageType::Image(event_content)
             }
             mime::VIDEO => {
-                let xx = VideoMessageEventContent::plain(attach.body.clone(), uri, None);
+                let event_content =
+                    VideoMessageEventContent::plain(attach.body.clone(), uri.clone(), None);
 
-                let x = MessageType::Video(xx);
-                Some(x)
+                MessageType::Video(event_content)
             }
             mime::APPLICATION => {
-                let xx = FileMessageEventContent::plain(attach.body.clone(), uri, None);
+                let event_content =
+                    FileMessageEventContent::plain(attach.body.clone(), uri.clone(), None);
 
-                let x = MessageType::File(xx);
-                Some(x)
+                MessageType::File(event_content)
             }
-            _ => None,
+            _ => {
+                let error = io::Error::new(ErrorKind::Other, "Error al subir el archivo");
+                return Err(Error::Io(error));
+            }
         };
 
-        if let Some(_) = &reply_to {
-            if let Some(value) = y {
-                send_message(client, room_id, value, reply_to, thread_to, latest_event).await;
-            } else {
-                info!("Unsuported file type")
-            }
-        } else if let Some(_) = latest_event {
-            if let Some(value) = y {
-                send_message(client, room_id, value, reply_to, thread_to, latest_event).await;
-            } else {
-                info!("Unsuported file type")
-            }
+        let response = if reply_to.is_some() || latest_event.is_some() {
+            send_message(
+                client,
+                room_id,
+                message_type,
+                reply_to,
+                thread_to,
+                latest_event,
+            )
+            .await
         } else {
-            let x = room
-                .send_attachment(
-                    &attach.body,
-                    &attach.content_type,
-                    &attach.data,
-                    AttachmentConfig::new(),
-                )
-                .await
-                .unwrap();
-        }
+            room.send_attachment(
+                &attach.body,
+                &attach.content_type,
+                &attach.data,
+                AttachmentConfig::new(),
+            )
+            .await
+        };
 
-        info!("Sent attachment");
+        response
     }
 
     pub fn listen_messages(client: &Client) {
@@ -436,7 +444,8 @@ pub mod matrix {
                             state_key: EmptyStateKey,
                         };
 
-                    let rawinitstateev = Raw::new(&initstateev).unwrap();
+                    let rawinitstateev =
+                        Raw::new(&initstateev).expect("can't create a new raw: create_room");
 
                     let rawanyinitstateev: Raw<AnyInitialStateEvent> = rawinitstateev.cast();
                     initstateevvec.push(rawanyinitstateev);
@@ -533,18 +542,21 @@ pub mod matrix {
     ) -> (Option<String>, Vec<TimelineRelation>) {
         let mut messages: Vec<TimelineRelation> = old_messages;
 
-        let room = client.get_room(&room_id).unwrap();
+        let room = client.get_room(&room_id).expect("can't get_room: timeline");
 
         let filter = assign!(RoomEventFilter::default(), {
             lazy_load_options: LazyLoadOptions::Enabled { include_redundant_members: false },
         });
         let options = assign!(MessagesOptions::backward(), {
-            limit: UInt::new(20).unwrap(),
+            limit: UInt::new(20).expect("can't convert uint: timeline"),
             filter,
             from: from.as_deref()
         });
 
-        let m = room.messages(options).await.unwrap();
+        let m = room
+            .messages(options)
+            .await
+            .expect("can't get messages: timeline");
 
         info!("uncleared messagex matrix: {:#?}", m);
 
@@ -565,7 +577,9 @@ pub mod matrix {
 
         for zz in t.events.iter() {
             let deserialized = deserialize_any_timeline_event(
-                zz.event.deserialize().unwrap(),
+                zz.event
+                    .deserialize()
+                    .expect("can't deserialize iter events: timeline"),
                 &room,
                 &me,
                 &client,
@@ -587,7 +601,8 @@ pub mod matrix {
 
                         if let Some(p) = position {
                             if let TimelineRelation::CustomThread(ref mut z) = messages[p] {
-                                z.thread.push(x.thread[0].clone())
+                                z.thread.push(x.thread[0].clone());
+                                z.thread.rotate_right(1);
                             };
                         } else {
                             let n = TimelineRelation::CustomThread(TimelineThread {
@@ -596,18 +611,22 @@ pub mod matrix {
                                 latest_event: x.thread[x.thread.len() - 1]
                                     .clone()
                                     .event_id
-                                    .unwrap(),
+                                    .expect("can't get eventid from thread: timeline"),
                                 count: x.thread.len(),
                             });
 
                             messages.push(n);
+                            messages.rotate_right(1);
                         }
                     }
                     TimelineRelation::None(x) => {
                         // Position of a head thread timeline
                         let position = messages.iter().position(|m| {
                             if let TimelineRelation::CustomThread(y) = m {
-                                y.event_id.eq(x.event_id.as_ref().unwrap())
+                                y.event_id.eq(x
+                                    .event_id
+                                    .as_ref()
+                                    .expect("can't compare event id: timeline"))
                             } else {
                                 false
                             }
@@ -615,19 +634,26 @@ pub mod matrix {
 
                         if let Some(p) = position {
                             if let TimelineRelation::CustomThread(ref mut z) = messages[p] {
-                                let mm = format_head_thread(zz.event.deserialize().unwrap());
+                                let mm = format_head_thread(
+                                    zz.event
+                                        .deserialize()
+                                        .expect("can't deserialize event custom thread: timeline"),
+                                );
 
                                 if let Some(x) = mm {
                                     z.latest_event = x.1;
                                 }
                                 z.thread.push(x.clone());
+                                z.thread.rotate_right(1);
                             };
                         } else {
                             messages.push(d);
+                            messages.rotate_right(1);
                         }
                     }
                     _ => {
                         messages.push(d);
+                        messages.rotate_right(1);
                     }
                 }
             }
@@ -645,7 +671,11 @@ pub mod matrix {
                 if let Some(y) = x.thread {
                     Some((
                         2,
-                        y.latest_event.deserialize().unwrap().event_id().to_string(),
+                        y.latest_event
+                            .deserialize()
+                            .expect("can't deserialize latest event: format_head_thread")
+                            .event_id()
+                            .to_string(),
                     ))
                 } else {
                     None
@@ -794,13 +824,7 @@ pub mod matrix {
                         )
                         .await;
 
-                    let https_uri = mxc_to_https_uri(
-                        &mx_uri,
-                        ImageSize {
-                            width: 800,
-                            height: 600,
-                        },
-                    );
+                    let https_uri = mxc_to_download_uri(&mx_uri);
 
                     let size = if let Some(file_info) = nm.info.clone() {
                         match file_info.size {
@@ -1123,7 +1147,10 @@ pub mod matrix {
 
                     match room_event {
                         Ok(event) => {
-                            let desc_event = event.event.deserialize().unwrap();
+                            let desc_event = event
+                                .event
+                                .deserialize()
+                                .expect("can't deserialize event: format_relation_from_event");
 
                             let reply = deserialize_timeline_event(
                                 desc_event,

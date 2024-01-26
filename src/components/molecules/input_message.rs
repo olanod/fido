@@ -7,7 +7,7 @@ use matrix_sdk::ruma::RoomId;
 use crate::{
     components::{atoms::{Attach, Button, header_main::{HeaderEvent, HeaderCallOptions}, input::InputType, hover_menu::{MenuEvent, MenuOption}, TextareaInput, Close, Icon, message::MessageView, Message,
     }, molecules::AttachPreview},
-    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_room::use_room},
+    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_room::use_room, use_send_attach::SendAttachStatus},
 };
 
 #[derive(Debug, Clone)]
@@ -38,13 +38,17 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
     let client = use_client(cx);
     let room = use_room(cx);
     let message_field = use_state(cx, String::new);
-    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).unwrap();
+
+    let send_attach_status =
+        use_shared_state::<SendAttachStatus>(cx).expect("Unable to use SendAttachStatus");
+    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to use ReplyingTo");
+    let error = use_state(cx, || None);
     let wrapper_style = use_ref(cx, || r#"
         flex-direction: column;
     "#);
 
     let on_handle_send_attach = move || {
-        attach.reset();
+        // attach.reset();
         wrapper_style.set(r#"
             flex-direction: column;
         "#);
@@ -153,6 +157,8 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                 }
             )
         }
+
+
 
         if let Some(_) = attach.get() {
             rsx!(

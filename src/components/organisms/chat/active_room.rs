@@ -57,8 +57,9 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     let send_message = use_send_message(cx);
     let send_attach = use_send_attach(cx);
 
-    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).unwrap();
-    let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).unwrap();
+    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to use ReplyingTo");
+    let timeline_thread =
+        use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to use TimelineThread");
     let use_m = use_messages(cx);
     let UseMessages {
         messages,
@@ -67,6 +68,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
         task: _,
     } = use_m.get();
 
+    // let timeline_thread_ref = use_ref::<TimelineThread>(cx, || TimelineThread{ event_id: todo!(), thread: todo!(), latest_event: todo!(), count: todo!() })
     let input_placeholder =
         use_state::<String>(cx, || i18n_get_key_value(&i18n_map, "inputs-plain-message"));
 
@@ -91,7 +93,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
 
         match evt.value {
             HeaderCallOptions::CLOSE => {
-                *replying_to.write() = None;
+                // *replying_to.write() = None;
             }
             _ => {}
         }
@@ -124,16 +126,15 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     };
 
     cx.render(rsx! {
-            // Room messages
             div {
                 class: "active-room",
                 Header {
-                    text: "{current_room.read().name.clone()}",
+                    text: "{room.get().name.clone()}",
                     avatar_element: render!(rsx!(
                         Avatar {
-                            name: (*current_room.read()).name.to_string(),
+                            name: (room.get()).name.to_string(),
                             size: 32,
-                            uri: current_room.read().avatar_uri.clone()
+                            uri: room.get().avatar_uri.clone()
                         }
                     )),
                     on_event: header_event
@@ -143,7 +144,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                     thread: None,
                     is_loading: is_loading,
                     on_scroll: move |_| {
-                        use_m.loadmore(current_room.read().id.clone());
+                        use_m.loadmore(room.get().id.clone());
                     }
                 },
                 InputMessage {
@@ -161,9 +162,9 @@ pub fn ActiveRoom(cx: Scope) -> Element {
 
             if let Some(t) = timeline_thread.read().deref() {
                 let head_message = &t.thread[t.thread.len() - 1];
-                let x = &head_message.body;
+                let body = &head_message.body;
 
-                let title_thread = match x {
+                let title_thread = match body {
                     TimelineMessageType::Image(file) => {
                         file.body.clone()
                     },
@@ -182,6 +183,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                 };
 
                 rsx!(
+
                     div {
                         class: "active-room__thread",
                         // thread title
@@ -205,16 +207,13 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                             }
                         }
 
-
                         // thread messages
-
-
                         List {
                             messages: vec![],
                             thread: Some(t.thread.clone()),
                             is_loading: is_loading,
                             on_scroll: move |_| {
-                                use_m.loadmore(current_room.read().id.clone());
+                                use_m.loadmore(room.get().id.clone());
                             }
                         },
                         InputMessage {

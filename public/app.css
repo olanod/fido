@@ -990,7 +990,7 @@ ul {
 
 .messages-list__wrapper {
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
   background: var(--background);
   border-radius: 8px;
 }

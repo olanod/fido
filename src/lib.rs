@@ -8,6 +8,7 @@ pub mod components {
 }
 
 pub mod hooks {
+    pub mod factory;
     pub mod use_attach;
     pub mod use_auth;
     pub mod use_client;

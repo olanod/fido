@@ -32,11 +32,11 @@ static ES_ES: &str = include_str!("./locales/es-ES.json");
 fn App(cx: Scope) -> Element {
     use_init_i18n(
         cx,
-        "es-ES".parse().unwrap(),
-        "es-ES".parse().unwrap(),
+        "es-ES".parse().expect("can't parse es-ES language"),
+        "es-ES".parse().expect("can't parse es-ES language"),
         || {
-            let en_us = Language::from_str(EN_US).unwrap();
-            let es_es = Language::from_str(ES_ES).unwrap();
+            let en_us = Language::from_str(EN_US).expect("can't get EN_US language");
+            let es_es = Language::from_str(ES_ES).expect("can't get ES_ES language");
             vec![en_us, es_es]
         },
     );
@@ -48,7 +48,8 @@ fn App(cx: Scope) -> Element {
     let notification = use_notification(cx);
     let i18 = use_i18(cx);
 
-    let matrix_client = use_shared_state::<MatrixClientState>(cx).unwrap();
+    let matrix_client =
+        use_shared_state::<MatrixClientState>(cx).expect("Unable to use matrix client");
     let before_session =
         use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
 
@@ -68,7 +69,9 @@ fn App(cx: Scope) -> Element {
                 <LocalStorage as gloo::storage::Storage>::get("session_file");
 
             if let Ok(s) = serialized_session {
-                let (c, sync_token) = restore_session(&s).await.unwrap();
+                let (c, sync_token) = restore_session(&s)
+                    .await
+                    .expect("can't restore session: main");
 
                 client.set(MatrixClientState {
                     client: Some(c.clone()),

@@ -15,7 +15,9 @@ pub struct AttachPreviewProps<'a> {
 pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
     let attach = use_attach(cx);
 
-    let on_handle_card = move |_| cx.props.on_event.call(HeaderCallOptions::CLOSE);
+    let on_handle_card = move |_| {
+        // cx.props.on_event.call(HeaderCallOptions::CLOSE)
+    };
 
     cx.render(rsx!(if let Some(file) = attach.get() {
         match file.content_type.type_() {

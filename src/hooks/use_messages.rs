@@ -54,7 +54,9 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
 
                 from.set(f);
 
+                info!("before write xxx");
                 *messages.write() = msg;
+                info!("after write xxx");
                 let mm = timeline_thread.read().clone();
 
                 if let Some(thread) = mm {
@@ -166,5 +168,9 @@ impl UseMessagesState {
         self.inner
             .limit
             .with_mut(|lr| lr.insert(current_room_id, current_events + 5));
+    }
+
+    pub fn push(&self, message: TimelineRelation) {
+        self.inner.messages.write().push(message);
     }
 }
