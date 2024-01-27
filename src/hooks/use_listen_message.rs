@@ -84,7 +84,6 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                 if let Some(p) = position {
                                     if let TimelineRelation::CustomThread(ref mut t) = msgs[p] {
                                         t.thread.push(timeline_thread.thread[0].clone());
-                                        
                                     };
                                 } else {
                                     let relation = TimelineRelation::CustomThread(TimelineThread {
@@ -318,13 +317,25 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                         let value = &message_dispatch_id.read().value;
                         let to_find: Option<(String, Option<String>)> =
                             value.iter().find_map(|v| {
-                                let x = &v.1.clone().expect("cant get generated matrix id ");
-                                if ev.event_id.eq(x) {
-                                    Some((v.0.clone(), v.1.clone()))
-                                } else {
-                                    None
-                                }
+                                let x = &v.1.clone();
+
+                                let x = match x {
+                                    Some(x) => {
+                                        if ev.event_id.eq(x) {
+                                            Some((v.0.clone(), v.1.clone()))
+                                        } else {
+                                            None
+                                        }
+                                    }
+                                    None => None,
+                                };
+                                x
                             });
+
+                        // info!(
+                        //     "message_dispatch_id listen message  {:#?}",
+                        //     *message_dispatch_id.read()
+                        // );
 
                         let mut back_messages = messages.read().clone();
                         async move {

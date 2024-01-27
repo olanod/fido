@@ -179,32 +179,3 @@ impl MessageFactory<TimelineThread> for CustomThreadMessageFactory {
         TimelineRelation::CustomThread(t.clone())
     }
 }
-
-// struct ThreadMessageFactory {
-//     session: UseSessionState,
-// }
-
-// impl MessageFactory for ThreadMessageFactory {
-//     fn create_message(
-//         &self,
-//         content: &str,
-//         uuid: &str,
-//         time: &str,
-//         r: Option<&ReplyingTo>,
-//     ) -> TimelineRelation {
-//         TimelineRelation::Thread(TimelineMessageThread {
-//             event_id: Uuid::new_v4().to_string(),
-//             thread: vec![TimelineMessage {
-//                 body: TimelineMessageType::Text(content.to_string()),
-//                 event_id: Some(Uuid::new_v4().to_string()),
-//                 sender: RoomMember {
-//                     id: String::from(""),
-//                     name: String::from(""),
-//                     avatar_uri: None,
-//                 },
-//                 origin: EventOrigin::ME,
-//                 time: String::from(""),
-//             }],
-//         })
-//     }
-// }

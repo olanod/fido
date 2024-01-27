@@ -1,12 +1,12 @@
-use std::time::{Duration, UNIX_EPOCH};
-
 use chrono::{DateTime, Local};
 use dioxus::prelude::*;
+use futures_util::StreamExt;
 use log::info;
 use matrix_sdk::ruma::{
     events::room::message::{MessageType, TextMessageEventContent},
     EventId, RoomId,
 };
+use std::time::{Duration, UNIX_EPOCH};
 use uuid::Uuid;
 
 use crate::{
@@ -55,7 +55,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
     let threading_to =
         use_shared_state::<Option<TimelineThread>>(cx).expect("Cannot found thread_to");
 
-    let future = use_future(cx, (message_item,), |(message_item,)| {
+    let task_push = use_coroutine(cx, |mut rx: UnboundedReceiver<MessageItem>| {
         to_owned![
             client,
             replying_to,
@@ -69,7 +69,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
         ];
 
         async move {
-            if let Some(message_item) = message_item.get() {
+            while let Some(message_item) = rx.next().await {
                 if message_item.msg.starts_with('!') {
                     handle_command(&message_item, &client).await;
                 } else {
@@ -198,13 +198,9 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                                 .write()
                                 .value
                                 .insert(uuid.to_string(), Some(r.event_id.to_string()));
-
-                            info!("after dispatch message")
                         }
                         Err(_) => {
-                            value.set(MessageStatus::Error);
                             notification.handle_error("No se ha podido enviar el mensaje");
-                            return;
                         }
                     };
                 }
@@ -213,21 +209,20 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
     });
 
     cx.use_hook(move || UseSendMessageState {
-        inner: message_item.clone(),
+        inner: task_push.clone(),
         value: value.clone(),
     })
 }
 
 #[derive(Clone)]
 pub struct UseSendMessageState {
-    inner: UseState<Option<MessageItem>>,
+    inner: Coroutine<MessageItem>,
     value: UseRef<MessageStatus>,
 }
 
 impl UseSendMessageState {
     pub fn send(&self, message: MessageItem) {
-        self.inner.set(Some(message));
-        self.value.set(MessageStatus::None)
+        self.inner.send(message)
     }
 
     pub fn get_value(&self) -> MessageStatus {
