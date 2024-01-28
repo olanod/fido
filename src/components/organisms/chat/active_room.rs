@@ -93,7 +93,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
 
         match evt.value {
             HeaderCallOptions::CLOSE => {
-                // *replying_to.write() = None;
+                *replying_to.write() = None;
             }
             _ => {}
         }
@@ -111,10 +111,6 @@ pub fn ActiveRoom(cx: Scope) -> Element {
             msg: evt.value,
             reply_to,
             send_to_thread,
-        });
-
-        input_message_event(HeaderEvent {
-            value: HeaderCallOptions::CLOSE,
         });
     };
 
