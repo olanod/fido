@@ -36,6 +36,8 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
     let auth = use_auth(cx);
 
     let key_onboard_login_description = "onboard-login-description";
+    let key_onboard_login_user = "onboard-login-user";
+    let key_onboard_login_cta_another = "onboard-login-cta-another";
     let key_onboard_login_cta = "onboard-login-cta";
 
     let key_onboard_signup_description = "onboard-signup-description";
@@ -48,6 +50,14 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
         (
             key_onboard_login_description,
             translate!(i18, "onboard.login.description"),
+        ),
+        (
+            key_onboard_login_user,
+            translate!(i18, "onboard.login.user"),
+        ),
+        (
+            key_onboard_login_cta_another,
+            translate!(i18, "onboard.login.cta_another"),
         ),
         (key_onboard_login_cta, translate!(i18, "onboard.login.cta")),
         (
@@ -131,13 +141,21 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                                 rsx!(
                                     p {
                                         class: "login-form__cta--another",
+<<<<<<< HEAD
                                         "{i18n_get_key_value(&i18n_map, key_login_chat_saved_another_user)} {data.username}?"
+=======
+                                        "{i18n_get_key_value(&i18n_map, key_onboard_login_user)} {username}?"
+>>>>>>> 190ae6f (ref(i18n): complete translations)
                                         button {
                                             class: "login-form__form__text login__form__text--color button button--tertiary",
                                             onclick: move |_| {
                                                 cx.props.on_handle.call(FormLoginEvent::ClearData)
                                             },
+<<<<<<< HEAD
                                             "{i18n_get_key_value(&i18n_map, key_login_chat_saved_cta_another)}",
+=======
+                                            "{i18n_get_key_value(&i18n_map, key_onboard_login_cta_another)}"
+>>>>>>> 190ae6f (ref(i18n): complete translations)
                                         }
                                     }
                                 )

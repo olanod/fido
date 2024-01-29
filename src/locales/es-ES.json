@@ -3,7 +3,7 @@
     "texts": {
         "main": {
             "loading": {
-                "title": "Buscando sesiones para restaurar",
+                "title": "Buscando sesiónes para restaurar",
                 "steps": {
                     "fount": "Sesión encontrada",
                     "restoring": "Restaurando sesión"
@@ -43,10 +43,22 @@
                     "welcome": "Que bien tenerte acá, pronto te vamos a redirigir..."
                 }
             },
+            "unlock": {
+                "title": "Bienvenido",
+                "description": "Para desbloquear solo introduce tu constraseña",
+                "cta": "Desbloquear"
+            },
             "chat_errors": {
                 "invalid_url": "Error: URL relativa sin base",
                 "unknown": "Error: Error desconocido",
-                "invalid_username_password": "Error: Nombre de usuario o contraseña inválidos"
+                "invalid_username_password": "Error: Nombre de usuario o contraseña inválidos",
+                "not_found": "No se ha encontrado el usuario"
+            },
+            "status": {
+                "loading": "Estamos verificando tus datos",
+                "logged": "Te damos la bienvenida",
+                "done": "Te damos la bienvenida",
+                "persisting": "Guardando tu sesión"
             }
         },
         "signup": {
@@ -80,6 +92,8 @@
         "onboard": {
             "login": {
                 "description": "¿Ya tienes una cuenta?",
+                "user": "¿No eres",
+                "cta_another": "Utilizar otra cuenta",
                 "cta": "Iniciar sesión"
             },
             "signup": {
@@ -102,6 +116,67 @@
             },
             "message_list": {
                 "see_more": "Ver más"
+            },
+            "attach_preview": {
+                "not_found": "No se ha encontrado ningún archivo",
+                "title": "Subir archivo",
+                "cta": {
+                    "cancel": "Cancelar"
+                }
+            },
+            "input_message": {
+                "unknown_content": "Contenido no identificado, prueba con otro archivo.",
+                "file_type": "Verifica que el archivo sea tipo multimedia o documento",
+                "not_found": "No se ha encontrado ningún archivo",
+                "subtitle": "Respondiendo a ",
+                "cta": "Enviar"
+            },
+            "common": {
+                "error": {
+                    "thread_id": "Error inesperado: (Id de hilo)",
+                    "event_id": "Error inesperado: (Id de evento)",
+                    "room_id": "Error inesperado: (Id de sala)",
+                    "user_id": "Error inesperado: (Id de usuario)",
+                    "device_id": "Error inesperado: (Id de dispositivo)"
+                }
+            },
+            "listen": {
+                "message": {
+                    "image": "Imagen",
+                    "file": "Archivo adjunto",
+                    "video": "Video",
+                    "html": "Bloque de texto",
+                    "thread": "Nuevo mensaje en el hilo"
+                }
+            },
+            "attach": {
+                "error": {
+                    "upload_file": "No se ha podido subir el archivo",
+                    "send_message": "No se ha podido enviar el mensaje"
+                }
+            },
+            "message": {
+                "error": {
+                    "send_message": "No se ha podido enviar el mensaje"
+                }
+            },
+            "session": {
+                "error": {
+                    "not_found": "No se ha podido encontrar la sesión"
+                }
+            },
+            "list": {
+                "home": "Inicio",
+                "search": "Buscar"
+            },
+            "menu": {
+                "reply": "Responder",
+                "see": "Ver hilo",
+                "create": "Crear hilo",
+                "download": "Descargar"
+            },
+            "thread": {
+                "title": "Hilo"
             }
         },
         "menu": {
@@ -117,10 +192,22 @@
             },
             "management": {
                 "title": "Gestión de cuenta",
+                "info": {
+                    "subtitle": "Informacion de la cuenta",
+                    "label_1": "Servidor",
+                    "label_2": "ID del usuario de Matrix",
+                    "label_3": "ID de la sesión",
+                    "cta": "Verificar esta sesión"
+                },
                 "deactivate": {
                     "label": "Desactivar cuenta",
                     "cta_deactivate": "Desactivar"
                 }
+            },
+            "error": {
+                "not_found": "Nombre de usuario no encontrado",
+                "profile": "Perfil no encontrado",
+                "file": "Tipo de archivo no válido"
             }
         },
         "modal": {
@@ -136,7 +223,13 @@
             "title": "Nuevo chat",
             "label": "Escribe el id del usuario",
             "placeholder": "@user:matrix.org",
-            "description": "Inicia un nuevo chat con"
+            "description": "Inicia un nuevo chat con",
+            "error": {
+                "not_found": "Nombre de usuario no encontrado",
+                "dm": "Ha ocurrido un error al crear el DM",
+                "profile": "Perfil no encontrado",
+                "file": "Tipo de archivo no válido"
+            }
         },
         "group": {
             "title": "Nuevo grupo",
@@ -155,6 +248,25 @@
                     "back": "Volver",
                     "create": "Crear grupo"
                 }
+            },
+            "error": {
+                "not_found": "Nombre de usuario no encontrado",
+                "dm": "Ha ocurrido un error al crear el DM",
+                "profile": "Perfil no encontrado",
+                "file": "Tipo de archivo no válido"
+            }
+        },
+        "verify": {
+            "unverified": {
+                "title": "Verificar sesión",
+                "description": "Para inicar la verificación, ve a otro dispositivo desde el que iniciaste sesión y solicita la verificación",
+                "question": "Verifica si los emojis coinciden con la otra sesión, en el mismo orden",
+                "cta_match": "Sí, coincide",
+                "cta_disagree": "No coincide"
+            },
+            "verified": {
+                "title": "Verificación completada",
+                "description": "Haz verificado este dispositivo."
             }
         }
     }

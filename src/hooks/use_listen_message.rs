@@ -1,6 +1,7 @@
 use std::ops::{Deref, Index};
 
 use dioxus::prelude::*;
+use dioxus_std::{i18n::use_i18, translate};
 use futures_util::StreamExt;
 use log::info;
 use matrix_sdk::{
@@ -28,12 +29,22 @@ use super::{
 
 #[allow(clippy::needless_return)]
 pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
+    let i18 = use_i18(cx);
     let client = use_client(cx).get();
     let notification = use_notification(cx);
     let session = use_session(cx);
     let room = use_room(cx);
 
     let handler_added = use_ref(cx, || false);
+
+    let key_common_error_thread_id = translate!(i18, "chat.common.error.thread_id");
+    let key_common_error_event_id = translate!(i18, "chat.common.error.event_id");
+    let key_listen_message_image = translate!(i18, "chat.listen.message.image");
+    let key_listen_message_file = translate!(i18, "chat.listen.message.file");
+    let key_listen_message_video = translate!(i18, "chat.listen.message.video");
+    let key_listen_message_html = translate!(i18, "chat.listen.message.html");
+    let key_listen_message_thread = translate!(i18, "chat.listen.message.thread");
+    
 
     let message_dispatch_id =
         use_shared_state::<MessageDispatchId>(cx).expect("Unable to use MessageDispatchId");
@@ -95,7 +106,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                             Some(id) => id,
                                             None => {
                                                 notification
-                                                    .handle_error("Error inesperado: (Id de hilo)");
+                                                    .handle_error("{key_common_error_thread_id}");
                                                 return;
                                             }
                                         },
@@ -107,7 +118,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                     }
                                 }
 
-                                plain_message = Some("Nuevo mensaje en el hilo");
+                                plain_message = Some("{key_listen_message_thread}");
                             }
                             TimelineRelation::None(x) => {
                                 // Position of a head thread timeline
@@ -116,9 +127,8 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                         match &x.event_id {
                                             Some(id) => t.event_id.eq(id),
                                             None => {
-                                                notification.handle_error(
-                                                    "Error inesperado: (Id de evento)",
-                                                );
+                                                notification
+                                                    .handle_error("{key_common_error_event_id}");
                                                 false
                                             }
                                         }
@@ -161,7 +171,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                     msgs.push(message);
                                 }
 
-                                plain_message = Some("Nuevo mensaje en el hilo");
+                                plain_message = Some("{key_listen_message_thread}");
                             }
                         };
                         info!("before write");
@@ -457,10 +467,10 @@ impl UseListenMessagesState {
 
 pub fn message_to_plain_content(content: &TimelineMessageType) -> &str {
     match &content {
-        TimelineMessageType::Image(_) => "Imagen",
+        TimelineMessageType::Image(_) => "{key_listen_message_image}",
         TimelineMessageType::Text(t) => t,
-        TimelineMessageType::File(t) => "Archivo adjunto",
-        TimelineMessageType::Video(t) => "Video",
-        TimelineMessageType::Html(t) => "Bloque de texto",
+        TimelineMessageType::File(t) => "key_listen_message_file",
+        TimelineMessageType::Video(t) => "key_listen_message_video",
+        TimelineMessageType::Html(t) => "key_listen_message_html",
     }
 }

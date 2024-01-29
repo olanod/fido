@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use dioxus::prelude::*;
 use dioxus_router::prelude::use_navigator;
+use dioxus_std::{i18n::use_i18, translate};
 
 use crate::{
     components::{
@@ -28,6 +29,7 @@ use crate::{
 
 #[inline_props]
 pub fn ChatList(cx: Scope) -> Element {
+    let i18 = use_i18(cx);
     let nav = use_navigator(cx);
     let client = use_client(cx).get();
     let session = use_session(cx);
@@ -36,6 +38,9 @@ pub fn ChatList(cx: Scope) -> Element {
     // use_shared_state_provider::<HashMap<CurrentRoom, Messages>>(cx, || HashMap::new());
 
     let room_tabs = use_ref::<HashMap<CurrentRoom, Messages>>(cx, || HashMap::new());
+
+    let key_chat_list_home = translate!(i18, "chat.list.home");
+    let key_chat_list_search = translate!(i18, "chat.list.search");
 
     let rooms = use_state::<Vec<RoomItem>>(cx, || Vec::new());
     let all_rooms = use_state::<Vec<RoomItem>>(cx, || Vec::new());
@@ -63,7 +68,14 @@ pub fn ChatList(cx: Scope) -> Element {
             rooms_filtered,
             all_rooms,
             selected_space,
+<<<<<<< HEAD
             title_header
+=======
+            title_header,
+            session,
+            notification,
+            key_chat_list_home
+>>>>>>> 190ae6f (ref(i18n): complete translations)
         ];
 
         async move {
@@ -88,8 +100,8 @@ pub fn ChatList(cx: Scope) -> Element {
             rooms_to_list.set(r.clone());
             rooms_filtered.set(r);
 
-            selected_space.set(String::from("Inicio"));
-            title_header.write().title = String::from("Inicio");
+            selected_space.set(key_chat_list_home.clone());
+            title_header.write().title = key_chat_list_home.clone();
         }
     });
 
@@ -104,11 +116,11 @@ pub fn ChatList(cx: Scope) -> Element {
                       onclick: move |_| {
                           rooms_to_list.set(rooms.get().clone());
                           rooms_filtered.set(rooms.get().clone());
-                          selected_space.set(String::from("Inicio"));
-                          title_header.write().title = String::from("Inicio");
+                          selected_space.set(key_chat_list_home.clone());
+                          title_header.write().title = key_chat_list_home.clone();
                       },
                       Avatar {
-                          name: String::from("Inicio"),
+                          name: key_chat_list_home.clone(),
                           size: 50,
                           uri: None,
                           variant: Variant::SemiRound
@@ -142,7 +154,7 @@ pub fn ChatList(cx: Scope) -> Element {
                         class: "chat-list__rooms",
                         MessageInput {
                             message: "{pattern}",
-                            placeholder: "Buscar",
+                            placeholder: "{key_chat_list_search}",
                             itype: InputType::Search,
                             error: None,
                             on_input: move |event: FormEvent| {

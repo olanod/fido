@@ -26,7 +26,11 @@ pub enum LoggedInStatus {
 pub fn Login(cx: Scope) -> Element {
     let i18 = use_i18(cx);
 
-    // Claves para el fragmento "chat_steps" dentro de "login"
+    let key_chat_errors_not_found = translate!(i18, "login.chat_errors.not_found");
+    let key_login_unlock_title = translate!(i18, "login.unlock.title");
+    let key_login_unlock_description = translate!(i18, "login.unlock.description");
+    let key_login_unlock_cta = translate!(i18, "login.unlock.cta");
+
     let key_login_chat_homeserver_message = "login-chat-homeserver-message";
     let key_login_chat_homeserver_description = "login-chat-homeserver-description";
     let key_login_chat_homeserver_placeholder = "login-chat-homeserver-placeholder";
@@ -39,27 +43,22 @@ pub fn Login(cx: Scope) -> Element {
     let key_login_chat_credentials_description = "login-chat-credentials-description";
     let key_login_chat_credentials_title = "login-chat-credentials-title";
 
-    // Claves para el fragmento "username" dentro de "chat_steps.credentials"
     let key_login_chat_credentials_username_message = "login-chat-credentials-username-message";
     let key_login_chat_credentials_username_placeholder = "login-chat-credentials-username-placeholder";
 
-    // Claves para el fragmento "password" dentro de "chat_steps.credentials"
     let key_login_chat_credentials_password_message = "login-chat-credentials-password-message";
     let key_login_chat_credentials_password_placeholder = "login-chat-credentials-password-placeholder";
 
     let key_login_chat_credentials_cta = "login-chat-credentials-cta";
 
-    // Claves para el fragmento "messages" dentro de "chat_steps"
     let key_login_chat_messages_validating = "login-chat-messages-validating";
     let key_login_chat_messages_welcome = "login-chat-messages-welcome";
 
-    // Claves para el fragmento "chat_errors" dentro de "login"
     let key_login_chat_errors_invalid_url = "login-chat-errors-invalid-url";
     let key_login_chat_errors_unknown = "login-chat-errors-unknown";
     let key_login_chat_errors_invalid_username_password = "login-chat-errors-invalid-username-password";
 
     let i18n_map = HashMap::from([
-        // Traducciones para el fragmento "chat_steps.homeserver" dentro de "login"
         (key_login_chat_homeserver_message, translate!(i18, "login.chat_steps.homeserver.message")),
         (key_login_chat_homeserver_description, translate!(i18, "login.chat_steps.homeserver.description")),
         (key_login_chat_homeserver_placeholder, translate!(i18, "login.chat_steps.homeserver.placeholder")),
@@ -70,23 +69,19 @@ pub fn Login(cx: Scope) -> Element {
         (key_login_chat_saved_cta, translate!(i18, "login.chat_steps.saved.cta")),
         
         (key_login_chat_credentials_title, translate!(i18, "login.chat_steps.credentials.title")),
-        // Traducciones para el fragmento "chat_steps.credentials" dentro de "login"
+        
         (key_login_chat_credentials_description, translate!(i18, "login.chat_steps.credentials.description")),
 
-        // Traducciones para el fragmento "username" dentro de "chat_steps.credentials"
         (key_login_chat_credentials_username_message, translate!(i18, "login.chat_steps.credentials.username.message")),
         (key_login_chat_credentials_username_placeholder, translate!(i18, "login.chat_steps.credentials.username.placeholder")),
 
-        // Traducciones para el fragmento "password" dentro de "chat_steps.credentials"
         (key_login_chat_credentials_password_message, translate!(i18, "login.chat_steps.credentials.password.message")),
         (key_login_chat_credentials_password_placeholder, translate!(i18, "login.chat_steps.credentials.password.placeholder")),
         (key_login_chat_credentials_cta, translate!(i18, "login.chat_steps.credentials.cta")),
 
-        // Traducciones para el fragmento "messages" dentro de "chat_steps"
         (key_login_chat_messages_validating, translate!(i18, "login.chat_steps.messages.validating")),
         (key_login_chat_messages_welcome, translate!(i18, "login.chat_steps.messages.welcome")),
 
-        // Traducciones para el fragmento "chat_errors" dentro de "login"
         (key_login_chat_errors_invalid_url, translate!(i18, "login.chat_errors.invalid_url")),
         (key_login_chat_errors_unknown, translate!(i18, "login.chat_errors.unknown")),
         (key_login_chat_errors_invalid_username_password, translate!(i18, "login.chat_errors.invalid_username_password")),
@@ -186,7 +181,20 @@ pub fn Login(cx: Scope) -> Element {
                                 session.sync(c.clone(), None).await;
         
                                 client.set(crate::MatrixClientState { client: Some(c.clone()) });
+<<<<<<< HEAD
                                 is_loading_loggedin.set(LoggedInStatus::LoggedAs(c.user_id().unwrap().to_string()));
+=======
+                                
+                                let user_id = match c.user_id() {
+                                    Some(u) => u,
+                                    None => {
+                                        notification.handle_error("{key_chat_errors_not_found}");
+                                        return;
+                                    }
+                                };
+
+                                is_loading_loggedin.set(LoggedInStatus::LoggedAs(user_id.to_string()));
+>>>>>>> 190ae6f (ref(i18n): complete translations)
         
                                 auth.set_logged_in(true)
                             }
@@ -267,6 +275,7 @@ pub fn Login(cx: Scope) -> Element {
                     None => {
                         String::from("")
                     }
+<<<<<<< HEAD
                 };
     
                 rsx!(
@@ -295,6 +304,36 @@ pub fn Login(cx: Scope) -> Element {
                                     },
                                     on_click: move |_| {
                                         auth.set_password(password.get().clone())
+=======
+                },
+                None => {
+                    String::from("")
+                }
+            };
+
+            rsx!(
+                LoginForm {
+                    title: "{key_login_unlock_title} {display_name}",
+                    description: "{key_login_unlock_description}",
+                    button_text: "{key_login_unlock_cta}",
+                    emoji: "👋",
+                    error: if error.get().is_some() { error.get().as_ref() } else { None },
+                    clear_data: true,
+                    on_handle: on_handle_form_event,
+                    body: render!(rsx!(
+                        div {
+                            MessageInput {
+                                itype: InputType::Password,
+                                message: "{password.get()}",
+                                placeholder: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_password_placeholder)}",
+                                error: None,
+                                on_input: move |event: FormEvent| {
+                                    password.set(event.value.clone())
+                                },
+                                on_keypress: move |event: KeyboardEvent| {
+                                    if event.code() == keyboard_types::Code::Enter && !password.get().is_empty() {
+                                        on_handle_login_key_press()
+>>>>>>> 190ae6f (ref(i18n): complete translations)
                                     }
                                 }
                             }
@@ -386,6 +425,7 @@ pub fn Login(cx: Scope) -> Element {
                                     }
                                 }
                             }
+<<<<<<< HEAD
                         ))
                     }
                 )
@@ -416,6 +456,38 @@ pub fn Login(cx: Scope) -> Element {
                     }  
                 }    
             }
+=======
+                        }
+                    ))
+                }
+            )
+        } else {
+            match &*is_loading_loggedin.read() {
+                LoggedInStatus::Loading => {
+                    rsx!(
+                        LoadingStatus {text: translate!(i18, "login.status.loading")}
+                    )
+                }
+                LoggedInStatus::LoggedAs(user) => {
+                    rsx!(
+                        LoadingStatus {text: translate!(i18, "login.status.logged")}
+                    )
+                },
+                LoggedInStatus::Done => {
+                    rsx!(
+                        LoadingStatus {text: translate!(i18, "login.status.done")}
+                    )
+                }
+                LoggedInStatus::Persisting => {
+                    rsx!(
+                        LoadingStatus {text: translate!(i18, "login.status.persisting")}
+                    )
+                }
+                _ => {
+                    rsx!(div{})
+                }  
+            }    
+>>>>>>> 190ae6f (ref(i18n): complete translations)
         }
     )
 }

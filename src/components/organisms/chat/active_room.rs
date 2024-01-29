@@ -31,6 +31,8 @@ use crate::{
 pub fn ActiveRoom(cx: Scope) -> Element {
     let i18 = use_i18(cx);
 
+    let key_chat_thread_title = translate!(i18, "chat.thread.title");
+
     let i18n_map = HashMap::from([
         ("join-title", translate!(i18, "chat.helpers.join.title")),
         (
@@ -187,7 +189,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                             class: "active-room__thread__head",
                             p {
                                 class: "active-room__thread__title",
-                                "Hilo {title_thread}"
+                                "{key_chat_thread_title} {title_thread}"
                             }
                             button {
                                 class: "active-room__close",

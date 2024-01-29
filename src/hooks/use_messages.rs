@@ -1,6 +1,7 @@
 use std::{collections::HashMap, ops::Deref};
 
 use dioxus::prelude::*;
+use dioxus_std::{i18n::use_i18, translate};
 use futures_util::StreamExt;
 use log::info;
 use matrix_sdk::ruma::RoomId;
@@ -17,10 +18,13 @@ use super::{
 
 #[allow(clippy::needless_return)]
 pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
+    let i18 = use_i18(cx);
     let client = use_client(cx).get();
     let session = use_session(cx);
     let notification = use_notification(cx);
     let room = use_room(cx);
+
+    let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
 
     let messages = use_shared_state::<Messages>(cx).expect("Messages not provided");
     let mutable_messages = use_ref::<Messages>(cx, || vec![]);
@@ -71,7 +75,7 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
                 let room_id = match RoomId::parse(&current_room_id) {
                     Ok(id) => id,
                     Err(_) => {
-                        notification.handle_error("Error inesperado: (Id de sala)");
+                        notification.handle_error("{key_common_error_room_id}");
                         return;
                     }
                 };

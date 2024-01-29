@@ -1,5 +1,6 @@
 use chrono::{DateTime, Local};
 use dioxus::prelude::*;
+use dioxus_std::{i18n::use_i18, translate};
 use futures_util::StreamExt;
 use log::info;
 use matrix_sdk::ruma::{
@@ -38,6 +39,7 @@ pub enum MessageStatus {
 
 #[allow(clippy::needless_return)]
 pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
+    let i18 = use_i18(cx);
     let client = use_client(cx).get();
     let notification = use_notification(cx);
     let messages = use_messages(cx);
@@ -45,6 +47,12 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
     let text_message_factory = use_text_message_factory(cx);
     let reply_message_factory = use_reply_message_factory(cx);
     let custom_thread_message_factory = use_custom_thread_message_factory(cx);
+
+    let key_common_error_thread_id = translate!(i18, "chat.common.error.thread_id");
+    let key_common_error_event_id = translate!(i18, "chat.common.error.event_id");
+    let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
+
+    let key_message_error_send_message = translate!(i18, "chat.message.error.send_message");
 
     let message_item = use_state::<Option<MessageItem>>(cx, || None);
     let value = use_ref::<MessageStatus>(cx, || MessageStatus::None);
@@ -76,7 +84,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                     let room_id = match RoomId::parse(message_item.room_id.clone()) {
                         Ok(id) => id,
                         Err(_) => {
-                            notification.handle_error("Error inesperado: (Id de sala)");
+                            notification.handle_error("{key_common_error_room_id}");
                             return;
                         }
                     };
@@ -85,9 +93,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
 
                     let reply_event_id = message_item.reply_to.clone().and_then(|e| {
                         EventId::parse(e)
-                            .map_err(|_| {
-                                notification.handle_error("Error inesperado: (Id de evento reply)")
-                            })
+                            .map_err(|_| notification.handle_error("{key_common_error_event_id}"))
                             .ok()
                     });
 
@@ -95,8 +101,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                         if message_item.send_to_thread {
                             EventId::parse(e.event_id.clone())
                                 .map_err(|_| {
-                                    notification
-                                        .handle_error("Error inesperado: (Id de evento thread)");
+                                    notification.handle_error("{key_common_error_thread_id}");
                                 })
                                 .ok()
                         } else {
@@ -108,8 +113,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                         if message_item.send_to_thread {
                             EventId::parse(e.latest_event)
                                 .map_err(|_| {
-                                    notification
-                                        .handle_error("Error inesperado: (Id de evento latest)");
+                                    notification.handle_error("{key_common_error_thread_id}");
                                 })
                                 .ok()
                         } else {
@@ -200,7 +204,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                                 .insert(uuid.to_string(), Some(r.event_id.to_string()));
                         }
                         Err(_) => {
-                            notification.handle_error("No se ha podido enviar el mensaje");
+                            notification.handle_error("{key_message_error_send_message}");
                         }
                     };
                 }

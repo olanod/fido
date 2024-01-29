@@ -43,10 +43,22 @@
                     "welcome": "Great to have you here, we will redirect you soon..."
                 }
             },
+            "unlock": {
+                "title": "Welcome",
+                "description": "To unlock just enter your password",
+                "cta": "Unlock"
+            },
             "chat_errors": {
                 "invalid_url": "Error: Relative URL without base",
                 "unknown": "Error: Unknown error",
-                "invalid_username_password": "Error: Invalid username or password"
+                "invalid_username_password": "Error: Invalid username or password",
+                "not_found": "User not found"
+            },
+            "status": {
+                "loading": "We are verifying your data",
+                "logged": "Welcome",
+                "done": "Welcome",
+                "persisting": "Saving your session"
             }
         },
         "signup": {
@@ -80,11 +92,13 @@
         "onboard": {
             "login": {
                 "description": "Do you already have an account?",
-                "cta": "Log In"
+                "user": "Not you",
+                "cta_another": "Use another account",
+                "cta": "Log in"
             },
             "signup": {
-                "description": "Don't you have an account?",
-                "cta": "Sign Up"
+                "description": "Don't have an account?",
+                "cta": "Register"
             }
         },
         "chat": {
@@ -102,6 +116,67 @@
             },
             "message_list": {
                 "see_more": "See more"
+            },
+            "attach_preview": {
+                "not_found": "No file found",
+                "title": "Upload file",
+                "cta": {
+                    "cancel": "Cancel"
+                }
+            },
+            "input_message": {
+                "unknown_content": "Unidentified content, try another file.",
+                "file_type": "Check that the file is a multimedia or document type",
+                "not_found": "No file found",
+                "subtitle": "Replying to ",
+                "cta": "Send"
+            },
+            "common": {
+                "error": {
+                    "thread_id": "Unexpected error: (Thread ID)",
+                    "event_id": "Unexpected error: (Event ID)",
+                    "room_id": "Unexpected error: (Room ID)",
+                    "user_id": "Unexpected error: (User ID)",
+                    "device_id": "Unexpected error: (Device ID)"
+                }
+            },
+            "listen": {
+                "message": {
+                    "image": "Image",
+                    "file": "Attached file",
+                    "video": "Video",
+                    "html": "Text block",
+                    "thread": "New message in the thread"
+                }
+            },
+            "attach": {
+                "error": {
+                    "upload_file": "Unable to upload the file",
+                    "send_message": "Unable to send the message"
+                }
+            },
+            "message": {
+                "error": {
+                    "send_message": "Unable to send the message"
+                }
+            },
+            "session": {
+                "error": {
+                    "not_found": "Session not found"
+                }
+            },
+            "list": {
+                "home": "Home",
+                "search": "Search"
+            },
+            "menu": {
+                "reply": "Reply",
+                "see": "See thread",
+                "create": "Create thread",
+                "download": "Download"
+            },
+            "thread": {
+                "title": "Thread"
             }
         },
         "menu": {
@@ -117,10 +192,22 @@
             },
             "management": {
                 "title": "Account Management",
+                "info": {
+                    "subtitle": "Account information",
+                    "label_1": "Server",
+                    "label_2": "Matrix User ID",
+                    "label_3": "Session ID",
+                    "cta": "Verify this session"
+                },
                 "deactivate": {
                     "label": "Deactivate account",
                     "cta_deactivate": "Deactivate"
                 }
+            },
+            "error": {
+                "not_found": "Username not found",
+                "profile": "Profile not found",
+                "file": "Invalid file type"
             }
         },
         "modal": {
@@ -136,7 +223,13 @@
             "title": "New chat",
             "label": "Write the user's id",
             "placeholder": "@user:matrix.org",
-            "description": "Start a new chat with"
+            "description": "Start a new chat with",
+            "error": {
+                "not_found": "Username not found",
+                "dm": "Error occurred creating the DM",
+                "profile": "Profile not found",
+                "file": "Invalid file type"
+            }
         },
         "group": {
             "title": "New group",
@@ -155,6 +248,25 @@
                     "back": "Back",
                     "create": "Create group"
                 }
+            },
+            "error": {
+                "not_found": "Username not found",
+                "dm": "Error occurred creating the DM",
+                "profile": "Profile not found",
+                "file": "Invalid file type"
+            }
+        },
+        "verify": {
+            "unverified": {
+                "title": "Verify session",
+                "description": "To start the verification, go to another device where you logged in and request verification",
+                "question": "Check if the emojis match with the other session, in the same order",
+                "cta_match": "Yes, it matches",
+                "cta_disagree": "It does not match"
+            },
+            "verified": {
+                "title": "Verification completed",
+                "description": "You have verified this device."
             }
         }
     }

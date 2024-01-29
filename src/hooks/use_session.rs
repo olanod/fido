@@ -55,7 +55,15 @@ impl UseSessionState {
         let serialized_session: Result<String, StorageError> =
             <LocalStorage as gloo::storage::Storage>::get("session_file");
 
+<<<<<<< HEAD
         let serialized_session = serialized_session.unwrap();
+=======
+        let serialized_session = match serialized_session {
+            Ok(s) => s,
+            Err(e) => e.to_string(),
+        };
+
+>>>>>>> 190ae6f (ref(i18n): complete translations)
         let mut full_session: FullSession = serde_json::from_str(&serialized_session)?;
 
         full_session.sync_token = Some(sync_token);

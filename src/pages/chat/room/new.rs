@@ -27,6 +27,17 @@ pub struct Profile {
 
 pub fn RoomNew(cx: Scope) -> Element {
     let i18 = use_i18(cx);
+
+    let key_common_error_thread_id = translate!(i18, "chat.common.error.thread_id");
+    let key_common_error_event_id = translate!(i18, "chat.common.error.event_id");
+    let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
+    let key_dm_error_not_found = translate!(i18, "chat.common.error.user_id");
+
+    let key_dm_error_not_found = translate!(i18, "dm.error.not_found");
+    let key_dm_error_dm = translate!(i18, "dm.error.dm");
+    let key_dm_error_profile = translate!(i18, "dm.error.profile");
+    let key_dm_error_file = translate!(i18, "dm.error.file");
+
     let key_dm_title = "dm-title";
     let key_dm_label = "dm-label";
     let key_dm_placeholder = "dm-placeholder";
@@ -54,7 +65,17 @@ pub fn RoomNew(cx: Scope) -> Element {
 
         async move {
             while let Some(id) = rx.next().await {
+<<<<<<< HEAD
                 let u = UserId::parse(&id).unwrap();
+=======
+                let u = match UserId::parse(&id) {
+                    Ok(u) => u,
+                    Err(_) => {
+                        notification.handle_error("{key_common_error_user_id}");
+                        return;
+                    }
+                };
+>>>>>>> 190ae6f (ref(i18n): complete translations)
                 let u = u.deref();
 
                 let request =
@@ -76,7 +97,17 @@ pub fn RoomNew(cx: Scope) -> Element {
                         };
 
                         user.set(Some(Profile {
+<<<<<<< HEAD
                             displayname: String::from(u.displayname.unwrap()),
+=======
+                            displayname: match u.displayname {
+                                Some(d) => String::from(d),
+                                None => {
+                                    notification.handle_error("{key_dm_error_not_found}");
+                                    return;
+                                }
+                            },
+>>>>>>> 190ae6f (ref(i18n): complete translations)
                             avatar_uri: avatar_uri,
                         }))
                     }
@@ -101,7 +132,17 @@ pub fn RoomNew(cx: Scope) -> Element {
             ];
 
             async move {
+<<<<<<< HEAD
                 let u = UserId::parse(&user_id.get()).unwrap();
+=======
+                let u = match UserId::parse(&user_id.get()) {
+                    Ok(u) => u,
+                    Err(_) => {
+                        notification.handle_error("{key_dm_error_not_found}");
+                        return;
+                    }
+                };
+>>>>>>> 190ae6f (ref(i18n): complete translations)
                 let room_meta = create_room(&client.get(), true, &[u], None, None).await;
 
                 info!("{room_meta:?}");
@@ -113,7 +154,17 @@ pub fn RoomNew(cx: Scope) -> Element {
                         let Profile {
                             displayname,
                             avatar_uri,
+<<<<<<< HEAD
                         } = user.get().clone().unwrap();
+=======
+                        } = match user.get() {
+                            Some(u) => u.clone(),
+                            None => {
+                                notification.handle_error("{key_dm_error_not_found}");
+                                return;
+                            }
+                        };
+>>>>>>> 190ae6f (ref(i18n): complete translations)
 
                         room.set(CurrentRoom {
                             id: room_id.clone(),
@@ -126,7 +177,7 @@ pub fn RoomNew(cx: Scope) -> Element {
                         navigation.push(Route::ChatRoom { name: room_id });
                     }
                     Err(_) => {
-                        let e = Some(String::from("Ha ocurrido un error al crear el DM"));
+                        let e = Some(String::from("{key_dm_error_dm}"));
                         error_creation.set(e)
                     }
                 }

@@ -27,6 +27,11 @@ use matrix_sdk::{
 
 #[inline_props]
 pub fn Verify(cx: Scope, id: String) -> Element {
+    let i18 = use_i18(cx);
+
+    let key_verify_unverified_cta_match = translate!(i18, "verify.unverified.cta_match");
+    let key_verify_unverified_cta_disagree = translate!(i18, "verify.unverified.cta_disagree");
+
     let is_verified = use_ref::<bool>(cx, || false);
 
     let emoji = use_state::<Option<SasVerification>>(cx, || None);
@@ -231,6 +236,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
     };
 
     render! {
+<<<<<<< HEAD
         div {
             class: "page--clamp",
             if !*is_verified.read() {
@@ -239,6 +245,14 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                         class: "verify__title",
                         "Verificar sesion"
                     }
+=======
+        if !*is_verified.read() {
+            rsx!(
+                h2 {
+                    class: "verify__title",
+                    translate!(i18, "verify.unverified.title")
+                }
+>>>>>>> 190ae6f (ref(i18n): complete translations)
 
                     div {
                         class: "verify__spacer",
@@ -246,6 +260,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                             Some(sas) => {
                                 let emojis = sas.emoji().expect("emoji shoudl be available now");
 
+<<<<<<< HEAD
                                     rsx!(
                                         p {
                                             class: "verify__description",
@@ -265,6 +280,26 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                                                             class: "verify__method__description",
                                                             "{emoji.description}"
                                                         }
+=======
+                                rsx!(
+                                    p {
+                                        class: "verify__description",
+                                        translate!(i18, "verify.unverified.question")
+                                    }
+                                    div {
+                                        class: "verify__wrapper",
+                                        emojis.into_iter().map(|emoji| {
+                                            rsx!(
+                                                div {
+                                                    class: "verify__emojis",
+                                                    span {
+                                                        class: "verify__method__title",
+                                                        "{emoji.symbol}"
+                                                    }
+                                                    p {
+                                                        class: "verify__method__description",
+                                                        "{emoji.description}"
+>>>>>>> 190ae6f (ref(i18n): complete translations)
                                                     }
                                                 )
                                             })
@@ -290,15 +325,44 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                             None => {
                                 rsx!(
                                     div {
+<<<<<<< HEAD
                                         class: "verify__info",
                                         "Para inicar la verificacion, ve a otro dispositivo desde el que iniciaste sesion y solicita la verificacion"
+=======
+                                        class: "verify__spacer row",
+                                        Button {
+                                            text: "{key_verify_unverified_cta_disagree}",
+                                            on_click: move |_| {
+                                                on_handle_cancel(sas.clone());
+                                            }
+                                        }
+                                        Button {
+                                            text: "{key_verify_unverified_cta_match}",
+                                            on_click: move |_| {
+                                                on_handle_confirm(sas.clone());
+                                            }
+                                        }
+>>>>>>> 190ae6f (ref(i18n): complete translations)
                                     }
                                 )
                             }
 
                         }
+<<<<<<< HEAD
+=======
+                        None => {
+                            rsx!(
+                                div {
+                                    class: "verify__info",
+                                    translate!(i18, "verify.unverified.description")
+                                }
+                            )
+                        }
+
+>>>>>>> 190ae6f (ref(i18n): complete translations)
                     }
 
+<<<<<<< HEAD
                 )
             } else {
                 rsx!(
@@ -313,6 +377,21 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                     }
                 )
             }
+=======
+            )
+        } else {
+            rsx!(
+                h2 {
+                    class: "verify__title--verified",
+                    translate!(i18, "verify.verified.title")
+                }
+
+                p {
+                    class: "verify__description--verified",
+                    translate!(i18, "verify.verified.description")
+                }
+            )
+>>>>>>> 190ae6f (ref(i18n): complete translations)
         }
     }
 }
