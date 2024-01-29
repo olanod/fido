@@ -17,11 +17,7 @@ use crate::components::{atoms::{
     *, messages::hover_menu::{MenuEvent, MenuOption},
 }, molecules::input_message::ReplyingTo};
 
-use super::rooms::CurrentRoom;
-
-pub struct ListEvent {
-
-}
+pub struct ListEvent {}
 
 #[derive(Props)]
 pub struct ListProps<'a> {
@@ -38,7 +34,6 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
     let on_scroll = use_state(cx, || false);
     let is_loading = use_state(cx, || cx.props.is_loading);
 
-    let current_room = use_shared_state::<CurrentRoom>(cx).expect("Unable to load Current Room");
     let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to load Replying to");
     let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to load timeline thread");
     

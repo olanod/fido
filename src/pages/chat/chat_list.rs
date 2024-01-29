@@ -15,7 +15,14 @@ use crate::{
         },
         organisms::{chat::ActiveRoom, main::TitleHeaderMain},
     },
-    hooks::use_client::use_client,
+    hooks::{
+        use_client::use_client,
+        use_notification::{
+            use_notification, NotificationHandle, NotificationItem, NotificationType,
+        },
+        use_room::use_room,
+        use_session::use_session,
+    },
     services::matrix::matrix::{list_rooms_and_spaces, Conversations},
 };
 
@@ -23,10 +30,11 @@ use crate::{
 pub fn ChatList(cx: Scope) -> Element {
     let nav = use_navigator(cx);
     let client = use_client(cx).get();
-
+    let session = use_session(cx);
+    let notification = use_notification(cx);
+    let room = use_room(cx);
     // use_shared_state_provider::<HashMap<CurrentRoom, Messages>>(cx, || HashMap::new());
 
-    let current_room = use_shared_state::<CurrentRoom>(cx).expect("Unable to read current room");
     let room_tabs = use_ref::<HashMap<CurrentRoom, Messages>>(cx, || HashMap::new());
 
     let rooms = use_state::<Vec<RoomItem>>(cx, || Vec::new());
@@ -41,10 +49,7 @@ pub fn ChatList(cx: Scope) -> Element {
         use_shared_state::<TitleHeaderMain>(cx).expect("Unable to read title header");
 
     let on_click_room = move |evt: FormRoomEvent| {
-        // nav.push(Route::ChatRoom {
-        //     name: evt.room.id.clone(),
-        // });
-        *current_room.write() = evt.room.clone();
+        room.set(evt.room.clone());
         room_tabs.with_mut(|tabs| tabs.insert(evt.room, vec![]));
         messages.write().clear();
     };
@@ -169,7 +174,7 @@ pub fn ChatList(cx: Scope) -> Element {
                 )
             }
 
-            if !current_room.read().name.is_empty() {
+            if !room.get().name.is_empty() {
                 let room_tabs = room_tabs.read().clone();
                 rsx!(
                     section {

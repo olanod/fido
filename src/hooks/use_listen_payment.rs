@@ -31,25 +31,21 @@ use crate::{
     },
 };
 
-use super::{use_client::use_client, use_notification::use_notification};
+use super::{use_client::use_client, use_notification::use_notification, use_room::use_room};
 
 #[allow(clippy::needless_return)]
 pub fn use_listen_payment(cx: &ScopeState) -> &UseListenPaymentState {
     let client = use_client(cx).get();
-    let messages = use_shared_state::<Messages>(cx).unwrap();
-    let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
+    let notification = use_notification(cx);
+    let room = use_room(cx);
+
+    let messages = use_shared_state::<Messages>(cx).expect("Unable to use Messages");
     let handler_added = use_ref(cx, || false);
     let notification = use_notification(cx);
     let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).unwrap();
 
     let task_sender = use_coroutine(cx, |mut rx: UnboundedReceiver<MessageEvent>| {
-        to_owned![
-            client,
-            messages,
-            notification,
-            current_room,
-            timeline_thread
-        ];
+        to_owned![client, messages, notification, room, timeline_thread];
 
         async move {
             while let Some(message_event) = rx.next().await {
@@ -57,11 +53,8 @@ pub fn use_listen_payment(cx: &ScopeState) -> &UseListenPaymentState {
                     let mut msgs = messages.read().clone();
                     let mut plain_message = "";
 
-                    let is_in_current_room = message_event
-                        .room
-                        .room_id()
-                        .as_str()
-                        .eq(&current_room.read().id);
+                    let is_in_current_room =
+                        message_event.room.room_id().as_str().eq(&room.get().id);
 
                     let last_message_id = messages.read().len() as i64;
 
@@ -327,15 +320,11 @@ pub fn use_listen_payment(cx: &ScopeState) -> &UseListenPaymentState {
         }
     });
 
-    cx.use_hook(move || UseListenPaymentState {
-        inner: current_room.clone(),
-    })
+    cx.use_hook(move || UseListenPaymentState {})
 }
 
 #[derive(Clone)]
-pub struct UseListenPaymentState {
-    inner: UseSharedState<CurrentRoom>,
-}
+pub struct UseListenPaymentState {}
 
 impl UseListenPaymentState {
     pub fn initialize(&self) {}

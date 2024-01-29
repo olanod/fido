@@ -21,8 +21,8 @@ impl UseRoomState {
         self.inner.read().clone()
     }
 
-    pub fn set(&self, client: CurrentRoom) {
+    pub fn set(&self, room: CurrentRoom) {
         let mut inner = self.inner.write();
-        *inner = client;
+        *inner = room;
     }
 }

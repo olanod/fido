@@ -23,20 +23,21 @@ use crate::{
 
 use super::{
     use_client::use_client, use_init_app::MessageDispatchId, use_notification::use_notification,
-    use_session::use_session,
+    use_room::use_room, use_session::use_session,
 };
 
 #[allow(clippy::needless_return)]
 pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
     let client = use_client(cx).get();
     let notification = use_notification(cx);
+    let session = use_session(cx);
+    let room = use_room(cx);
 
     let handler_added = use_ref(cx, || false);
 
     let message_dispatch_id =
         use_shared_state::<MessageDispatchId>(cx).expect("Unable to use MessageDispatchId");
     let messages = use_shared_state::<Messages>(cx).expect("Unable to use Messages");
-    let current_room = use_shared_state::<CurrentRoom>(cx).expect("Unable to use CurrentRoom");
     let timeline_thread =
         use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to use TimelineThread");
 
@@ -47,7 +48,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                 client,
                 messages,
                 notification,
-                current_room,
+                room,
                 timeline_thread,
                 session
             ];
@@ -58,11 +59,8 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                         let mut msgs = messages.read().clone();
                         let mut plain_message = None;
 
-                        let is_in_current_room = message_event
-                            .room
-                            .room_id()
-                            .as_str()
-                            .eq(&current_room.read().id);
+                        let is_in_current_room =
+                            message_event.room.room_id().as_str().eq(&room.get().id);
 
                         let last_message_id = messages.read().len() as i64;
 
@@ -447,15 +445,11 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
         }
     });
 
-    cx.use_hook(move || UseListenMessagesState {
-        inner: current_room.clone(),
-    })
+    cx.use_hook(move || UseListenMessagesState {})
 }
 
 #[derive(Clone)]
-pub struct UseListenMessagesState {
-    inner: UseSharedState<CurrentRoom>,
-}
+pub struct UseListenMessagesState {}
 
 impl UseListenMessagesState {
     pub fn initialize(&self) {}

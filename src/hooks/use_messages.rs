@@ -10,12 +10,18 @@ use crate::{
     services::matrix::matrix::{timeline, TimelineRelation, TimelineThread},
 };
 
-use super::use_client::use_client;
+use super::{
+    use_client::use_client, use_notification::use_notification, use_room::use_room,
+    use_session::use_session,
+};
 
 #[allow(clippy::needless_return)]
 pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
     let client = use_client(cx).get();
-    let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
+    let session = use_session(cx);
+    let notification = use_notification(cx);
+    let room = use_room(cx);
+
     let messages = use_shared_state::<Messages>(cx).expect("Messages not provided");
     let mutable_messages = use_ref::<Messages>(cx, || vec![]);
     let messages_loading = use_ref::<bool>(cx, || false);
@@ -26,7 +32,7 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
     let task_timeline = use_coroutine(cx, |mut rx: UnboundedReceiver<bool>| {
         to_owned![
             client,
-            current_room,
+            room,
             messages,
             mutable_messages,
             messages_loading,
@@ -39,14 +45,36 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
             while let Some(true) = rx.next().await {
                 messages_loading.set(true);
 
-                let current_room_id = current_room.read().id.clone();
-                let current_events = limit_events_by_room
-                    .read()
-                    .get(&current_room_id)
-                    .unwrap_or_else(|| &(15 as u64))
-                    .to_owned();
+                let current_room_id = room.get().id.clone();
+                let current_events = match limit_events_by_room.read().get(&current_room_id) {
+                    Some(c) => c,
+                    None => &(15 as u64),
+                }
+                .clone();
 
-                let room_id = RoomId::parse(current_room.read().id.clone()).unwrap();
+                let session_data = match session.get() {
+                    Some(data) => data,
+                    None => {
+                        notification.set(NotificationItem {
+                            title: String::from(""),
+                            body: String::from(""),
+                            show: false,
+                            handle: NotificationHandle {
+                                value: NotificationType::None,
+                            },
+                        });
+
+                        return;
+                    }
+                };
+
+                let room_id = match RoomId::parse(&current_room_id) {
+                    Ok(id) => id,
+                    Err(_) => {
+                        notification.handle_error("Error inesperado: (Id de sala)");
+                        return;
+                    }
+                };
                 let ms = messages.read().deref().clone();
 
                 let (f, msg) =

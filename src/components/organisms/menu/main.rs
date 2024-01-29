@@ -27,7 +27,6 @@ pub fn IndexMenu(cx: Scope) -> Element {
     use_shared_state_provider::<TitleHeaderMain>(cx, || TitleHeaderMain {
         title: String::from("Chats"),
     });
-    let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
 
     let profile = use_state::<AccountInfo>(cx, || AccountInfo {
         name: String::from(""),

@@ -11,7 +11,7 @@ use crate::{
         atoms::{Header, MessageInput, RoomView},
         molecules::rooms::CurrentRoom,
     },
-    hooks::use_client::use_client,
+    hooks::{use_client::use_client, use_notification::use_notification, use_room::use_room},
     pages::route::Route,
     services::matrix::matrix::create_room,
     utils::i18n_get_key_value::i18n_get_key_value,
@@ -41,7 +41,9 @@ pub fn RoomNew(cx: Scope) -> Element {
 
     let navigation = use_navigator(cx);
     let client = use_client(cx);
-    let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
+    let notification = use_notification(cx);
+    let room = use_room(cx);
+
     let user_id = use_state::<String>(cx, || String::from(""));
     let user = use_state::<Option<Profile>>(cx, || None);
     let error_field = use_state::<Option<String>>(cx, || None);
@@ -93,8 +95,9 @@ pub fn RoomNew(cx: Scope) -> Element {
                 user_id,
                 error_creation,
                 navigation,
-                current_room,
-                user
+                room,
+                user,
+                notification
             ];
 
             async move {
@@ -112,13 +115,13 @@ pub fn RoomNew(cx: Scope) -> Element {
                             avatar_uri,
                         } = user.get().clone().unwrap();
 
-                        *current_room.write() = CurrentRoom {
+                        room.set(CurrentRoom {
                             id: room_id.clone(),
                             name: displayname,
                             avatar_uri: avatar_uri,
-                        };
+                        });
 
-                        info!("{:?}", *current_room.read());
+                        info!("{:?}", room.get());
 
                         navigation.push(Route::ChatRoom { name: room_id });
                     }
