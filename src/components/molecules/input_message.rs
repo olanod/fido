@@ -48,7 +48,6 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
     "#);
 
     let on_handle_send_attach = move || {
-        // attach.reset();
         wrapper_style.set(r#"
             flex-direction: column;
         "#);
@@ -74,15 +73,45 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                         let content_type: mime::Mime = x.unwrap().mime_type().parse().unwrap();
                         
 
-                        let blob = match content_type.type_() {
-                            mime::IMAGE => {
-                                gloo::file::Blob::new(content.deref())
-                            },
-                            mime::VIDEO => {
-                                gloo::file::Blob::new_with_options(content.deref(), Some(x.unwrap().mime_type()))
-                            },
-                            _ => {
-                                gloo::file::Blob::new(content.deref())
+                                                let blob = match content_type.type_() {
+                                                    mime::IMAGE => {
+                                                        gloo::file::Blob::new(content.deref())
+                                                    },
+                                                    mime::VIDEO => {
+                                                        gloo::file::Blob::new_with_options(content.deref(), Some(infered_type.mime_type()))
+                                                    },
+                                                    _ => {
+                                                        gloo::file::Blob::new(content.deref())
+                                                    }
+                                                };
+
+                                                let size = blob.size().clone();
+                                                let object_url = gloo::file::ObjectUrl::from(blob);
+                                                
+                                                attach.set(Some(AttachFile { 
+                                                    name: existing_file.to_string(), 
+                                                    preview_url: object_url, 
+                                                    data: content.clone(), 
+                                                    content_type,
+                                                    size
+                                                })) ;
+
+                                                wrapper_style.set(r#"
+                                                    flex-direction: column;
+                                                    position: absolute;
+                                                    height: calc(100vh - 70px);
+                                                    background: var(--background);
+                                                "#);
+                                            }
+                                            _ => {
+                                                error.set(Some("Contenido no identificado, prueba con otro archivo."));
+                                            }
+                                        }
+                                    }
+                                    None => {
+                                        error.set(Some("Verifica que el archivo sea tipo multimedia o documento"))
+                                    }
+                                }
                             }
                         };
 
@@ -164,7 +193,8 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
             rsx!(
                 AttachPreview {
                     on_event: move |event| {
-                        on_handle_send_attach()
+                        on_handle_send_attach();
+                        attach.reset();
                     }
                 }
             )
