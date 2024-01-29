@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::components::atoms::{input::InputType, room::RoomItem, MessageInput, RoomView};
+use crate::components::atoms::{room::RoomItem, RoomView};
 
 #[derive(Clone, Debug, PartialEq, Hash, Eq)]
 pub struct CurrentRoom {

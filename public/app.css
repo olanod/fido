@@ -145,7 +145,7 @@ ul {
 }
 
 .notification {
-  background: white;
+  background: var(--background-modal);
   color: var(--text-1);
   border: 1px solid transparent;
   width: 100%;
@@ -162,12 +162,14 @@ ul {
 .notification__title {
   font-size: var(--font-size-0);
   font-weight: bold;
+  color: var(--text-1);
 }
 
 .notification__body {
   font-size: var(--font-size-0);
   white-space: nowrap;
   overflow: hidden;
+  color: var(--text-1);
   text-overflow: ellipsis;
   margin-top: var(--size-0);
 }
@@ -525,7 +527,12 @@ ul {
   overflow: auto;
 }
 
-.message--text {
+.message__content {
+  display: flex;
+  flex-direction: column;
+}
+
+.message__container__content {
   font-size: var(--font-size-0);
   display: flex;
   gap: 11px;

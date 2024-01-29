@@ -1,8 +1,7 @@
-use std::{collections::HashMap, ops::Deref};
+use std::collections::HashMap;
 
 use dioxus::prelude::*;
 use dioxus_router::prelude::use_navigator;
-use log::info;
 
 use crate::{
     components::{
@@ -17,7 +16,6 @@ use crate::{
         organisms::{chat::ActiveRoom, main::TitleHeaderMain},
     },
     hooks::use_client::use_client,
-    pages::route::Route,
     services::matrix::matrix::{list_rooms_and_spaces, Conversations},
 };
 

@@ -53,16 +53,16 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                 class: "input-wrapper input_error_container",
                 match cx.props.itype {
                     InputType::Search => {
-                        rsx!(
-                            Icon {
-                                stroke: "var(--icon-subdued)",
-                                icon: Search
-                            }
+                        render!(
+                            rsx!(
+                                Icon {
+                                    stroke: "var(--icon-subdued)",
+                                    icon: Search
+                                }
+                            )
                         )
                     }
-                    _ => {
-                        rsx!(div {})
-                    }
+                    _ => None
                 }
 
                 input {
@@ -76,17 +76,19 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
 
                 if cx.props.message.len() > 0 {
                    match cx.props.itype {
-                        InputType::Message => rsx!(
-                            button {
-                                class: "input__cta",
-                                onclick: move |event| cx.props.on_click.call(event),
-                                Icon {
-                                    stroke: "var(--icon-subdued)",
-                                    icon: Send
+                        InputType::Message => render!(
+                            rsx!(
+                                button {
+                                    class: "input__cta",
+                                    onclick: move |event| cx.props.on_click.call(event),
+                                    Icon {
+                                        stroke: "var(--icon-subdued)",
+                                        icon: Send
+                                    }
                                 }
-                            }
+                            )
                         ),
-                        _ => rsx!(div {})
+                        _ => None
                    }
                 }
             }

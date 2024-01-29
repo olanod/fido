@@ -6,13 +6,7 @@ use log::info;
 use matrix_sdk::ruma::RoomId;
 
 use crate::{
-    components::{
-        atoms::{
-            message::{Message, Messages},
-            MessageReply,
-        },
-        molecules::rooms::CurrentRoom,
-    },
+    components::{atoms::message::Messages, molecules::rooms::CurrentRoom},
     services::matrix::matrix::{timeline, TimelineRelation, TimelineThread},
 };
 

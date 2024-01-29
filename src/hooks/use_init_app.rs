@@ -1,19 +1,16 @@
 use crate::components::atoms::message::Messages;
-use crate::pages::chat::chat::{NotificationHandle, NotificationType};
 use crate::services::matrix::matrix::TimelineThread;
 use crate::{
     components::molecules::{input_message::ReplyingTo, rooms::CurrentRoom},
-    pages::{
-        chat::chat::{ListHeight, NotificationItem},
-        login::LoggedIn,
-    },
+    pages::login::LoggedIn,
     MatrixClientState,
 };
 use dioxus::prelude::*;
-use matrix_sdk::encryption::verification::{Emoji, SasVerification};
+use matrix_sdk::encryption::verification::SasVerification;
 use ruma::api::client::uiaa::AuthType;
 
 use super::use_auth::CacheLogin;
+use super::use_notification::{NotificationHandle, NotificationItem, NotificationType};
 use super::{use_attach::AttachFile, use_modal::ModalState};
 
 pub enum BeforeSession {
@@ -41,10 +38,6 @@ pub fn use_init_app(cx: &ScopeState) {
     use_shared_state_provider::<Messages>(cx, || Vec::new());
     use_shared_state_provider::<Option<AttachFile>>(cx, || None);
     use_shared_state_provider::<Option<ReplyingTo>>(cx, || None);
-    use_shared_state_provider::<ListHeight>(cx, || ListHeight {
-        height: { format!("height: calc(100vh - 72px - {}px );", 82) },
-    });
-
     use_shared_state_provider::<NotificationItem>(cx, || NotificationItem {
         title: String::from(""),
         body: String::from(""),

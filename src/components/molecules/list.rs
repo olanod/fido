@@ -8,13 +8,14 @@ use web_sys::HtmlElement;
 
 use crate::components::atoms::message::Sender;
 use crate::components::atoms::message::ThreadPreview;
+use crate::components::atoms::messages::message::MessageView;
 use crate::services::matrix::matrix::TimelineMessage;
 use crate::services::matrix::matrix::TimelineRelation;
 use crate::services::matrix::matrix::TimelineThread;
-use crate::{components::{atoms::{
+use crate::components::{atoms::{
     message::Message,
     *, messages::hover_menu::{MenuEvent, MenuOption},
-}, molecules::input_message::ReplyingTo}, utils::get_element::GetElement, hooks::use_messages::{use_messages, UseMessages}, services::matrix::matrix::TimelineMessageType};
+}, molecules::input_message::ReplyingTo};
 
 use super::rooms::CurrentRoom;
 
@@ -290,9 +291,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                     ))
                                 }
                                 TimelineRelation::Thread(_) => {
-                                    cx.render(rsx!(
-                                        div {}
-                                    ))
+                                    None
                                 }
                             }
                         })

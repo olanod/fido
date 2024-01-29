@@ -4,9 +4,7 @@ use matrix_sdk::ruma::{EventId, RoomId};
 
 use crate::{
     components::molecules::input_message::ReplyingTo,
-    services::matrix::matrix::{
-        send_attachment, Attachment, AttachmentStream, TimelineMessageThread, TimelineThread,
-    },
+    services::matrix::matrix::{send_attachment, AttachmentStream, TimelineThread},
 };
 
 use super::{use_client::use_client, use_room::use_room};

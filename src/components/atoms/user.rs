@@ -1,10 +1,5 @@
-use crate::{
-    components::atoms::{header_main::HeaderCallOptions, Avatar, Close, Icon},
-    services::matrix::matrix::{EventOrigin, TimelineMessageType},
-};
+use crate::components::atoms::Avatar;
 use dioxus::prelude::*;
-
-use super::{header_main::HeaderEvent, MessageReply};
 
 #[derive(Props)]
 pub struct UserProps<'a> {
