@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::hooks::use_auth::use_auth;
+use crate::MatrixClientState;
+use crate::{hooks::use_auth::use_auth, services::matrix::matrix::create_client};
 use crate::hooks::use_client::use_client;
 use crate::utils::i18n_get_key_value::i18n_get_key_value;
 use dioxus::prelude::*;
@@ -32,7 +33,7 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
     let key_log_out = "log_out";
 
     let nav = use_navigator(cx);
-    let client = use_client(cx).get();
+    let client = use_client(cx);
     let auth = use_auth(cx);
 
     let log_out = move || {
@@ -41,25 +42,15 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
 
             async move {
                 
-                let _ = client.logout().await;
+                let _ = client.get().logout().await;
                 let _ = <LocalStorage as gloo::storage::Storage>::delete("session_file");
                 
-                let window = web_sys::window().expect("global window does not exists");
-                let x = window.indexed_db();
+                let c = create_client(String::from("https://matrix.org")).await;
 
-                match x {
-                    Ok(index_db) => {
-                        if let Some(db) = index_db {
-                            let x = db.delete_database("b");
-                            info!("delete: {:?}", x);
-                            let x = db.delete_database("b::matrix-sdk-crypto");
-                            info!("delete: {:?}", x);
-                            let x = db.delete_database("b::matrix-sdk-state");
-                            info!("delete: {:?}", x);
-                        } 
-                    },
-                    Err(err) => todo!(),
-                }
+            client.set(MatrixClientState {
+                client: Some(c.clone()),
+            });
+
 
                 auth.set_logged_in(false)
             }
