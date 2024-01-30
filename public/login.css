@@ -1,0 +1,239 @@
+.button {
+    font-weight: 500;
+    line-height: 20px;
+    padding: 12px 10px;
+    transition: opacity 0.2s ease-out, background-color 0.2s ease-out;
+    cursor: pointer;
+    border-radius: 36px;
+}
+
+.button--primary {
+    border: none;
+    color: var(--text-white);
+    background: var(--background-button);
+    box-shadow: 0px 0px 0px 1px #5e5e6e, 0px 1px 2px 0px rgba(17, 17, 20, 0.4);
+}
+
+.button--secondary {
+    border: none;
+    color: var(--text-loud);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(193, 199, 208, 0.02) 100%),
+        var(--primary-white, #fff);
+    box-shadow: 0px 0px 0px 1px #5e5e6e, 0px 1px 2px 0px rgba(17, 17, 20, 0.4);
+}
+
+.button--tertiary {
+    border: none;
+    color: var(--text-loud);
+    border-radius: 0;
+    padding: 0 8px;
+}
+
+.button:active:not(:disabled) {
+    opacity: 0.7;
+}
+
+
+.input-wrapper {
+    height: 2.625rem;
+    width: 100%;
+    padding: 0.75rem 10px;
+    box-shadow: 0px 0px 0px 1px var(--neutral-alpha-50), 0px 1px 2px 0px var(--neutral-alpha-100);
+    border-radius: 2.25rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    background: var(--background-input);
+}
+
+.button--primary,
+.button--secondary,
+.input-wrapper {
+    width: calc(100% - 2px);
+    margin: 0 1px;
+}
+
+.input {
+    width: 100%;
+    border: 1px solid transparent;
+    outline: none;
+    color: var(--text-1);
+}
+
+.input__wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.input__label {
+    color: var(--text-2);
+    font-family: 'Inter', Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 20px;
+    /* 142.857% */
+}
+
+.input__message {
+    width: 100%;
+    display: flex;
+    padding: 0 0 20px;
+}
+
+.input__message__close {
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid transparent;
+    display: flex;
+}
+
+.input__message__replying {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0 4px;
+}
+
+.input__message__title {
+    color: var(--text-1);
+    font-size: var(--size-1);
+}
+
+.input__message__container {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-end;
+}
+
+.input__cta {
+    border: 1px solid transparent;
+    background: transparent;
+    outline: none;
+    cursor: pointer;
+}
+
+.input--error-container {
+    box-shadow: 0px 0px 0px 1px var(--secondary-red-100), 0px 0px 0px 2px var(--background-white),
+        0px 0px 0px 3px rgba(223, 28, 65, 0.24), 0px 1px 2px 0px rgba(150, 19, 44, 0.32);
+}
+
+.input--error {
+    display: flex;
+    gap: 2px;
+    color: var(--secondary-red-100);
+    font-family: 'Inter', Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 16px;
+    align-items: center;
+    padding-top: 6px;
+}
+
+.login {
+    width: 100%;
+}
+
+.login-form {
+    text-align: center;
+    width: 50%;
+    margin: auto;
+    padding: 12px;
+    margin-top: 120px;
+}
+
+.login-form__avatar {
+    border-radius: 100px;
+    background: var(--secondary-yellow-50);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    width: fit-content;
+    height: fit-content;
+}
+
+.login-form__avatar__content {
+    padding: 14px;
+    font-size: 33px;
+}
+
+.login-form__title {
+    color: var(--text-1);
+    font-family: 'Inter', Arial, Helvetica, sans-serif;
+    font-size: 24px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 32px;
+    /* 133.333% */
+    letter-spacing: -0.24px;
+    padding-top: 6px;
+    margin: auto;
+}
+
+.login-form__description {
+    color: var(--text-subdued);
+    text-align: center;
+    font-family: 'Inter', Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 24px;
+    width: 254px;
+    margin: auto;
+}
+
+.login-form__form__head {
+    display: flex;
+    gap: 16px;
+    flex-direction: column;
+    padding-top: 36px;
+}
+
+.login-form__form--error {
+    display: flex;
+    gap: 2px;
+    color: var(--secondary-red-100);
+    font-family: 'Inter', Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 16px;
+    align-items: center;
+    padding-top: 6px;
+    margin: 0 auto;
+}
+
+.login-form__form__text {
+    color: var(--text-normal);
+    font-family: 'Inter', Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 20px;
+}
+
+.login-form__form__text--color {
+    color: var(--text-1);
+}
+
+.login-form__cta--filled {
+    padding-top: 24px;
+}
+
+.login-form__cta--action {
+    padding-top: 16px;
+}
+
+.login-form__cta--another {
+    margin-bottom: 8px;
+}
+
+@media only screen and (max-width: 768px) {
+    .login-form {
+        width: 100%;
+    }
+}

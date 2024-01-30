@@ -15,7 +15,7 @@ use crate::{
     pages::route::Route,
     services::matrix::matrix::create_room,
     utils::i18n_get_key_value::i18n_get_key_value,
-    utils::matrix::{mxc_to_https_uri, ImageSize},
+    utils::matrix::{mxc_to_thumbnail_uri, ImageMethod, ImageSize},
 };
 use futures_util::StreamExt;
 
@@ -61,13 +61,10 @@ pub fn RoomNew(cx: Scope) -> Element {
     let error_creation = use_state::<Option<String>>(cx, || None);
 
     let task_search_user = use_coroutine(cx, |mut rx: UnboundedReceiver<String>| {
-        to_owned![client, user];
+        to_owned![client, user, notification];
 
         async move {
             while let Some(id) = rx.next().await {
-<<<<<<< HEAD
-                let u = UserId::parse(&id).unwrap();
-=======
                 let u = match UserId::parse(&id) {
                     Ok(u) => u,
                     Err(_) => {
@@ -75,7 +72,6 @@ pub fn RoomNew(cx: Scope) -> Element {
                         return;
                     }
                 };
->>>>>>> 190ae6f (ref(i18n): complete translations)
                 let u = u.deref();
 
                 let request =
@@ -85,21 +81,19 @@ pub fn RoomNew(cx: Scope) -> Element {
                 match resp {
                     Ok(u) => {
                         let avatar_uri: Option<String> = if let Some(uri) = u.avatar_url {
-                            mxc_to_https_uri(
+                            mxc_to_thumbnail_uri(
                                 &uri,
                                 ImageSize {
                                     width: 48,
                                     height: 48,
                                 },
+                                ImageMethod::CROP,
                             )
                         } else {
                             None
                         };
 
                         user.set(Some(Profile {
-<<<<<<< HEAD
-                            displayname: String::from(u.displayname.unwrap()),
-=======
                             displayname: match u.displayname {
                                 Some(d) => String::from(d),
                                 None => {
@@ -107,7 +101,6 @@ pub fn RoomNew(cx: Scope) -> Element {
                                     return;
                                 }
                             },
->>>>>>> 190ae6f (ref(i18n): complete translations)
                             avatar_uri: avatar_uri,
                         }))
                     }
@@ -132,9 +125,6 @@ pub fn RoomNew(cx: Scope) -> Element {
             ];
 
             async move {
-<<<<<<< HEAD
-                let u = UserId::parse(&user_id.get()).unwrap();
-=======
                 let u = match UserId::parse(&user_id.get()) {
                     Ok(u) => u,
                     Err(_) => {
@@ -142,7 +132,6 @@ pub fn RoomNew(cx: Scope) -> Element {
                         return;
                     }
                 };
->>>>>>> 190ae6f (ref(i18n): complete translations)
                 let room_meta = create_room(&client.get(), true, &[u], None, None).await;
 
                 info!("{room_meta:?}");
@@ -154,9 +143,6 @@ pub fn RoomNew(cx: Scope) -> Element {
                         let Profile {
                             displayname,
                             avatar_uri,
-<<<<<<< HEAD
-                        } = user.get().clone().unwrap();
-=======
                         } = match user.get() {
                             Some(u) => u.clone(),
                             None => {
@@ -164,7 +150,6 @@ pub fn RoomNew(cx: Scope) -> Element {
                                 return;
                             }
                         };
->>>>>>> 190ae6f (ref(i18n): complete translations)
 
                         room.set(CurrentRoom {
                             id: room_id.clone(),

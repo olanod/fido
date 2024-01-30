@@ -63,23 +63,27 @@ let key_input_message_cta = translate!(i18, "chat.input_message.cta");
 
     let on_handle_attach = move |event: Event<FormData>| {
         cx.spawn({
-            to_owned![attach, wrapper_style];
+            to_owned![attach, wrapper_style, error];
 
             async move {
                 let files = &event.files;
                 
                 if let Some(f) = &files {
                     let fs = f.files();
-                    let file = f.read_file(fs.get(0).unwrap()).await;
+                    let first_file = fs.get(0);
+                    
+                    match first_file {
+                        Some(existing_file) => {
+                            let file = f.read_file(existing_file).await;
 
-                    if let Some(content) = file {
-        
-                        let x = infer::get(content.deref());
+                            if let Some(content) = file {
+                                let infer_type = infer::get(content.deref());
 
-                        info!("type: {:?}", x.unwrap().mime_type());
-                        
-                        let content_type: mime::Mime = x.unwrap().mime_type().parse().unwrap();
-                        
+                                match infer_type {
+                                    Some(infered_type) => {
+                                        let content_type: Result<mime::Mime, _> = infered_type.mime_type().parse();
+                                        match content_type {
+                                            Ok(content_type) => {
 
                                                 let blob = match content_type.type_() {
                                                     mime::IMAGE => {
@@ -138,6 +142,13 @@ let key_input_message_cta = translate!(i18, "chat.input_message.cta");
         class: "input__message",
 
         if let Some(replying) = replying_to.read().deref() {
+            let close_style = r#"
+                cursor: pointer;
+                background: transparent;
+                border: 1px solid transparent;
+                display: flex;
+            "#;
+              
             rsx!(
                 div {
                     class: "input__message__replying",

@@ -17,11 +17,12 @@ use crate::{
     hooks::{
         use_attach::{use_attach, AttachFile},
         use_client::use_client,
+        use_notification::use_notification,
     },
     pages::route::Route,
     services::matrix::matrix::create_room,
     utils::i18n_get_key_value::i18n_get_key_value,
-    utils::matrix::{mxc_to_https_uri, ImageSize},
+    utils::matrix::{mxc_to_thumbnail_uri, ImageMethod, ImageSize},
 };
 use futures_util::StreamExt;
 
@@ -96,9 +97,12 @@ pub fn RoomGroup(cx: Scope) -> Element {
     let navigation = use_navigator(cx);
     let client = use_client(cx);
     let attach = use_attach(cx);
-    let user_id = use_state::<String>(cx, || String::from("@brayan-test-1:matrix.org"));
+    let notification = use_notification(cx);
+
+    let user_id = use_state::<String>(cx, || String::from(""));
     let users = use_ref::<Vec<Profile>>(cx, || vec![]);
-    let selected_users = use_shared_state::<SelectedProfiles>(cx).unwrap();
+    let selected_users =
+        use_shared_state::<SelectedProfiles>(cx).expect("Unable to use SelectedProfile");
     let error = use_state::<Option<String>>(cx, || None);
     let error_creation = use_state::<Option<String>>(cx, || None);
 
@@ -106,16 +110,13 @@ pub fn RoomGroup(cx: Scope) -> Element {
     let group_name = use_state::<String>(cx, || String::from(""));
 
     let task_search_user = use_coroutine(cx, |mut rx: UnboundedReceiver<String>| {
-        to_owned![client, users];
+        to_owned![client, users, notification];
 
         async move {
             while let Some(id) = rx.next().await {
                 let element = users.read().clone().into_iter().find(|u| u.id.eq(&id));
 
                 if let None = element {
-<<<<<<< HEAD
-                    let u = UserId::parse(&id).unwrap();
-=======
                     let u = match UserId::parse(&id) {
                         Ok(id) => id,
                         Err(_) => {
@@ -124,7 +125,6 @@ pub fn RoomGroup(cx: Scope) -> Element {
                         }
                     };
 
->>>>>>> 190ae6f (ref(i18n): complete translations)
                     let u = u.deref();
 
                     let request =
@@ -134,21 +134,19 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     match resp {
                         Ok(u) => users.with_mut(|x| {
                             let avatar_uri: Option<String> = if let Some(uri) = u.avatar_url {
-                                mxc_to_https_uri(
+                                mxc_to_thumbnail_uri(
                                     &uri,
                                     ImageSize {
                                         width: 48,
                                         height: 48,
                                     },
+                                    ImageMethod::CROP,
                                 )
                             } else {
                                 None
                             };
 
                             x.push(Profile {
-<<<<<<< HEAD
-                                displayname: String::from(u.displayname.unwrap()),
-=======
                                 displayname: match u.displayname {
                                     Some(d) => d,
                                     None => {
@@ -156,7 +154,6 @@ pub fn RoomGroup(cx: Scope) -> Element {
                                         return;
                                     }
                                 },
->>>>>>> 190ae6f (ref(i18n): complete translations)
                                 avatar_uri: avatar_uri,
                                 id,
                             })
@@ -188,7 +185,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     .profiles
                     .clone()
                     .into_iter()
-                    .map(|p| UserId::parse(p).unwrap())
+                    .map(|p| UserId::parse(p).expect("Unable to read user profile"))
                     .collect::<Vec<OwnedUserId>>();
 
                 let avatar = if let Some(file) = attach.get() {
@@ -220,16 +217,13 @@ pub fn RoomGroup(cx: Scope) -> Element {
 
     let on_handle_attach = move |event: Event<FormData>| {
         cx.spawn({
-            to_owned![attach];
+            to_owned![attach, notification];
 
             async move {
                 let files = &event.files;
 
                 if let Some(f) = &files {
                     let fs = f.files();
-<<<<<<< HEAD
-                    let file = f.read_file(fs.get(0).unwrap()).await;
-=======
                     let file_to_read = match fs.get(0) {
                         Some(file) => file,
                         None => {
@@ -238,18 +232,10 @@ pub fn RoomGroup(cx: Scope) -> Element {
                         }
                     };
                     let file = f.read_file(file_to_read).await;
->>>>>>> 190ae6f (ref(i18n): complete translations)
 
                     if let Some(content) = file {
                         let blob = gloo::file::Blob::new(content.deref());
                         let object_url = gloo::file::ObjectUrl::from(blob);
-<<<<<<< HEAD
-                        // attach.set(Some(AttachFile {
-                        //     name: fs.get(0).unwrap().to_string(),
-                        //     preview_url: object_url,
-                        //     data: content.clone(),
-                        // }));
-=======
 
                         let infer_type = infer::get(content.deref());
 
@@ -287,7 +273,6 @@ pub fn RoomGroup(cx: Scope) -> Element {
                                 notification.handle_error("{key_group_error_file}");
                             }
                         }
->>>>>>> 190ae6f (ref(i18n): complete translations)
                     }
                 }
             }
@@ -302,11 +287,11 @@ pub fn RoomGroup(cx: Scope) -> Element {
             }
         }
         if *handle_complete_group.read() {
-            let element = if let Some(_) = attach.get()  {
+            let element = if let Ok(file) = attach.get_file()  {
                 render!(rsx!(
                     img {
                         class: "group__attach",
-                        src: "{attach.get_file().deref()}"
+                        src: "{file.deref()}"
                     }
                 ))
             } else {

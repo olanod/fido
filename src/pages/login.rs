@@ -8,7 +8,7 @@ use crate::{
         atoms::{MessageInput, input::InputType, LoadingStatus},
         organisms::{login_form::FormLoginEvent, LoginForm},
     },
-    utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::login, hooks::{use_client::use_client, use_init_app::BeforeSession, use_auth::{use_auth, CacheLogin}, use_session::use_session},
+    utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::login, hooks::{use_client::use_client, use_init_app::BeforeSession, use_auth::{use_auth, CacheLogin}, use_session::use_session, use_notification::use_notification},
 };
 
 #[derive(Debug, Clone)]
@@ -36,10 +36,6 @@ pub fn Login(cx: Scope) -> Element {
     let key_login_chat_homeserver_placeholder = "login-chat-homeserver-placeholder";
     let key_login_chat_homeserver_cta = "login-chat-homeserver-cta";
 
-    let key_login_chat_saved_title = "login-chat-saved-title";
-    let key_login_chat_saved_description = "login-chat-saved-description";
-    let key_login_chat_saved_cta = "login-chat-saved-cta";
-    
     let key_login_chat_credentials_description = "login-chat-credentials-description";
     let key_login_chat_credentials_title = "login-chat-credentials-title";
 
@@ -64,10 +60,6 @@ pub fn Login(cx: Scope) -> Element {
         (key_login_chat_homeserver_placeholder, translate!(i18, "login.chat_steps.homeserver.placeholder")),
         (key_login_chat_homeserver_cta, translate!(i18, "login.chat_steps.homeserver.cta")),
 
-        (key_login_chat_saved_title, translate!(i18, "login.chat_steps.saved.title")),
-        (key_login_chat_saved_description, translate!(i18, "login.chat_steps.saved.description")),
-        (key_login_chat_saved_cta, translate!(i18, "login.chat_steps.saved.cta")),
-        
         (key_login_chat_credentials_title, translate!(i18, "login.chat_steps.credentials.title")),
         
         (key_login_chat_credentials_description, translate!(i18, "login.chat_steps.credentials.description")),
@@ -90,6 +82,7 @@ pub fn Login(cx: Scope) -> Element {
     let client = use_client(cx);
     let auth = use_auth(cx);
     let session = use_session(cx);
+    let notification = use_notification(cx);
 
     let homeserver = use_state(cx, || String::from(""));
     let username = use_state(cx, || String::from(""));
@@ -141,7 +134,7 @@ pub fn Login(cx: Scope) -> Element {
         auth.set_password(password.get().clone());
 
         cx.spawn({
-            to_owned![auth, session, username, password, is_loading_loggedin, client, error, error_invalid_credentials, error_unknown, homeserver];
+            to_owned![auth, session, username, password, is_loading_loggedin, client, error, error_invalid_credentials, error_unknown, homeserver, notification];
 
             async move {
                 is_loading_loggedin.set(LoggedInStatus::Loading);
@@ -181,9 +174,6 @@ pub fn Login(cx: Scope) -> Element {
                                 session.sync(c.clone(), None).await;
         
                                 client.set(crate::MatrixClientState { client: Some(c.clone()) });
-<<<<<<< HEAD
-                                is_loading_loggedin.set(LoggedInStatus::LoggedAs(c.user_id().unwrap().to_string()));
-=======
                                 
                                 let user_id = match c.user_id() {
                                     Some(u) => u,
@@ -194,7 +184,6 @@ pub fn Login(cx: Scope) -> Element {
                                 };
 
                                 is_loading_loggedin.set(LoggedInStatus::LoggedAs(user_id.to_string()));
->>>>>>> 190ae6f (ref(i18n): complete translations)
         
                                 auth.set_logged_in(true)
                             }
@@ -263,7 +252,7 @@ pub fn Login(cx: Scope) -> Element {
 
     render!(
         div {
-            class: "page--clamp", 
+            class: "page--clamp",
             if auth.is_storage_data() && *is_loading_loggedin.read() == LoggedInStatus::Start {
                 let display_name = match auth.get_login_cache() {
                     Some(data) => {
@@ -275,14 +264,13 @@ pub fn Login(cx: Scope) -> Element {
                     None => {
                         String::from("")
                     }
-<<<<<<< HEAD
                 };
     
                 rsx!(
                     LoginForm {
-                        title: "{i18n_get_key_value(&i18n_map, key_login_chat_saved_title)} {display_name}",
-                        description: "{i18n_get_key_value(&i18n_map, key_login_chat_saved_description)}",
-                        button_text: "{i18n_get_key_value(&i18n_map, key_login_chat_saved_cta)}",
+                        title: "{key_login_unlock_title} {display_name}",
+                        description: "{key_login_unlock_description}",
+                        button_text: "{key_login_unlock_cta}",
                         emoji: "👋",
                         error: error.get().as_ref(),
                         clear_data: true,
@@ -304,36 +292,6 @@ pub fn Login(cx: Scope) -> Element {
                                     },
                                     on_click: move |_| {
                                         auth.set_password(password.get().clone())
-=======
-                },
-                None => {
-                    String::from("")
-                }
-            };
-
-            rsx!(
-                LoginForm {
-                    title: "{key_login_unlock_title} {display_name}",
-                    description: "{key_login_unlock_description}",
-                    button_text: "{key_login_unlock_cta}",
-                    emoji: "👋",
-                    error: if error.get().is_some() { error.get().as_ref() } else { None },
-                    clear_data: true,
-                    on_handle: on_handle_form_event,
-                    body: render!(rsx!(
-                        div {
-                            MessageInput {
-                                itype: InputType::Password,
-                                message: "{password.get()}",
-                                placeholder: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_password_placeholder)}",
-                                error: None,
-                                on_input: move |event: FormEvent| {
-                                    password.set(event.value.clone())
-                                },
-                                on_keypress: move |event: KeyboardEvent| {
-                                    if event.code() == keyboard_types::Code::Enter && !password.get().is_empty() {
-                                        on_handle_login_key_press()
->>>>>>> 190ae6f (ref(i18n): complete translations)
                                     }
                                 }
                             }
@@ -425,7 +383,6 @@ pub fn Login(cx: Scope) -> Element {
                                     }
                                 }
                             }
-<<<<<<< HEAD
                         ))
                     }
                 )
@@ -433,22 +390,22 @@ pub fn Login(cx: Scope) -> Element {
                 match &*is_loading_loggedin.read() {
                     LoggedInStatus::Loading => {
                         rsx!(
-                            LoadingStatus {text: "Estamos verificando tus datos".to_string()}
+                            LoadingStatus {text: translate!(i18, "login.status.loading")}
                         )
                     }
                     LoggedInStatus::LoggedAs(user) => {
                         rsx!(
-                            LoadingStatus {text: "Te damos la bienvenida {user}".to_string()}
+                            LoadingStatus {text: translate!(i18, "login.status.logged")}
                         )
                     },
                     LoggedInStatus::Done => {
                         rsx!(
-                            LoadingStatus {text: "Te damos la bienvenida ".to_string()}
+                            LoadingStatus {text: translate!(i18, "login.status.done")}
                         )
                     }
                     LoggedInStatus::Persisting => {
                         rsx!(
-                            LoadingStatus {text: "Guardando tu sesion".to_string()}
+                            LoadingStatus {text: translate!(i18, "login.status.persisting")}
                         )
                     }
                     _ => {
@@ -456,38 +413,6 @@ pub fn Login(cx: Scope) -> Element {
                     }  
                 }    
             }
-=======
-                        }
-                    ))
-                }
-            )
-        } else {
-            match &*is_loading_loggedin.read() {
-                LoggedInStatus::Loading => {
-                    rsx!(
-                        LoadingStatus {text: translate!(i18, "login.status.loading")}
-                    )
-                }
-                LoggedInStatus::LoggedAs(user) => {
-                    rsx!(
-                        LoadingStatus {text: translate!(i18, "login.status.logged")}
-                    )
-                },
-                LoggedInStatus::Done => {
-                    rsx!(
-                        LoadingStatus {text: translate!(i18, "login.status.done")}
-                    )
-                }
-                LoggedInStatus::Persisting => {
-                    rsx!(
-                        LoadingStatus {text: translate!(i18, "login.status.persisting")}
-                    )
-                }
-                _ => {
-                    rsx!(div{})
-                }  
-            }    
->>>>>>> 190ae6f (ref(i18n): complete translations)
         }
     )
 }

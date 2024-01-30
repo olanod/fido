@@ -55,7 +55,6 @@ pub fn ActiveRoom(cx: Scope) -> Element {
 
     let nav = use_navigator(cx);
     let room = use_room(cx);
-    let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
     let send_message = use_send_message(cx);
     let send_attach = use_send_attach(cx);
 

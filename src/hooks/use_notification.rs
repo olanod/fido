@@ -46,4 +46,16 @@ impl UseNotificationState {
         let mut inner = self.inner.write();
         *inner = item;
     }
+
+    pub fn handle_error(&self, body: &str) {
+        let mut inner = self.inner.write();
+        *inner = NotificationItem {
+            title: String::from("Error"),
+            body: String::from(body),
+            show: true,
+            handle: NotificationHandle {
+                value: NotificationType::None,
+            },
+        };
+    }
 }

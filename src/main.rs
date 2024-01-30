@@ -4,9 +4,11 @@ use chat::hooks::use_auth::use_auth;
 use chat::hooks::use_client::use_client;
 use chat::hooks::use_init_app::{use_init_app, BeforeSession};
 use chat::hooks::use_notification::{use_notification, NotificationType};
+use chat::hooks::use_session::use_session;
 use chat::pages::login::{LoggedIn, Login};
 use chat::pages::route::Route;
 use chat::pages::signup::Signup;
+use chat::utils::get_element;
 use chat::MatrixClientState;
 use dioxus::prelude::*;
 use dioxus_router::prelude::Router;
@@ -19,7 +21,13 @@ use dioxus_std::{i18n::*, translate};
 use matrix_sdk::config::SyncSettings;
 use matrix_sdk::ruma::exports::serde_json;
 use matrix_sdk::Client;
+use ruma::api::client::filter::{Filter, FilterDefinition, RoomEventFilter, RoomFilter};
+use ruma::api::client::sync::sync_events;
+use ruma::events::EventType;
 use std::str::FromStr;
+use std::time::Duration;
+use web_sys::console::info;
+use web_sys::window;
 
 fn main() {
     dioxus_logger::init(LevelFilter::Info).expect("failed to init logger");
@@ -41,10 +49,23 @@ fn App(cx: Scope) -> Element {
         },
     );
 
+    if let Some(window) = window() {
+        if let Some(document) = window.document() {
+            if let Some(static_login_form) = document.get_element_by_id("static-login-form") {
+                if let Some(parent) = static_login_form.parent_node() {
+                    parent
+                        .remove_child(&static_login_form)
+                        .expect("Failed to remove element");
+                }
+            }
+        }
+    }
+
     use_init_app(cx);
 
     let client = use_client(cx);
     let auth = use_auth(cx);
+    let session = use_session(cx);
     let notification = use_notification(cx);
     let i18 = use_i18(cx);
 
@@ -56,7 +77,7 @@ fn App(cx: Scope) -> Element {
     let restoring_session = use_ref::<bool>(cx, || true);
 
     use_coroutine(cx, |_: UnboundedReceiver<MatrixClientState>| {
-        to_owned![client, auth, restoring_session];
+        to_owned![client, auth, restoring_session, session];
 
         async move {
             let c = create_client(String::from("https://matrix.org")).await;
@@ -76,7 +97,8 @@ fn App(cx: Scope) -> Element {
                 client.set(MatrixClientState {
                     client: Some(c.clone()),
                 });
-                let x = sync(c.clone(), sync_token).await;
+
+                let x = session.sync(c.clone(), sync_token).await;
 
                 auth.set_logged_in(true);
 
@@ -164,43 +186,4 @@ fn App(cx: Scope) -> Element {
             }
         )
     }
-}
-
-pub async fn sync(client: Client, initial_sync_token: Option<String>) -> anyhow::Result<()> {
-    let mut sync_settings = SyncSettings::default();
-
-    if let Some(sync_token) = initial_sync_token {
-        sync_settings = sync_settings.token(sync_token);
-    }
-
-    loop {
-        match client.sync_once(sync_settings.clone()).await {
-            Ok(response) => {
-                persist_sync_token(response.next_batch).await?;
-                break;
-            }
-            Err(error) => {
-                info!("An error occurred during initial sync: {error}");
-                info!("Trying again…");
-            }
-        }
-    }
-
-    info!("The client is ready! Listening to new messages…");
-
-    Ok(())
-}
-
-pub async fn persist_sync_token(sync_token: String) -> anyhow::Result<()> {
-    let serialized_session: Result<String, StorageError> =
-        <LocalStorage as gloo::storage::Storage>::get("session_file");
-
-    let serialized_session = serialized_session.unwrap();
-    let mut full_session: FullSession = serde_json::from_str(&serialized_session)?;
-
-    full_session.sync_token = Some(sync_token);
-    let serialized_session = serde_json::to_string(&full_session)?;
-    let _ = <LocalStorage as gloo::storage::Storage>::set("session_file", serialized_session);
-
-    Ok(())
 }

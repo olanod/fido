@@ -80,7 +80,7 @@ ul {
 
 .input__label {
   color: var(--text-2);
-  font-family: Inter;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   font-size: 14px;
   font-style: normal;
   font-weight: 500;
@@ -135,7 +135,7 @@ ul {
   display: flex;
   gap: 2px;
   color: var(--secondary-red-100);
-  font-family: Inter;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
@@ -145,7 +145,7 @@ ul {
 }
 
 .notification {
-  background: var(--background-modal);
+  background: white;
   color: var(--text-1);
   border: 1px solid transparent;
   width: 100%;
@@ -162,14 +162,12 @@ ul {
 .notification__title {
   font-size: var(--font-size-0);
   font-weight: bold;
-  color: var(--text-1);
 }
 
 .notification__body {
   font-size: var(--font-size-0);
   white-space: nowrap;
   overflow: hidden;
-  color: var(--text-1);
   text-overflow: ellipsis;
   margin-top: var(--size-0);
 }
@@ -247,10 +245,6 @@ ul {
   height: 100%;
   width: 100%;
   position: relative;
-}
-
-.login {
-  width: 100%;
 }
 
 .restoring__title {
@@ -543,7 +537,7 @@ ul {
 .message__time {
   color: var(--text-disabled);
   text-align: right;
-  font-family: Inter;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   font-size: 10px;
   font-style: italic;
   font-weight: 400;
@@ -552,33 +546,9 @@ ul {
   text-transform: uppercase;
 }
 
-.message__content {}
-
 .message__sender {
   color: var(--text-1);
   font-weight: 500;
-}
-
-.message__content--me {
-  color: var(--text-white);
-  font-family: Inter;
-  font-size: 16px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 20px;
-  /* 125% */
-  white-space: pre-line;
-}
-
-.message__content--other {
-  color: var(--text-1);
-  font-family: Inter;
-  font-size: 16px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 20px;
-  /* 125% */
-  white-space: pre-line;
 }
 
 .message__content__image--is-replying {
@@ -633,7 +603,7 @@ ul {
 
 .message__content__thread-count {
   color: var(--text-subdued);
-  font-family: Inter;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   font-size: 14px;
   font-style: normal;
   font-weight: 400;
@@ -665,7 +635,7 @@ ul {
 
 .message-reply--is-replying-me {
   color: var(--text-white);
-  font-family: Inter;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   font-size: 12px;
   font-weight: 500;
   line-height: 12px;
@@ -673,7 +643,7 @@ ul {
 
 .message-reply--not-replying-me {
   color: var(--text-1);
-  font-family: Inter;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   font-size: 12px;
   font-weight: 500;
   line-height: 12px;
@@ -820,7 +790,7 @@ ul {
 
 .header__title {
   color: var(--text-1);
-  font-family: Inter;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   font-size: 18px;
   font-style: normal;
   font-weight: 500;
@@ -852,7 +822,7 @@ ul {
 
 .nav__title {
   color: var(--text-1);
-  font-family: Inter;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   font-size: 18px;
   font-style: normal;
   font-weight: 500;
@@ -967,7 +937,7 @@ ul {
 
 .attach__title--file {
   color: var(--text-1);
-  font-family: Inter;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   font-size: 24px;
   font-style: normal;
   font-weight: 500;
@@ -1047,7 +1017,7 @@ ul {
 .modal__user__title {
   color: var(--text-1);
   text-align: center;
-  font-family: Inter;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   font-size: 18px;
   font-style: normal;
   font-weight: 600;
@@ -1110,7 +1080,7 @@ ul {
   text-align: center;
   text-overflow: ellipsis;
   whitespace: nowrap;
-  font-family: Inter;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   font-size: 12px;
   font-style: normal;
   font-weight: 500;
@@ -1160,100 +1130,6 @@ ul {
   width: 80%;
 }
 
-.login-form {
-  text-align: center;
-  width: 100%;
-  margin: auto;
-  padding: 12px;
-  margin-top: 120px;
-}
-
-.login-form__avatar {
-  border-radius: 100px;
-  background: var(--secondary-yellow-50);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: auto;
-  width: fit-content;
-  height: fit-content;
-}
-
-.login-form__avatar__content {
-  padding: 14px;
-  font-size: 33px;
-}
-
-.login-form__title {
-  color: var(--text-1);
-  font-family: Inter;
-  font-size: 24px;
-  font-style: normal;
-  font-weight: 500;
-  line-height: 32px;
-  /* 133.333% */
-  letter-spacing: -0.24px;
-  padding-top: 6px;
-  margin: auto;
-}
-
-.login-form__description {
-  color: var(--text-subdued);
-  text-align: center;
-  font-family: Inter;
-  font-size: 16px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 24px;
-  width: 254px;
-  margin: auto;
-}
-
-.login-form__form__head {
-  display: flex;
-  gap: 16px;
-  flex-direction: column;
-  padding-top: 36px;
-}
-
-.login-form__form--error {
-  display: flex;
-  gap: 2px;
-  color: var(--secondary-red-100);
-  font-family: Inter;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 16px;
-  align-items: center;
-  padding-top: 6px;
-  margin: 0 auto;
-}
-
-.login-form__form__text {
-  color: var(--text-normal);
-  font-family: Inter;
-  font-size: 14px;
-  font-style: normal;
-  font-weight: 500;
-  line-height: 20px;
-}
-
-.login-form__form__text--color {
-  color: var(--text-1);
-}
-
-.login-form__cta--filled {
-  padding-top: 24px;
-}
-
-.login-form__cta--action {
-  padding-top: 16px;
-}
-
-.login-form__cta--another {
-  margin-bottom: 8px;
-}
 
 .group {}
 
@@ -1467,15 +1343,4 @@ ul {
 
 .room-new__items {
   margin-top: 10px;
-}
-
-.page--clamp {
-  max-width: 50%;
-  margin: 0 auto;
-}
-
-@media only screen and (max-width: 768px) {
-  .page--clamp {
-    max-width: 100%;
-  }
 }

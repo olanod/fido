@@ -56,7 +56,8 @@ pub mod matrix {
 
     use crate::{
         components::atoms::room::RoomItem,
-        utils::matrix::{mxc_to_https_uri, ImageSize},
+        hooks::use_session::UserSession,
+        utils::matrix::{mxc_to_download_uri, mxc_to_thumbnail_uri, ImageMethod, ImageSize},
     };
 
     use matrix_sdk::ruma::exports::serde_json;
@@ -258,23 +259,45 @@ pub mod matrix {
         pub spaces: HashMap<RoomItem, Vec<RoomItem>>,
     }
 
-    pub async fn list_rooms_and_spaces(client: &Client) -> Conversations {
+    pub async fn list_rooms_and_spaces(
+        client: &Client,
+        session_data: UserSession,
+    ) -> Conversations {
         let mut rooms = Vec::new();
         let mut spaces = HashMap::new();
 
-        for room in client.joined_rooms() {
+        for room in client.rooms() {
             let is_direct = room.is_direct();
             let is_space = room.is_space();
 
             let avatar_url = room.avatar_url();
 
-            let avatar_uri: Option<String> = match avatar_url {
-                Some(avatar) => {
-                    let (server, id) = avatar.parts().unwrap();
-                    let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=48&height=48&method=crop", server, id);
-                    Some(String::from(uri))
+            let avatar_uri: Option<String> = if is_direct {
+                let direct_targets = room.direct_targets();
+
+                if let Some(member) = direct_targets.into_iter().next() {
+                    let member = room.get_member(&member).await;
+
+                    if let Ok(Some(member)) = member {
+                        let avatar_url = member.avatar_url();
+
+                        let avatar_uri: Option<String> = avatar_url.and_then(|uri| {
+                            mxc_to_thumbnail_uri(&uri, ImageSize::default(), ImageMethod::CROP)
+                        });
+
+                        avatar_uri
+                    } else {
+                        None
+                    }
+                } else {
+                    None
                 }
-                None => None,
+            } else {
+                let avatar_uri: Option<String> = avatar_url.and_then(|uri| {
+                    mxc_to_thumbnail_uri(&uri, ImageSize::default(), ImageMethod::CROP)
+                });
+
+                avatar_uri
             };
 
             if let Some(name) = room.name() {
@@ -292,13 +315,12 @@ pub mod matrix {
                     rooms.push(room);
                 }
             } else {
-                let me = client.whoami().await.unwrap();
                 let users = room.members().await;
 
                 if let Ok(members) = users {
                     let member = members
                         .into_iter()
-                        .find(|member| !member.user_id().eq(&me.user_id));
+                        .find(|member| !member.user_id().to_string().eq(&session_data.user_id));
 
                     if let Some(m) = member {
                         let name = m.name();
@@ -354,14 +376,9 @@ pub mod matrix {
                 Some(m) => {
                     let avatar = m.avatar_url();
 
-                    let avatar_uri: Option<String> = match avatar {
-                        Some(avatar) => {
-                            let (server, id) = avatar.parts().unwrap();
-                            let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=48&height=48&method=crop", server, id);
-                            Some(String::from(uri))
-                        }
-                        None => None,
-                    };
+                    let avatar_uri = avatar.and_then(|uri| {
+                        mxc_to_thumbnail_uri(&uri, ImageSize::default(), ImageMethod::SCALE)
+                    });
 
                     match m.display_name() {
                         Some(name) => RoomMember {
@@ -391,17 +408,9 @@ pub mod matrix {
         let display_name = client.account().get_display_name().await;
 
         let avatar_uri = match avatar {
-            Ok(uri) => {
-                if let Some(avatar) = uri {
-                    let avatar = &*avatar;
-                    let (server, id) = avatar.parts().unwrap();
-                    let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=48&height=48&method=crop", server, id);
-
-                    Some(String::from(uri).to_owned())
-                } else {
-                    None
-                }
-            }
+            Ok(uri) => uri.and_then(|uri| {
+                mxc_to_thumbnail_uri(&uri, ImageSize::default(), ImageMethod::CROP)
+            }),
             Err(_) => None,
         };
 
@@ -539,6 +548,7 @@ pub mod matrix {
         limit: u64,
         from: Option<String>,
         old_messages: Vec<TimelineRelation>,
+        session_data: UserSession,
     ) -> (Option<String>, Vec<TimelineRelation>) {
         let mut messages: Vec<TimelineRelation> = old_messages;
 
@@ -568,20 +578,13 @@ pub mod matrix {
             false,
         );
 
-        let user = client.whoami().await;
-        let mut me = String::from("");
-
-        if let Ok(u) = user {
-            me = u.user_id.to_string();
-        }
-
         for zz in t.events.iter() {
             let deserialized = deserialize_any_timeline_event(
                 zz.event
                     .deserialize()
                     .expect("can't deserialize iter events: timeline"),
                 &room,
-                &me,
+                &session_data.user_id,
                 &client,
             )
             .await;
@@ -941,12 +944,8 @@ pub mod matrix {
             }
             MessageType::File(f) => match &f.source {
                 MediaSource::Plain(mx_uri) => {
-                    let (server, id) = mx_uri.parts().unwrap();
-
-                    let uri = format!(
-                        "https://matrix-client.matrix.org/_matrix/media/v3/download/{}/{}",
-                        server, id
-                    );
+                    let uri = mxc_to_download_uri(&mx_uri);
+                    let source = uri.and_then(|uri| Some(ImageType::URL(uri)));
 
                     let size = if let Some(file_info) = f.info.clone() {
                         match file_info.size {
@@ -972,7 +971,7 @@ pub mod matrix {
                         body: TimelineMessageType::File(FileContent {
                             size,
                             body: f.body.clone(),
-                            source: Some(ImageType::URL(uri)),
+                            source,
                         }),
                         origin: if member.id.eq(logged_user_id) {
                             EventOrigin::ME
@@ -983,12 +982,8 @@ pub mod matrix {
                     });
                 }
                 MediaSource::Encrypted(file) => {
-                    let (server, id) = file.url.parts().unwrap();
-
-                    let uri = format!(
-                        "https://matrix-client.matrix.org/_matrix/media/v3/download/{}/{}",
-                        server, id
-                    );
+                    let uri = mxc_to_download_uri(&file.url);
+                    let source = uri.and_then(|uri| Some(ImageType::URL(uri)));
 
                     let size = if let Some(file_info) = f.info.clone() {
                         match file_info.size {
@@ -1014,7 +1009,7 @@ pub mod matrix {
                         body: TimelineMessageType::File(FileContent {
                             size,
                             body: f.body.clone(),
-                            source: Some(ImageType::URL(uri)),
+                            source,
                         }),
                         origin: if member.id.eq(logged_user_id) {
                             EventOrigin::ME
@@ -1027,12 +1022,8 @@ pub mod matrix {
             },
             MessageType::Video(video) => match &video.source {
                 MediaSource::Plain(mx_uri) => {
-                    let (server, id) = mx_uri.parts().unwrap();
-
-                    let uri = format!(
-                        "https://matrix-client.matrix.org/_matrix/media/v3/download/{}/{}",
-                        server, id
-                    );
+                    let uri = mxc_to_download_uri(&mx_uri);
+                    let source = uri.and_then(|uri| Some(ImageType::URL(uri)));
 
                     let size = if let Some(file_info) = video.info.clone() {
                         match file_info.size {
@@ -1058,7 +1049,7 @@ pub mod matrix {
                         body: TimelineMessageType::Video(FileContent {
                             size,
                             body: video.body.clone(),
-                            source: Some(ImageType::URL(uri)),
+                            source,
                         }),
                         origin: if member.id.eq(logged_user_id) {
                             EventOrigin::ME

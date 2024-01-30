@@ -3,7 +3,7 @@
     "texts": {
         "main": {
             "loading": {
-                "title": "Buscando sesiónes para restaurar",
+                "title": "Buscando sesiones para restaurar",
                 "steps": {
                     "fount": "Sesión encontrada",
                     "restoring": "Restaurando sesión"
@@ -45,7 +45,7 @@
             },
             "unlock": {
                 "title": "Bienvenido",
-                "description": "Para desbloquear solo introduce tu constraseña",
+                "description": "Para desbloquear solo introduce tu contraseña",
                 "cta": "Desbloquear"
             },
             "chat_errors": {
@@ -70,7 +70,7 @@
                     "cta": "Confirmar servidor"
                 },
                 "credentials": {
-                    "title": "Vamos a registrate",
+                    "title": "Vamos a registrarte",
                     "description": "Imagina un nombre de usuario asombroso y una contraseña segura.",
                     "username": {
                         "message": "Ingresa tu nombre de usuario",
@@ -193,7 +193,7 @@
             "management": {
                 "title": "Gestión de cuenta",
                 "info": {
-                    "subtitle": "Informacion de la cuenta",
+                    "subtitle": "Información de la cuenta",
                     "label_1": "Servidor",
                     "label_2": "ID del usuario de Matrix",
                     "label_3": "ID de la sesión",
@@ -259,7 +259,7 @@
         "verify": {
             "unverified": {
                 "title": "Verificar sesión",
-                "description": "Para inicar la verificación, ve a otro dispositivo desde el que iniciaste sesión y solicita la verificación",
+                "description": "Para iniciar la verificación, ve a otro dispositivo desde el que iniciaste sesión y solicita la verificación",
                 "question": "Verifica si los emojis coinciden con la otra sesión, en el mismo orden",
                 "cta_match": "Sí, coincide",
                 "cta_disagree": "No coincide"

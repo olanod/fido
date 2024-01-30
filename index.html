@@ -7,16 +7,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta charset="UTF-8" />
 
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 
+  <style>
     * {
       box-sizing: border-box;
-      font-family: 'Inter', sans-serif;
-    }
-
-    p {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Inter', Arial, Helvetica, sans-serif;
     }
 
     :where(html) {
@@ -222,7 +219,47 @@
 </head>
 
 <body>
-  <div id="main"></div>
+  <div id="main">
+    <div id="static-login-form" class="page">
+      <section class="login-form">
+        <div class="login-form__avatar">
+          <div class="login-form__avatar__content">
+            🛰️
+          </div>
+        </div>
+        <h2 class="login-form__title">
+          Ingresa un servidor
+        </h2>
+        <p class="login-form__description">
+          Únete a un servidor, por defecto puedes utilizar https://matrix.org
+        </p>
+
+        <div class="login-form__form__head">
+          <section class="input__wrapper">
+            <div class="input-wrapper">
+              <input type="text" class="input" placeholder="https://matrix.org">
+            </div>
+          </section>
+        </div>
+
+        <div class="login-form__cta--filled">
+          <button class="button button--primary">Confirmar servidor</button>
+        </div>
+
+        <div class="login-form__cta--action">
+          <small class="login-form__form__text">
+            ¿Si no tienes una cuenta?<button
+              class="login-form__form__text login__form__text--color button button--tertiary">Registrate</button>
+          </small>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script>
+    if (localStorage.getItem("session_file") != null) {
+      document.getElementById("static-login-form").style.display = "none";
+    }
+  </script>
   <script type="module">
     import init from "/{base_path}/assets/dioxus/{app_name}.js";
     init("/{base_path}/assets/dioxus/{app_name}_bg.wasm").then(wasm => {

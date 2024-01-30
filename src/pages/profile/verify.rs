@@ -82,7 +82,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                             &sas.other_device().device_id()
                         );
                         // print_devices(&ev.sender, &client).await;
-                        sas.accept().await.unwrap();
+                        sas.accept().await;
                     }
                 },
             );
@@ -156,7 +156,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                                 &sas.other_device().device_id()
                             );
                             // print_devices(&ev.sender, &client).await;
-                            sas.accept().await.unwrap();
+                            sas.accept().await;
                         }
                     },
                 );
@@ -207,7 +207,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
             let is_verified = is_verified.clone();
 
             async move {
-                sas.confirm().await.unwrap();
+                sas.confirm().await;
 
                 if sas.is_done() {
                     is_verified.set(true);
@@ -225,7 +225,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
             let sas = sas.clone();
 
             async move {
-                sas.cancel().await.unwrap();
+                sas.cancel().await;
 
                 if sas.is_cancelled() {
                     is_verified.set(false);
@@ -236,51 +236,19 @@ pub fn Verify(cx: Scope, id: String) -> Element {
     };
 
     render! {
-<<<<<<< HEAD
-        div {
-            class: "page--clamp",
-            if !*is_verified.read() {
-                rsx!(
-                    h2 {
-                        class: "verify__title",
-                        "Verificar sesion"
-                    }
-=======
         if !*is_verified.read() {
             rsx!(
                 h2 {
                     class: "verify__title",
                     translate!(i18, "verify.unverified.title")
                 }
->>>>>>> 190ae6f (ref(i18n): complete translations)
 
-                    div {
-                        class: "verify__spacer",
-                        match emoji.get(){
-                            Some(sas) => {
-                                let emojis = sas.emoji().expect("emoji shoudl be available now");
+                div {
+                    class: "verify__spacer",
+                    match emoji.get(){
+                        Some(sas) => {
+                            let emojis = sas.emoji().expect("emoji shoudl be available now");
 
-<<<<<<< HEAD
-                                    rsx!(
-                                        p {
-                                            class: "verify__description",
-                                            "Verifica si los emojis coinciden con la otra sesion, en el mismo orden"
-                                        }
-                                        div {
-                                            class: "verify__wrapper",
-                                            emojis.into_iter().map(|emoji| {
-                                                rsx!(
-                                                    div {
-                                                        class: "verify__emojis",
-                                                        span {
-                                                            class: "verify__method__title",
-                                                            "{emoji.symbol}"
-                                                        }
-                                                        p {
-                                                            class: "verify__method__description",
-                                                            "{emoji.description}"
-                                                        }
-=======
                                 rsx!(
                                     p {
                                         class: "verify__description",
@@ -299,36 +267,12 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                                                     p {
                                                         class: "verify__method__description",
                                                         "{emoji.description}"
->>>>>>> 190ae6f (ref(i18n): complete translations)
                                                     }
-                                                )
-                                            })
-                                        }
-                                        div {
-                                            class: "verify__spacer row",
-                                            Button {
-                                                text: "No coincide",
-                                                on_click: move |_| {
-                                                    on_handle_cancel(sas.clone());
                                                 }
-                                            }
-                                            Button {
-                                                text: "Si, coincide",
-                                                on_click: move |_| {
-                                                    on_handle_confirm(sas.clone());
-                                                }
-                                            }
-                                        }
-                                    )
-
-                            }
-                            None => {
-                                rsx!(
+                                            )
+                                        })
+                                    }
                                     div {
-<<<<<<< HEAD
-                                        class: "verify__info",
-                                        "Para inicar la verificacion, ve a otro dispositivo desde el que iniciaste sesion y solicita la verificacion"
-=======
                                         class: "verify__spacer row",
                                         Button {
                                             text: "{key_verify_unverified_cta_disagree}",
@@ -342,14 +286,10 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                                                 on_handle_confirm(sas.clone());
                                             }
                                         }
->>>>>>> 190ae6f (ref(i18n): complete translations)
                                     }
                                 )
-                            }
 
                         }
-<<<<<<< HEAD
-=======
                         None => {
                             rsx!(
                                 div {
@@ -359,25 +299,9 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                             )
                         }
 
->>>>>>> 190ae6f (ref(i18n): complete translations)
                     }
+                }
 
-<<<<<<< HEAD
-                )
-            } else {
-                rsx!(
-                    h2 {
-                        class: "verify__title--verified",
-                        "Verificacion completada"
-                    }
-
-                    p {
-                        class: "verify__description--verified",
-                        "Haz verificado este dispositivo."
-                    }
-                )
-            }
-=======
             )
         } else {
             rsx!(
@@ -391,7 +315,6 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                     translate!(i18, "verify.verified.description")
                 }
             )
->>>>>>> 190ae6f (ref(i18n): complete translations)
         }
     }
 }

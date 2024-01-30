@@ -8,6 +8,7 @@ use matrix_sdk::ruma::RoomId;
 
 use crate::{
     components::{atoms::message::Messages, molecules::rooms::CurrentRoom},
+    hooks::use_notification::{NotificationHandle, NotificationItem, NotificationType},
     services::matrix::matrix::{timeline, TimelineRelation, TimelineThread},
 };
 
@@ -31,7 +32,8 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
     let messages_loading = use_ref::<bool>(cx, || false);
     let limit_events_by_room = use_ref::<HashMap<String, u64>>(cx, || HashMap::new());
     let from = use_ref::<Option<String>>(cx, || None);
-    let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).unwrap();
+    let timeline_thread =
+        use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to use TimelineThread");
 
     let task_timeline = use_coroutine(cx, |mut rx: UnboundedReceiver<bool>| {
         to_owned![
@@ -42,7 +44,9 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
             messages_loading,
             limit_events_by_room,
             from,
-            timeline_thread
+            timeline_thread,
+            session,
+            notification
         ];
 
         async move {
@@ -81,8 +85,15 @@ pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
                 };
                 let ms = messages.read().deref().clone();
 
-                let (f, msg) =
-                    timeline(&client, &room_id, current_events, from.read().clone(), ms).await;
+                let (f, msg) = timeline(
+                    &client,
+                    &room_id,
+                    current_events,
+                    from.read().clone(),
+                    ms,
+                    session_data,
+                )
+                .await;
 
                 from.set(f);
 
@@ -190,12 +201,10 @@ impl UseMessagesState {
     }
 
     pub fn loadmore(&self, current_room_id: String) {
-        let current_events = *self
-            .inner
-            .limit
-            .read()
-            .get(&current_room_id)
-            .unwrap_or_else(|| &(15 as u64));
+        let current_events = match self.inner.limit.read().get(&current_room_id) {
+            Some(c) => c.clone(),
+            None => 15 as u64,
+        };
 
         self.inner
             .limit

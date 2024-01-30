@@ -20,7 +20,7 @@ url = "2.3.1"
 web-sys = {version = "0.3.61", features = ["Document", "Element", "HtmlElement", "HtmlBodyElement", "Node", "NodeList", "Window", "console", "CssStyleDeclaration"]}
 time = "0.3.22"
 anyhow = "1"
-serde = "1.0.96"
+serde = { version = "1.0.96", features = ["derive"]}
 mime = "0.3.17"
 js-sys = "0.3.64"
 wasm-bindgen = "0.2.55"

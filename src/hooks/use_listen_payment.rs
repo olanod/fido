@@ -41,8 +41,8 @@ pub fn use_listen_payment(cx: &ScopeState) -> &UseListenPaymentState {
 
     let messages = use_shared_state::<Messages>(cx).expect("Unable to use Messages");
     let handler_added = use_ref(cx, || false);
-    let notification = use_notification(cx);
-    let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).unwrap();
+    let timeline_thread =
+        use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to use TimelineThread");
 
     let task_sender = use_coroutine(cx, |mut rx: UnboundedReceiver<MessageEvent>| {
         to_owned![client, messages, notification, room, timeline_thread];
@@ -79,10 +79,17 @@ pub fn use_listen_payment(cx: &ScopeState) -> &UseListenPaymentState {
                                 let n = TimelineRelation::CustomThread(TimelineThread {
                                     event_id: x.event_id.clone(),
                                     thread: x.thread.clone(),
-                                    latest_event: x.thread[x.thread.len() - 1]
+                                    latest_event: match x.thread[x.thread.len() - 1]
                                         .clone()
                                         .event_id
-                                        .unwrap(),
+                                    {
+                                        Some(id) => id,
+                                        None => {
+                                            notification
+                                                .handle_error("Error inesperado: (Id de hilo)");
+                                            return;
+                                        }
+                                    },
                                     count: x.thread.len(),
                                 });
 
@@ -98,21 +105,21 @@ pub fn use_listen_payment(cx: &ScopeState) -> &UseListenPaymentState {
                             // Position of a head thread timeline
                             let position = msgs.iter().position(|m| {
                                 if let TimelineRelation::CustomThread(y) = m {
-                                    y.event_id.eq(x.event_id.as_ref().unwrap())
+                                    match &x.event_id {
+                                        Some(id) => y.event_id.eq(id),
+                                        None => {
+                                            notification
+                                                .handle_error("Error inesperado: (Id de evento)");
+                                            false
+                                        }
+                                    }
                                 } else {
                                     false
                                 }
                             });
 
                             if let Some(p) = position {
-                                if let TimelineRelation::CustomThread(ref mut z) = msgs[p] {
-                                    // let mm = format_head_thread(zz.event.deserialize().unwrap());
-
-                                    // if let Some(x) = mm {
-                                    //     z.latest_event = x.1;
-                                    // }
-                                    // z.thread.push(x.clone());
-                                };
+                                if let TimelineRelation::CustomThread(ref mut z) = msgs[p] {};
                             } else {
                                 if is_in_current_room {
                                     msgs.push(message.clone());
@@ -211,40 +218,6 @@ pub fn use_listen_payment(cx: &ScopeState) -> &UseListenPaymentState {
                             }
                         });
                     }
-                    info!("after write");
-                    // let room_name = if let Some(name) = message_event.room.name() {
-                    //     name
-                    // } else {
-                    //     let mut name = String::from("Unknown name room");
-                    //     let me = client.whoami().await.unwrap();
-                    //     let users = message_event.room.members().await;
-
-                    //     if let Ok(members) = users {
-                    //         let member = members
-                    //             .into_iter()
-                    //             .find(|member| !member.user_id().eq(&me.user_id));
-
-                    //         if let Some(m) = member {
-                    //             let n = m.name();
-
-                    //             name = String::from(n);
-                    //         }
-                    //     }
-
-                    //     name
-                    // };
-
-                    // handle_notification(
-                    //     NotificationItem {
-                    //         title: String::from(room_name),
-                    //         body: String::from(plain_message),
-                    //         show: true,
-                    //         handle: NotificationHandle {
-                    //             value: NotificationType::Click,
-                    //         },
-                    //     },
-                    //     notification.to_owned(),
-                    // );
                 }
             }
         }
@@ -282,9 +255,7 @@ pub fn use_listen_payment(cx: &ScopeState) -> &UseListenPaymentState {
 
                             let event = ev.event_id;
 
-                            if let Some(x) = ev.unsigned.relations {
-                                // x.thread.unwrap().latest_event
-                            }
+                            if let Some(x) = ev.unsigned.relations {}
 
                             let timestamp = {
                                 let d = UNIX_EPOCH + Duration::from_millis(time.0.into());

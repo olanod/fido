@@ -141,21 +141,13 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                                 rsx!(
                                     p {
                                         class: "login-form__cta--another",
-<<<<<<< HEAD
-                                        "{i18n_get_key_value(&i18n_map, key_login_chat_saved_another_user)} {data.username}?"
-=======
-                                        "{i18n_get_key_value(&i18n_map, key_onboard_login_user)} {username}?"
->>>>>>> 190ae6f (ref(i18n): complete translations)
+                                        "{i18n_get_key_value(&i18n_map, key_onboard_login_user)} {data.username}?"
                                         button {
                                             class: "login-form__form__text login__form__text--color button button--tertiary",
                                             onclick: move |_| {
                                                 cx.props.on_handle.call(FormLoginEvent::ClearData)
                                             },
-<<<<<<< HEAD
-                                            "{i18n_get_key_value(&i18n_map, key_login_chat_saved_cta_another)}",
-=======
                                             "{i18n_get_key_value(&i18n_map, key_onboard_login_cta_another)}"
->>>>>>> 190ae6f (ref(i18n): complete translations)
                                         }
                                     }
                                 )

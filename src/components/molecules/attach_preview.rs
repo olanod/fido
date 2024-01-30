@@ -24,32 +24,16 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
     cx.render(rsx!(if let Some(file) = attach.get() {
         match file.content_type.type_() {
             mime::IMAGE => {
-                rsx!(
-                    article {
-                        class: "attach__wrapper--image",
-                        img {
-                            class: "attach__content--image",
-                            src: "{attach.get_file().deref()}"
+                if let Ok(file) = attach.get_file() {
+                    rsx!(
+                        article {
+                            class: "attach__wrapper--image",
+                            img {
+                                class: "attach__content--image",
+                                src: "{file.deref()}"
+                            }
                         }
-                    }
 
-<<<<<<< HEAD
-                    Card {
-                        file: "{attach.get_file().deref()}",
-                        on_click: on_handle_card
-                    }
-                )
-            }
-            mime::VIDEO => {
-                rsx!(
-                    article {
-                        class: "attach__wrapper--video",
-                        video {
-                            class: "attach__content--video",
-                            src: "{attach.get_file().deref()}",
-                            controls: true,
-                            autoplay: true
-=======
                         Card {
                             file: "{file.deref()}",
                             on_click: on_handle_card
@@ -82,23 +66,16 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
                                     on_click: on_handle_card
                                 }
                             }
->>>>>>> 190ae6f (ref(i18n): complete translations)
                         }
-                        div {
-<<<<<<< HEAD
-                            class: "attach__cta--video",
-                            Button {
-                                text: "Cancelar",
-                                variant: &Variant::Secondary,
-                                on_click: on_handle_card
-                            }
-=======
-                            translate!(i18, "chat.attach_preview.not_found")
->>>>>>> 190ae6f (ref(i18n): complete translations)
-                        }
-                    }
 
-                )
+                    )
+                } else {
+                    rsx!(
+                        div {
+                            translate!(i18, "chat.attach_preview.not_found")
+                        }
+                    )
+                }
             }
             _ => {
                 rsx!(

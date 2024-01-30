@@ -12,6 +12,7 @@ watch_path = ["src", "public"]
 
 [web.resource]
 style = [
+  "./login.css",
   "./app.css",
 ]
 script = []

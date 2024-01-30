@@ -91,12 +91,6 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                 let reply_to = replying_to.read().clone();
                 let thread_to = threading_to.read().clone();
 
-<<<<<<< HEAD
-                let reply_event_id = if let Some(e) = reply_to {
-                    Some(EventId::parse(e.event_id).unwrap())
-                } else {
-                    None
-=======
                 let reply_event_id = match reply_to {
                     Some(e) => {
                         let event_id = match EventId::parse(e.event_id) {
@@ -109,7 +103,6 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                         Some(event_id)
                     }
                     None => None,
->>>>>>> 190ae6f (ref(i18n): complete translations)
                 };
 
                 let thread_event_id = &thread_to.clone().and_then(|e| {

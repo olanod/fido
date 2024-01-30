@@ -49,7 +49,7 @@ pub fn ChatList(cx: Scope) -> Element {
     let pattern = use_state(cx, String::new);
     let rooms_filtered = use_ref(cx, || Vec::new());
     let selected_space = use_ref::<String>(cx, || String::new());
-    let messages = use_shared_state::<Messages>(cx).unwrap();
+    let messages = use_shared_state::<Messages>(cx).expect("Unable to use Messages");
     let title_header =
         use_shared_state::<TitleHeaderMain>(cx).expect("Unable to read title header");
 
@@ -68,21 +68,33 @@ pub fn ChatList(cx: Scope) -> Element {
             rooms_filtered,
             all_rooms,
             selected_space,
-<<<<<<< HEAD
-            title_header
-=======
             title_header,
             session,
             notification,
             key_chat_list_home
->>>>>>> 190ae6f (ref(i18n): complete translations)
         ];
 
         async move {
+            let session_data = match session.get() {
+                Some(data) => data,
+                None => {
+                    notification.set(NotificationItem {
+                        title: String::from(""),
+                        body: String::from(""),
+                        show: false,
+                        handle: NotificationHandle {
+                            value: NotificationType::None,
+                        },
+                    });
+
+                    return;
+                }
+            };
+
             let Conversations {
                 rooms: r,
                 spaces: s,
-            } = list_rooms_and_spaces(&client).await;
+            } = list_rooms_and_spaces(&client, session_data).await;
 
             rooms.set(r.clone());
             spaces.set(s.clone());
