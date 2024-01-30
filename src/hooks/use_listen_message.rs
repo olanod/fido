@@ -1,4 +1,4 @@
-use std::ops::{Deref, Index};
+use std::ops::Deref;
 
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
@@ -10,15 +10,12 @@ use matrix_sdk::{
 use ruma::events::room::message::Relation;
 
 use crate::{
-    components::{
-        atoms::message::Messages, molecules::rooms::CurrentRoom,
-        organisms::chat::utils::handle_notification,
-    },
+    components::{atoms::message::Messages, organisms::chat::utils::handle_notification},
     hooks::use_notification::{NotificationHandle, NotificationItem, NotificationType},
     pages::chat::chat::MessageEvent,
     services::matrix::matrix::{
         format_original_any_room_message_event, format_relation_from_event, room_member,
-        TimelineMessage, TimelineMessageType, TimelineRelation, TimelineThread,
+        TimelineMessageType, TimelineRelation, TimelineThread,
     },
 };
 
@@ -44,7 +41,6 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
     let key_listen_message_video = translate!(i18, "chat.listen.message.video");
     let key_listen_message_html = translate!(i18, "chat.listen.message.html");
     let key_listen_message_thread = translate!(i18, "chat.listen.message.thread");
-    
 
     let message_dispatch_id =
         use_shared_state::<MessageDispatchId>(cx).expect("Unable to use MessageDispatchId");
@@ -118,7 +114,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                     }
                                 }
 
-                                plain_message = Some("{key_listen_message_thread}");
+                                plain_message = Some(key_listen_message_thread.as_str());
                             }
                             TimelineRelation::None(x) => {
                                 // Position of a head thread timeline
@@ -146,8 +142,13 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                             None => {
                                                 msgs.push(message.clone());
 
-                                                plain_message =
-                                                    Some(message_to_plain_content(&x.body))
+                                                plain_message = Some(message_to_plain_content(
+                                                    &x.body,
+                                                    &key_listen_message_image,
+                                                    &key_listen_message_file,
+                                                    &key_listen_message_video,
+                                                    &key_listen_message_html,
+                                                ))
                                             }
                                         }
                                     }
@@ -159,8 +160,13 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                         Some(position) => msgs[position] = message.clone(),
                                         None => {
                                             msgs.push(message.clone());
-                                            plain_message =
-                                                Some(message_to_plain_content(&x.event.body))
+                                            plain_message = Some(message_to_plain_content(
+                                                &x.event.body,
+                                                &key_listen_message_image,
+                                                &key_listen_message_file,
+                                                &key_listen_message_video,
+                                                &key_listen_message_html,
+                                            ))
                                         }
                                     }
                                 }
@@ -171,7 +177,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                     msgs.push(message);
                                 }
 
-                                plain_message = Some("{key_listen_message_thread}");
+                                plain_message = Some(key_listen_message_thread.as_str());
                             }
                         };
                         info!("before write");
@@ -465,12 +471,18 @@ impl UseListenMessagesState {
     pub fn initialize(&self) {}
 }
 
-pub fn message_to_plain_content(content: &TimelineMessageType) -> &str {
+pub fn message_to_plain_content<'a>(
+    content: &'a TimelineMessageType,
+    key_image: &'a str,
+    key_file: &'a str,
+    key_video: &'a str,
+    key_html: &'a str,
+) -> &'a str {
     match &content {
-        TimelineMessageType::Image(_) => "{key_listen_message_image}",
+        TimelineMessageType::Image(_) => key_image,
         TimelineMessageType::Text(t) => t,
-        TimelineMessageType::File(t) => "key_listen_message_file",
-        TimelineMessageType::Video(t) => "key_listen_message_video",
-        TimelineMessageType::Html(t) => "key_listen_message_html",
+        TimelineMessageType::File(t) => key_file,
+        TimelineMessageType::Video(t) => key_video,
+        TimelineMessageType::Html(t) => key_html,
     }
 }

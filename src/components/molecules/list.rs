@@ -226,7 +226,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                     let thread = message.thread.clone();
                                     let latest_event = message.latest_event.clone();
                                     let count = message.count.clone();
-                                    let head_message = thread[thread.len() - 1].clone();
+                                    let head_message = thread[0].clone();
                                     
                                     let mut thread_avatars: Vec<Sender> = vec![];
 
