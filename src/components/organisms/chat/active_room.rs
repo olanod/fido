@@ -24,7 +24,7 @@ use crate::{
         use_send_message::use_send_message,
     },
     pages::{chat::chat::MessageItem, route::Route},
-    services::matrix::matrix::{Attachment, AttachmentStream, TimelineMessageType, TimelineThread},
+    services::matrix::matrix::{Attachment, AttachmentStream, TimelineThread},
 };
 
 pub fn ActiveRoom(cx: Scope) -> Element {
@@ -135,27 +135,6 @@ pub fn ActiveRoom(cx: Scope) -> Element {
             }
 
             if let Some(t) = timeline_thread.read().deref() {
-                let head_message = &t.thread[0];
-                let body = &head_message.body;
-
-                let title_thread = match body {
-                    TimelineMessageType::Image(file) => {
-                        file.body.clone()
-                    },
-                    TimelineMessageType::Text(text) => {
-                        text.clone()
-                    },
-                    TimelineMessageType::Html(html) => {
-                        html.clone()
-                    },
-                    TimelineMessageType::File(file) => {
-                        file.body.clone()
-                    },
-                    TimelineMessageType::Video(file) => {
-                        file.body.clone()
-                    },
-                };
-
                 rsx!(
                     div {
                         class: "active-room__thread",
@@ -164,7 +143,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                             class: "active-room__thread__head",
                             p {
                                 class: "active-room__thread__title",
-                                translate!(i18, "chat.thread.title") " {title_thread}"
+                                translate!(i18, "chat.thread.title")
                             }
                             button {
                                 class: "active-room__close",
