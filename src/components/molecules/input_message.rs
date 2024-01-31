@@ -2,11 +2,12 @@ use std::ops::Deref;
 
 use dioxus::{html::input_data::keyboard_types, prelude::*};
 use dioxus_std::{i18n::use_i18, translate};
+use futures_util::TryFutureExt;
 
 use crate::{
-    components::{atoms::{Attach, Button, header_main::{HeaderEvent, HeaderCallOptions}, input::InputType, hover_menu::{MenuEvent, MenuOption}, TextareaInput, Close, Icon, message::MessageView, Message,
+    components::{atoms::{header_main::{HeaderEvent, HeaderCallOptions}, hover_menu::{MenuEvent, MenuOption}, input::InputType, message::MessageView, Attach, Button, Close, Icon, Message, TextareaInput
     }, molecules::AttachPreview},
-    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_room::use_room, use_send_attach::SendAttachStatus},
+    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_notification::use_notification, use_room::use_room, use_send_attach::SendAttachStatus},
 };
 
 #[derive(Debug, Clone)]
@@ -32,25 +33,30 @@ pub struct InputMessageProps<'a> {
     on_attach: Option<EventHandler<'a, Attachment>>
 }
 
+#[derive(Debug)]
+pub enum AttachError {
+    NotFound, 
+    UncoverType,
+    UnknownContent
+}
+
 pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
     let i18 = use_i18(cx);
     let attach = use_attach(cx);
     let client = use_client(cx);
     let room = use_room(cx);
+    let notification = use_notification(cx);
 
     let key_input_message_unknown_content = translate!(i18, "chat.input_message.unknown_content");
-let key_input_message_file_type = translate!(i18, "chat.input_message.file_type");
-let key_input_message_not_found = translate!(i18, "chat.input_message.not_found");
-let key_input_message_cta = translate!(i18, "chat.input_message.cta");
-
-
-
-    let message_field = use_state(cx, String::new);
-
+    let key_input_message_file_type = translate!(i18, "chat.input_message.file_type");
+    let key_input_message_not_found = translate!(i18, "chat.input_message.not_found");
+    let key_input_message_cta = translate!(i18, "chat.input_message.cta");
+    
     let send_attach_status =
         use_shared_state::<SendAttachStatus>(cx).expect("Unable to use SendAttachStatus");
     let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to use ReplyingTo");
-    let error = use_state(cx, || None);
+    
+    let message_field = use_state(cx, String::new);
     let wrapper_style = use_ref(cx, || r#"
         flex-direction: column;
     "#);
@@ -63,75 +69,59 @@ let key_input_message_cta = translate!(i18, "chat.input_message.cta");
 
     let on_handle_attach = move |event: Event<FormData>| {
         cx.spawn({
-            to_owned![attach, wrapper_style, error];
+            to_owned![attach, wrapper_style, notification, key_input_message_not_found, key_input_message_file_type, key_input_message_unknown_content];
 
             async move {
-                let files = &event.files;
-                
-                if let Some(f) = &files {
-                    let fs = f.files();
-                    let first_file = fs.get(0);
-                    
-                    match first_file {
-                        Some(existing_file) => {
-                            let file = f.read_file(existing_file).await;
+                let files = &event.files.clone().ok_or(AttachError::NotFound)?;
+                let fs = files.files();
 
-                            if let Some(content) = file {
-                                let infer_type = infer::get(content.deref());
+                let existing_file = fs.get(0).ok_or(AttachError::NotFound)?;
+                let content = files.read_file(existing_file).await.ok_or(AttachError::NotFound)?;
+                let infered_type = infer::get(content.deref()).ok_or(AttachError::UncoverType)?;
 
-                                match infer_type {
-                                    Some(infered_type) => {
-                                        let content_type: Result<mime::Mime, _> = infered_type.mime_type().parse();
-                                        match content_type {
-                                            Ok(content_type) => {
+                let content_type: Result<mime::Mime, _> = infered_type.mime_type().parse();
+                let content_type = content_type.map_err(|e|AttachError::UnknownContent)?;
 
-                                                let blob = match content_type.type_() {
-                                                    mime::IMAGE => {
-                                                        gloo::file::Blob::new(content.deref())
-                                                    },
-                                                    mime::VIDEO => {
-                                                        gloo::file::Blob::new_with_options(content.deref(), Some(infered_type.mime_type()))
-                                                    },
-                                                    _ => {
-                                                        gloo::file::Blob::new(content.deref())
-                                                    }
-                                                };
-
-                                                let size = blob.size().clone();
-                                                let object_url = gloo::file::ObjectUrl::from(blob);
-                                                
-                                                attach.set(Some(AttachFile { 
-                                                    name: existing_file.to_string(), 
-                                                    preview_url: object_url, 
-                                                    data: content.clone(), 
-                                                    content_type,
-                                                    size
-                                                })) ;
-
-                                                wrapper_style.set(r#"
-                                                    flex-direction: column;
-                                                    position: absolute;
-                                                    height: calc(100vh - 70px);
-                                                    background: var(--background);
-                                                "#);
-                                            }
-                                            _ => {
-                                                error.set(Some("{key_input_message_unknown_content}"));
-                                            }
-                                        }
-                                    }
-                                    None => {
-                                        error.set(Some("{key_input_message_file_type}"))
-                                    }
-                                }
-                            }
-                        }
-                        None => {
-                            error.set(Some("{key_input_message_not_found}"))
-                        }
+                let blob = match content_type.type_() {
+                    mime::IMAGE => {
+                        gloo::file::Blob::new(content.deref())
+                    },
+                    mime::VIDEO => {
+                        gloo::file::Blob::new_with_options(content.deref(), Some(infered_type.mime_type()))
+                    },
+                    _ => {
+                        gloo::file::Blob::new(content.deref())
                     }
-                }
-            }
+                };
+
+                let size = blob.size().clone();
+                let object_url = gloo::file::ObjectUrl::from(blob);
+                
+                attach.set(Some(AttachFile { 
+                    name: existing_file.to_string(), 
+                    preview_url: object_url, 
+                    data: content.clone(), 
+                    content_type,
+                    size
+                })) ;
+
+                wrapper_style.set(r#"
+                    flex-direction: column;
+                    position: absolute;
+                    height: calc(100vh - 70px);
+                    background: var(--background);
+                "#);
+
+                Ok::<(), AttachError>(())
+            }.unwrap_or_else(move |e: AttachError| {
+                let message_error = match e {
+                    AttachError::NotFound => key_input_message_not_found,
+                    AttachError::UncoverType => key_input_message_file_type,
+                    AttachError::UnknownContent => key_input_message_unknown_content
+                };
+
+                notification.handle_error(&message_error);
+            })
         });
     };
 
@@ -142,13 +132,6 @@ let key_input_message_cta = translate!(i18, "chat.input_message.cta");
         class: "input__message",
 
         if let Some(replying) = replying_to.read().deref() {
-            let close_style = r#"
-                cursor: pointer;
-                background: transparent;
-                border: 1px solid transparent;
-                display: flex;
-            "#;
-              
             rsx!(
                 div {
                     class: "input__message__replying",
