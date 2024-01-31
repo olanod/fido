@@ -28,14 +28,14 @@ pub fn IndexMenu(cx: Scope) -> Element {
         title: String::from("Chats"),
     });
 
+    let modal = use_modal(cx);
+    let show_menu = use_ref(cx, || false);
+    let client = use_client(cx);
+
     let profile = use_state::<AccountInfo>(cx, || AccountInfo {
         name: String::from(""),
         avatar_uri: None,
     });
-
-    let modal = use_modal(cx);
-    let show_menu = use_ref(cx, || false);
-    let client = use_client(cx);
 
     use_coroutine(cx, |_: UnboundedReceiver<bool>| {
         to_owned![client, profile];

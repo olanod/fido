@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Deref};
+use std::ops::Deref;
 
 use dioxus::prelude::*;
 use dioxus_router::prelude::use_navigator;
@@ -25,34 +25,10 @@ use crate::{
     },
     pages::{chat::chat::MessageItem, route::Route},
     services::matrix::matrix::{Attachment, AttachmentStream, TimelineMessageType, TimelineThread},
-    utils::i18n_get_key_value::i18n_get_key_value,
 };
 
 pub fn ActiveRoom(cx: Scope) -> Element {
     let i18 = use_i18(cx);
-
-    let key_chat_thread_title = translate!(i18, "chat.thread.title");
-
-    let i18n_map = HashMap::from([
-        ("join-title", translate!(i18, "chat.helpers.join.title")),
-        (
-            "join-description",
-            translate!(i18, "chat.helpers.join.description"),
-        ),
-        (
-            "join-subtitle",
-            translate!(i18, "chat.helpers.join.subtitle"),
-        ),
-        (
-            "inputs-plain-message",
-            translate!(i18, "chat.inputs.plain-message"),
-        ),
-        (
-            "message-list-see-more",
-            translate!(i18, "chat.message_list.see_more"),
-        ),
-    ]);
-
     let nav = use_navigator(cx);
     let room = use_room(cx);
     let send_message = use_send_message(cx);
@@ -61,6 +37,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to use ReplyingTo");
     let timeline_thread =
         use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to use TimelineThread");
+
     let use_m = use_messages(cx);
     let UseMessages {
         messages,
@@ -69,9 +46,9 @@ pub fn ActiveRoom(cx: Scope) -> Element {
         task: _,
     } = use_m.get();
 
-    // let timeline_thread_ref = use_ref::<TimelineThread>(cx, || TimelineThread{ event_id: todo!(), thread: todo!(), latest_event: todo!(), count: todo!() })
-    let input_placeholder =
-        use_state::<String>(cx, || i18n_get_key_value(&i18n_map, "inputs-plain-message"));
+    let input_placeholder = use_state::<String>(cx, || {
+        translate!(i18, "chat.inputs.plain_message.placeholder")
+    });
 
     let header_event = move |evt: HeaderEvent| {
         to_owned![room];
@@ -158,7 +135,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
             }
 
             if let Some(t) = timeline_thread.read().deref() {
-                let head_message = &t.thread[t.thread.len() - 1];
+                let head_message = &t.thread[0];
                 let body = &head_message.body;
 
                 let title_thread = match body {
@@ -180,7 +157,6 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                 };
 
                 rsx!(
-
                     div {
                         class: "active-room__thread",
                         // thread title
@@ -188,7 +164,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                             class: "active-room__thread__head",
                             p {
                                 class: "active-room__thread__title",
-                                "{key_chat_thread_title} {title_thread}"
+                                translate!(i18, "chat.thread.title") " {title_thread}"
                             }
                             button {
                                 class: "active-room__close",
