@@ -85,7 +85,7 @@ impl UseSessionState {
             Ok(response) => {
                 Self::whoami(&self, client).await?;
 
-                Self::persist_sync_token(response.next_batch).await?;
+                Self::persist_sync_token(&response.next_batch).await?;
 
                 Ok(())
             }
@@ -98,7 +98,7 @@ impl UseSessionState {
         }
     }
 
-    async fn persist_sync_token(sync_token: String) -> anyhow::Result<(), Error> {
+    async fn persist_sync_token(sync_token: &str) -> anyhow::Result<(), Error> {
         let serialized_session: Result<String, StorageError> =
             <LocalStorage as gloo::storage::Storage>::get("session_file");
 
@@ -109,7 +109,7 @@ impl UseSessionState {
 
         let mut full_session: FullSession = serde_json::from_str(&serialized_session)?;
 
-        full_session.sync_token = Some(sync_token);
+        full_session.sync_token = Some(sync_token.to_owned());
         let serialized_session = serde_json::to_string(&full_session)?;
         let _ = <LocalStorage as gloo::storage::Storage>::set("session_file", serialized_session);
 

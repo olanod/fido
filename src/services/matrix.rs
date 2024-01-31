@@ -77,7 +77,7 @@ pub mod matrix {
         pub send_to_thread: bool,
     }
 
-    pub async fn create_client(homeserver_url_str: String) -> Client {
+    pub async fn create_client(homeserver_url_str: &str) -> Client {
         info!("create client ");
         let homeserver_url =
             Url::parse(&homeserver_url_str).expect("Couldn't parse the homeserver URL");
@@ -86,38 +86,6 @@ pub mod matrix {
             .expect("can't handle new Client: create_client");
 
         client
-    }
-
-    pub async fn login_and_sync(
-        client: &Client,
-        username: String,
-        password: String,
-    ) -> Result<String, String> {
-        info!("Logging");
-        let response = client
-            .login_username(&username, &password)
-            .initial_device_display_name("rust-sdk")
-            .send()
-            .await;
-
-        match response {
-            Ok(res) => {
-                info!("res: {:?}", res);
-                info!("Syncing");
-                client
-                    .sync_once(SyncSettings::default())
-                    .await
-                    .expect("can't sync: login_and_sync");
-
-                return Ok(String::from("Welcome"));
-            }
-            Err(err) => match err {
-                Error::Http(HttpError::Api(FromHttpResponseError::Server(ServerError::Known(
-                    matrix_sdk::RumaApiError::ClientApi(m),
-                )))) => return Err(m.message),
-                _ => return Err(String::from("An error have been ocurred!")),
-            },
-        }
     }
 
     pub async fn join_room(client: &Client, room_id: &RoomId) {
@@ -1287,7 +1255,7 @@ pub mod matrix {
         let uiaa_dummy = uiaa::Dummy::new();
         request.auth = Some(uiaa::AuthData::Dummy(uiaa_dummy));
 
-        let result = build_client(homeserver.to_string()).await;
+        let result = build_client(homeserver).await;
         let (client, client_session) = match result {
             Ok((client, client_session)) => (client, client_session),
             Err(_) => panic!("Can't create client"),
@@ -1318,7 +1286,7 @@ pub mod matrix {
             request.auth = Some(uiaa::AuthData::ReCaptcha(uiaa_recaptcha));
         }
 
-        let result = build_client(homeserver.to_string()).await;
+        let result = build_client(homeserver).await;
         let (client, client_session) = match result {
             Ok((client, client_session)) => (client, client_session),
             Err(_) => panic!("Can't create client"),
@@ -1343,7 +1311,7 @@ pub mod matrix {
     ) -> anyhow::Result<(Client, String)> {
         info!("No previous session found, logging in…");
 
-        let (client, client_session) = build_client(homeserver.to_string()).await?;
+        let (client, client_session) = build_client(homeserver).await?;
 
         match client
             .login_username(&username, &password)
@@ -1405,7 +1373,7 @@ pub mod matrix {
         Ok((client, sync_token))
     }
 
-    pub async fn build_client(homeserver: String) -> anyhow::Result<(Client, ClientSession)> {
+    pub async fn build_client(homeserver: &str) -> anyhow::Result<(Client, ClientSession)> {
         loop {
             match Client::builder()
                 .homeserver_url(&homeserver)
@@ -1413,7 +1381,14 @@ pub mod matrix {
                 .await
             {
                 Ok(builder) => match builder.build().await {
-                    Ok(client) => return Ok((client, ClientSession { homeserver })),
+                    Ok(client) => {
+                        return Ok((
+                            client,
+                            ClientSession {
+                                homeserver: homeserver.into(),
+                            },
+                        ))
+                    }
                     Err(error) => match &error {
                         matrix_sdk::ClientBuildError::AutoDiscovery(_)
                         | matrix_sdk::ClientBuildError::Url(_)

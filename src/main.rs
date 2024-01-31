@@ -80,7 +80,7 @@ fn App(cx: Scope) -> Element {
         to_owned![client, auth, restoring_session, session];
 
         async move {
-            let c = create_client(String::from("https://matrix.org")).await;
+            let c = create_client("https://matrix.org").await;
 
             client.set(MatrixClientState {
                 client: Some(c.clone()),
@@ -151,12 +151,13 @@ fn App(cx: Scope) -> Element {
                                 }
                             )
                         } else if *restoring_session.read() {
+                            let key_main_loading_title = translate!(
+                                i18,
+                                "main.loading.title"
+                            );
                             rsx!(
                                 LoadingStatus {
-                                    text: translate!(
-                                        i18,
-                                        "main.loading.title"
-                                    ),
+                                    text: "{key_main_loading_title}",
                                 }
                             )
                         } else {

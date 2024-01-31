@@ -141,7 +141,7 @@ pub fn Signup(cx: Scope) -> Element {
             to_owned![homeserver, auth];
 
             async move {
-                auth.set_server(homeserver.current()).await;
+                auth.set_server(homeserver.get()).await;
             }
         })
     };
@@ -159,8 +159,8 @@ pub fn Signup(cx: Scope) -> Element {
     let is_loading_loggedin = use_ref::<LoggedInStatus>(cx, || LoggedInStatus::Start);
 
     let on_handle_login = move || {
-        auth.set_username(username.get().clone(), false);
-        auth.set_password(password.get().clone());
+        auth.set_username(username.get(), false);
+        auth.set_password(password.get());
 
         cx.spawn({
             to_owned![
@@ -332,11 +332,11 @@ pub fn Signup(cx: Scope) -> Element {
                                 },
                                 on_keypress: move |event: KeyboardEvent| {
                                     if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() {
-                                        auth.set_username(username.get().clone(), false)
+                                        auth.set_username(username.get(), false)
                                     }
                                 },
                                 on_click: move |_| {
-                                    auth.set_username(username.get().clone(), false)
+                                    auth.set_username(username.get(), false)
                                 }
                             }
                         }
@@ -352,11 +352,11 @@ pub fn Signup(cx: Scope) -> Element {
                                 },
                                 on_keypress: move |event: KeyboardEvent| {
                                     if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() && !password.get().is_empty() {
-                                        auth.set_password(password.get().clone());
+                                        auth.set_password(password.get());
                                     }
                                 },
                                 on_click: move |_| {
-                                    auth.set_password(password.get().clone());
+                                    auth.set_password(password.get());
                                 }
                             }
                         }
@@ -472,7 +472,7 @@ fn reset_login_info(
     auth.reset();
 }
 
-fn set_site_key(uiaa_response: Result<HashMap<String, Value>, serde_json::Error>) {
+fn set_site_key(uiaa_response: Result<HashMap<&str, Value>, serde_json::Error>) {
     match uiaa_response {
         Ok(u) => {
             let m = u.get("m.login.recaptcha");

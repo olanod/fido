@@ -107,7 +107,7 @@ pub fn Login(cx: Scope) -> Element {
             to_owned![homeserver, auth];
 
             async move {
-                auth.set_server(homeserver.current()).await;
+                auth.set_server(homeserver.get()).await;
             }
         })
     };
@@ -129,9 +129,9 @@ pub fn Login(cx: Scope) -> Element {
     let on_handle_clear_clone = on_handle_clear.clone();
 
     let on_handle_login = Rc::new(move || {
-        auth.set_server(homeserver.current());
-        auth.set_username(username.get().clone(), true);
-        auth.set_password(password.get().clone());
+        auth.set_server(homeserver.get());
+        auth.set_username(username.get(), true);
+        auth.set_password(password.get());
 
         cx.spawn({
             to_owned![auth, session, username, password, is_loading_loggedin, client, error, error_invalid_credentials, error_unknown, homeserver, notification];
@@ -236,8 +236,8 @@ pub fn Login(cx: Scope) -> Element {
                     homeserver.set(data.server.clone());
                     username.set(data.username.clone());
                     
-                    auth.set_server(data.server.clone().into()).await;
-                    auth.set_username(data.username.clone(), true);
+                    auth.set_server(&data.server).await;
+                    auth.set_username(&data.username, true);
                 }
             }
         }
@@ -291,7 +291,7 @@ pub fn Login(cx: Scope) -> Element {
                                         }
                                     },
                                     on_click: move |_| {
-                                        auth.set_password(password.get().clone())
+                                        auth.set_password(password.get())
                                     }
                                 }
                             }
@@ -355,11 +355,11 @@ pub fn Login(cx: Scope) -> Element {
                                     },
                                     on_keypress: move |event: KeyboardEvent| {
                                         if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() {
-                                            auth.set_username(username.get().clone(), true)
+                                            auth.set_username(username.get(), true)
                                         }
                                     },
                                     on_click: move |_| {
-                                        auth.set_username(username.get().clone(), true)
+                                        auth.set_username(username.get(), true)
                                     }
                                 }
                             }
@@ -379,7 +379,7 @@ pub fn Login(cx: Scope) -> Element {
                                         }
                                     },
                                     on_click: move |_| {
-                                        auth.set_password(password.get().clone());
+                                        auth.set_password(password.get());
                                     }
                                 }
                             }
@@ -387,25 +387,30 @@ pub fn Login(cx: Scope) -> Element {
                     }
                 )
             } else {
+                let key_login_status_loading = translate!(i18, "login.status.loading");
+                let key_login_status_logged = translate!(i18, "login.status.logged");
+                let key_login_status_done = translate!(i18, "login.status.done");
+                let key_login_status_persisting = translate!(i18, "login.status.persisting");
+                
                 match &*is_loading_loggedin.read() {
                     LoggedInStatus::Loading => {
                         rsx!(
-                            LoadingStatus {text: translate!(i18, "login.status.loading")}
+                            LoadingStatus {text: "{key_login_status_loading}"}
                         )
                     }
                     LoggedInStatus::LoggedAs(user) => {
                         rsx!(
-                            LoadingStatus {text: translate!(i18, "login.status.logged")}
+                            LoadingStatus {text: "{key_login_status_logged}"}
                         )
                     },
                     LoggedInStatus::Done => {
                         rsx!(
-                            LoadingStatus {text: translate!(i18, "login.status.done")}
+                            LoadingStatus {text: "{key_login_status_done}"}
                         )
                     }
                     LoggedInStatus::Persisting => {
                         rsx!(
-                            LoadingStatus {text: translate!(i18, "login.status.persisting")}
+                            LoadingStatus {text: "{key_login_status_persisting}"}
                         )
                     }
                     _ => {

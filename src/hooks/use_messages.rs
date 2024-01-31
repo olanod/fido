@@ -200,15 +200,15 @@ impl UseMessagesState {
         *inner = messages;
     }
 
-    pub fn loadmore(&self, current_room_id: String) {
-        let current_events = match self.inner.limit.read().get(&current_room_id) {
+    pub fn loadmore(&self, current_room_id: &str) {
+        let current_events = match self.inner.limit.read().get(current_room_id) {
             Some(c) => c.clone(),
             None => 15 as u64,
         };
 
         self.inner
             .limit
-            .with_mut(|lr| lr.insert(current_room_id, current_events + 5));
+            .with_mut(|lr| lr.insert(current_room_id.to_string(), current_events + 5));
     }
 
     pub fn push(&self, message: TimelineRelation) {

@@ -45,7 +45,7 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
                 let _ = client.get().logout().await;
                 let _ = <LocalStorage as gloo::storage::Storage>::delete("session_file");
                 
-                let c = create_client(String::from("https://matrix.org")).await;
+                let c = create_client("https://matrix.org").await;
 
             client.set(MatrixClientState {
                 client: Some(c.clone()),

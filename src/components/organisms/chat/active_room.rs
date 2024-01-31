@@ -141,7 +141,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                     thread: None,
                     is_loading: is_loading,
                     on_scroll: move |_| {
-                        use_m.loadmore(room.get().id.clone());
+                        use_m.loadmore("{room.get().id}");
                     }
                 },
                 InputMessage {
@@ -210,7 +210,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                             thread: Some(t.thread.clone()),
                             is_loading: is_loading,
                             on_scroll: move |_| {
-                                use_m.loadmore(room.get().id.clone());
+                                use_m.loadmore("{room.get().id}");
                             }
                         },
                         InputMessage {
