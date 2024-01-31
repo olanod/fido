@@ -1,16 +1,12 @@
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
 use futures_util::StreamExt;
-use log::info;
 use matrix_sdk::ruma::{EventId, RoomId};
 use uuid::Uuid;
 
 use crate::{
     components::molecules::input_message::ReplyingTo,
-    hooks::{
-        factory::message_factory::MessageFactory,
-        use_send_message::{get_current_time, MessageStatus},
-    },
+    hooks::{factory::message_factory::MessageFactory, use_send_message::get_current_time},
     services::matrix::matrix::{
         send_attachment, upload_attachment, AttachmentStream, FileContent, TimelineMessageType,
         TimelineRelation, TimelineThread,
@@ -129,7 +125,7 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                     }
                 });
 
-                let mut back_messages = messages.get().messages.clone();
+                let mut back_messages = messages.get().clone();
                 let timestamp = get_current_time();
 
                 let uuid = Uuid::new_v4();

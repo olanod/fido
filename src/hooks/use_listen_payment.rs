@@ -38,8 +38,8 @@ pub fn use_listen_payment(cx: &ScopeState) -> &UseListenPaymentState {
     let client = use_client(cx).get();
     let notification = use_notification(cx);
     let room = use_room(cx);
+    let messages = use_messages(cx);
 
-    let messages = use_shared_state::<Messages>(cx).expect("Unable to use Messages");
     let handler_added = use_ref(cx, || false);
     let timeline_thread =
         use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to use TimelineThread");
@@ -50,13 +50,13 @@ pub fn use_listen_payment(cx: &ScopeState) -> &UseListenPaymentState {
         async move {
             while let Some(message_event) = rx.next().await {
                 if let Some(message) = message_event.mgs {
-                    let mut msgs = messages.read().clone();
+                    let mut msgs = messages.get().clone();
                     let mut plain_message = "";
 
                     let is_in_current_room =
                         message_event.room.room_id().as_str().eq(&room.get().id);
 
-                    let last_message_id = messages.read().len() as i64;
+                    let last_message_id = messages.get().len() as i64;
 
                     match &message {
                         TimelineRelation::Thread(x) => {
@@ -162,16 +162,16 @@ pub fn use_listen_payment(cx: &ScopeState) -> &UseListenPaymentState {
                         }
                     };
                     info!("before write");
-                    *messages.write() = msgs.clone();
+                    messages.set(msgs.clone());
 
                     info!(
                         "all messages listen message 167: {:#?}",
-                        messages.read().deref()
+                        messages.get().deref()
                     );
                     let mm = timeline_thread.read().clone();
 
                     if let Some(thread) = mm {
-                        let ms = messages.read().deref().clone();
+                        let ms = messages.get().clone();
                         let message = ms.iter().find(|m| {
                             if let TimelineRelation::CustomThread(t) = m {
                                 if t.event_id.eq(&thread.event_id) {

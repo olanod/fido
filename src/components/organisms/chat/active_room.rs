@@ -18,7 +18,8 @@ use crate::{
         },
     },
     hooks::{
-        use_messages::{use_messages, UseMessages},
+        use_chat::{use_chat, UseChat},
+        use_messages::use_messages,
         use_room::use_room,
         use_send_attach::use_send_attach,
         use_send_message::use_send_message,
@@ -31,6 +32,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     let i18 = use_i18(cx);
     let nav = use_navigator(cx);
     let room = use_room(cx);
+    let messages = use_messages(cx);
     let send_message = use_send_message(cx);
     let send_attach = use_send_attach(cx);
 
@@ -38,13 +40,15 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     let timeline_thread =
         use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to use TimelineThread");
 
-    let use_m = use_messages(cx);
-    let UseMessages {
-        messages,
+    let use_m = use_chat(cx);
+    let UseChat {
+        messages: _,
         isLoading: is_loading,
         limit: _,
         task: _,
     } = use_m.get();
+
+    let messages = messages.get();
 
     let input_placeholder = use_state::<String>(cx, || {
         translate!(i18, "chat.inputs.plain_message.placeholder")

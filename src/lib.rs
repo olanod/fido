@@ -11,6 +11,7 @@ pub mod hooks {
     pub mod factory;
     pub mod use_attach;
     pub mod use_auth;
+    pub mod use_chat;
     pub mod use_client;
     pub mod use_init_app;
     pub mod use_listen_message;

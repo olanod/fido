@@ -2,7 +2,6 @@ use chrono::{DateTime, Local};
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
 use futures_util::StreamExt;
-use log::info;
 use matrix_sdk::ruma::{
     events::room::message::{MessageType, TextMessageEventContent},
     EventId, RoomId,
@@ -121,7 +120,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                         }
                     });
 
-                    let mut back_messages = messages.get().messages.clone();
+                    let mut back_messages = messages.get().clone();
                     let timestamp = get_current_time();
 
                     let uuid = Uuid::new_v4();

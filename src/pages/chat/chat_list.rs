@@ -18,6 +18,7 @@ use crate::{
     },
     hooks::{
         use_client::use_client,
+        use_messages::use_messages,
         use_notification::{
             use_notification, NotificationHandle, NotificationItem, NotificationType,
         },
@@ -35,6 +36,7 @@ pub fn ChatList(cx: Scope) -> Element {
     let session = use_session(cx);
     let notification = use_notification(cx);
     let room = use_room(cx);
+    let messages = use_messages(cx);
     // use_shared_state_provider::<HashMap<CurrentRoom, Messages>>(cx, || HashMap::new());
 
     let room_tabs = use_ref::<HashMap<CurrentRoom, Messages>>(cx, || HashMap::new());
@@ -49,14 +51,13 @@ pub fn ChatList(cx: Scope) -> Element {
     let pattern = use_state(cx, String::new);
     let rooms_filtered = use_ref(cx, || Vec::new());
     let selected_space = use_ref::<String>(cx, || String::new());
-    let messages = use_shared_state::<Messages>(cx).expect("Unable to use Messages");
     let title_header =
         use_shared_state::<TitleHeaderMain>(cx).expect("Unable to read title header");
 
     let on_click_room = move |evt: FormRoomEvent| {
         room.set(evt.room.clone());
         room_tabs.with_mut(|tabs| tabs.insert(evt.room, vec![]));
-        messages.write().clear();
+        messages.reset();
     };
 
     use_coroutine(cx, |_: UnboundedReceiver<bool>| {
