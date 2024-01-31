@@ -29,13 +29,13 @@ pub struct ListProps<'a> {
 }
 
 pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
+    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to load Replying to");
+    let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to load timeline thread");
+
     let container_to_scroll = use_ref::<Option<Box<HtmlElement>>>(cx, || None);
     let list_to_scroll = use_ref::<Option<Box<HtmlElement>>>(cx, || None);
     let on_scroll = use_state(cx, || false);
     let is_loading = use_state(cx, || cx.props.is_loading);
-
-    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to load Replying to");
-    let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to load timeline thread");
     
     let messages_list_thread = match timeline_thread.read().deref() {
         Some(_)=> "messages-list--is-thread",
