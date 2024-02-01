@@ -7,7 +7,7 @@ use futures_util::TryFutureExt;
 use crate::{
     components::{atoms::{header_main::{HeaderEvent, HeaderCallOptions}, hover_menu::{MenuEvent, MenuOption}, input::InputType, message::MessageView, Attach, Button, Close, Icon, Message, TextareaInput
     }, molecules::AttachPreview},
-    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_notification::use_notification, use_room::use_room, use_send_attach::SendAttachStatus},
+    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_notification::use_notification, use_reply::use_reply, use_room::use_room, use_send_attach::SendAttachStatus},
 };
 
 #[derive(Debug, Clone)]
@@ -54,7 +54,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
     
     let send_attach_status =
         use_shared_state::<SendAttachStatus>(cx).expect("Unable to use SendAttachStatus");
-    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to use ReplyingTo");
+    let replying_to = use_reply(cx);
     
     let message_field = use_state(cx, String::new);
     let wrapper_style = use_ref(cx, || r#"
@@ -131,7 +131,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
         style: "{wrapper_style.read()}",
         class: "input__message",
 
-        if let Some(replying) = replying_to.read().deref() {
+        if let Some(replying) = replying_to.get() {
             rsx!(
                 div {
                     class: "input__message__replying",

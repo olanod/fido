@@ -5,11 +5,10 @@ use matrix_sdk::ruma::{EventId, RoomId};
 use uuid::Uuid;
 
 use crate::{
-    components::molecules::input_message::ReplyingTo,
     hooks::{factory::message_factory::MessageFactory, use_send_message::get_current_time},
     services::matrix::matrix::{
         send_attachment, upload_attachment, AttachmentStream, FileContent, TimelineMessageType,
-        TimelineRelation, TimelineThread,
+        TimelineRelation,
     },
 };
 
@@ -22,7 +21,9 @@ use super::{
     use_init_app::MessageDispatchId,
     use_messages::use_messages,
     use_notification::use_notification,
+    use_reply::use_reply,
     use_room::use_room,
+    use_thread::use_thread,
 };
 
 pub enum SendAttachStatus {
@@ -56,9 +57,8 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
         use_shared_state::<SendAttachStatus>(cx).expect("Unable to use SendAttachStatus");
     let message_dispatch_id =
         use_shared_state::<MessageDispatchId>(cx).expect("Unable to use MessageDispatchId");
-    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to use ReplyingTo");
-    let threading_to =
-        use_shared_state::<Option<TimelineThread>>(cx).expect("Cannot found thread_to");
+    let replying_to = use_reply(cx);
+    let threading_to = use_thread(cx);
 
     let task_push_attach = use_coroutine(cx, |mut rx: UnboundedReceiver<AttachmentStream>| {
         to_owned![
@@ -84,8 +84,8 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                     }
                 };
 
-                let reply_to = replying_to.read().clone();
-                let thread_to = threading_to.read().clone();
+                let reply_to = replying_to.get().clone();
+                let thread_to = threading_to.get().clone();
 
                 let reply_event_id = match reply_to {
                     Some(e) => {
@@ -138,7 +138,7 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                 *send_attach_status.write() = SendAttachStatus::Loading(25);
 
                 if let Some(file) = attach.get() {
-                    let message_to_push = if let Some(r) = replying_to.clone().read().clone() {
+                    let message_to_push = if let Some(r) = replying_to.clone().get().clone() {
                         reply_message_factory.create_message(
                             &TimelineMessageType::Image(FileContent {
                                 size: Some(file.size.clone()),
@@ -179,7 +179,7 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                             }
                         });
 
-                        *threading_to.write() = Some(t.clone());
+                        threading_to.set(Some(t.clone()));
 
                         if let Some(p) = position {
                             back_messages[p] = custom_thread.clone()
@@ -203,7 +203,7 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                     messages.push(message_to_push);
                 }
 
-                *replying_to.write() = None;
+                replying_to.set(None);
                 attach.reset();
 
                 let response = upload_attachment(&client, &message_item.attachment).await;

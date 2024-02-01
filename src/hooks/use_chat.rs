@@ -14,7 +14,7 @@ use crate::{
 
 use super::{
     use_client::use_client, use_messages::use_messages, use_notification::use_notification,
-    use_room::use_room, use_session::use_session,
+    use_room::use_room, use_session::use_session, use_thread::use_thread,
 };
 
 #[allow(clippy::needless_return)]
@@ -24,27 +24,24 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
     let session = use_session(cx);
     let notification = use_notification(cx);
     let room = use_room(cx);
-    let mmessages = use_messages(cx);
+    let messages = use_messages(cx);
+    let threading_to = use_thread(cx);
 
     let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
 
-    let mutable_messages = use_ref::<Messages>(cx, || vec![]);
     let messages_loading = use_ref::<bool>(cx, || false);
     let limit_events_by_room = use_ref::<HashMap<String, u64>>(cx, || HashMap::new());
     let from = use_ref::<Option<String>>(cx, || None);
-    let timeline_thread =
-        use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to use TimelineThread");
 
     let task_timeline = use_coroutine(cx, |mut rx: UnboundedReceiver<bool>| {
         to_owned![
             client,
             room,
-            mmessages,
-            mutable_messages,
+            messages,
             messages_loading,
             limit_events_by_room,
             from,
-            timeline_thread,
+            threading_to,
             session,
             notification
         ];
@@ -83,7 +80,7 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
                         return;
                     }
                 };
-                let ms = mmessages.get().clone();
+                let ms = messages.get().clone();
 
                 let (f, msg) = timeline(
                     &client,
@@ -98,12 +95,12 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
                 from.set(f);
 
                 info!("before write xxx");
-                mmessages.set(msg);
+                messages.set(msg);
                 info!("after write xxx");
-                let mm = timeline_thread.read().clone();
+                let mm = threading_to.get().clone();
 
                 if let Some(thread) = mm {
-                    let ms = mmessages.get().clone();
+                    let ms = messages.get().clone();
                     let message = ms.iter().find(|m| {
                         if let TimelineRelation::CustomThread(t) = m {
                             if t.event_id.eq(&thread.event_id) {
@@ -113,12 +110,12 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
 
                                 // xthread.thread.append(&mut t.thread.clone());
 
-                                *timeline_thread.write() = Some(TimelineThread {
+                                threading_to.set(Some(TimelineThread {
                                     event_id: t.event_id.clone(),
                                     thread: t.thread.clone(),
                                     count: t.count.clone(),
                                     latest_event: t.latest_event.clone(),
-                                });
+                                }));
                             }
 
                             true
@@ -142,7 +139,7 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
 
     cx.use_hook(move || UseChatState {
         inner: ChatState {
-            messages: mmessages.get().clone(),
+            messages: messages.get().clone(),
             isLoading: messages_loading.clone(),
             limit: limit_events_by_room.clone(),
             task: task_timeline.clone(),

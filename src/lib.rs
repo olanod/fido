@@ -18,10 +18,12 @@ pub mod hooks {
     pub mod use_messages;
     pub mod use_modal;
     pub mod use_notification;
+    pub mod use_reply;
     pub mod use_room;
     pub mod use_send_attach;
     pub mod use_send_message;
     pub mod use_session;
+    pub mod use_thread;
 }
 
 pub mod services {

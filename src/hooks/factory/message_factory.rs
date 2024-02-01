@@ -2,8 +2,8 @@ use crate::{
     components::molecules::input_message::ReplyingTo,
     hooks::use_session::{use_session, UseSessionState},
     services::matrix::matrix::{
-        EventOrigin, FileContent, RoomMember, TimelineMessage, TimelineMessageReply,
-        TimelineMessageThread, TimelineMessageType, TimelineRelation, TimelineThread,
+        EventOrigin, RoomMember, TimelineMessage, TimelineMessageReply, TimelineMessageType,
+        TimelineRelation, TimelineThread,
     },
 };
 

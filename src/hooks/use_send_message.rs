@@ -10,12 +10,10 @@ use std::time::{Duration, UNIX_EPOCH};
 use uuid::Uuid;
 
 use crate::{
-    components::{molecules::input_message::ReplyingTo, organisms::chat::utils::handle_command},
+    components::organisms::chat::utils::handle_command,
     hooks::factory::message_factory::MessageFactory,
     pages::chat::chat::MessageItem,
-    services::matrix::matrix::{
-        send_message, TimelineMessageType, TimelineRelation, TimelineThread,
-    },
+    services::matrix::matrix::{send_message, TimelineMessageType, TimelineRelation},
 };
 
 use super::{
@@ -26,7 +24,9 @@ use super::{
     use_init_app::MessageDispatchId,
     use_messages::use_messages,
     use_notification::use_notification,
+    use_reply::use_reply,
     use_session::use_session,
+    use_thread::use_thread,
 };
 
 #[derive(Clone)]
@@ -58,9 +58,8 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
 
     let message_dispatch_id =
         use_shared_state::<MessageDispatchId>(cx).expect("Unable to use MessageDispatchId");
-    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to use ReplyingTo");
-    let threading_to =
-        use_shared_state::<Option<TimelineThread>>(cx).expect("Cannot found thread_to");
+    let replying_to = use_reply(cx);
+    let threading_to = use_thread(cx);
 
     let task_push = use_coroutine(cx, |mut rx: UnboundedReceiver<MessageItem>| {
         to_owned![
@@ -88,7 +87,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                         }
                     };
 
-                    let thread_to = threading_to.read().clone();
+                    let thread_to = threading_to.get().clone();
 
                     let reply_event_id = message_item.reply_to.clone().and_then(|e| {
                         EventId::parse(e)
@@ -130,7 +129,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                         .value
                         .insert(uuid.to_string(), None);
 
-                    let message_to_push = if let Some(r) = replying_to.clone().read().clone() {
+                    let message_to_push = if let Some(r) = replying_to.get().clone() {
                         reply_message_factory.create_message(
                             &TimelineMessageType::Text(message_item.msg.clone()),
                             &uuid.to_string(),
@@ -159,7 +158,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                             }
                         });
 
-                        *threading_to.write() = Some(t.clone());
+                        threading_to.set(Some(t.clone()));
 
                         if let Some(p) = position {
                             back_messages[p] = custom_thread.clone()
@@ -175,7 +174,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                         )
                     };
 
-                    *replying_to.write() = None;
+                    replying_to.set(None);
 
                     match message_to_push {
                         TimelineRelation::None(_) | TimelineRelation::Reply(_) => {

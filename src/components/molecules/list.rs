@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use dioxus::prelude::*;
 use gloo::events::EventListener;
 use log::info;
@@ -9,6 +7,8 @@ use web_sys::HtmlElement;
 use crate::components::atoms::message::Sender;
 use crate::components::atoms::message::ThreadPreview;
 use crate::components::atoms::messages::message::MessageView;
+use crate::hooks::use_reply::use_reply;
+use crate::hooks::use_thread::use_thread;
 use crate::services::matrix::matrix::TimelineMessage;
 use crate::services::matrix::matrix::TimelineRelation;
 use crate::services::matrix::matrix::TimelineThread;
@@ -29,15 +29,15 @@ pub struct ListProps<'a> {
 }
 
 pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
-    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to load Replying to");
-    let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to load timeline thread");
+    let replying_to = use_reply(cx);
+    let threading_to = use_thread(cx);
 
     let container_to_scroll = use_ref::<Option<Box<HtmlElement>>>(cx, || None);
     let list_to_scroll = use_ref::<Option<Box<HtmlElement>>>(cx, || None);
     let on_scroll = use_state(cx, || false);
     let is_loading = use_state(cx, || cx.props.is_loading);
     
-    let messages_list_thread = match timeline_thread.read().deref() {
+    let messages_list_thread = match threading_to.get() {
         Some(_)=> "messages-list--is-thread",
         None => "messages-list--not-thread"
     };
@@ -130,7 +130,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                                                 origin: message.origin.clone()
                                                             };
                                                             
-                                                            *replying_to.write() = Some(replying);
+                                                            replying_to.set(Some(replying));
                                                         }
                                                     }
                                                     MenuOption::Close => {
@@ -143,7 +143,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                                         info!("create thread");
                                                         let thread = vec![TimelineMessage { event_id: event_id.clone(), sender: message.sender.clone(), body: message.body.clone(), origin: message.origin.clone(), time: message.time.clone() }];
                                                         if let Some(e) = &event_id {
-                                                            *timeline_thread.write() = Some(TimelineThread { event_id: e.clone(), thread, count: 0, latest_event: e.clone() })
+                                                            threading_to.set(Some(TimelineThread { event_id: e.clone(), thread, count: 0, latest_event: e.clone() }));
                                                         }
                                                     }
 
@@ -203,7 +203,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                                                 origin: message.origin.clone()
                                                             };
                                                             
-                                                            *replying_to.write() = Some(replying);
+                                                            replying_to.set(Some(replying));
                                                         }
                                                     }
                                                     MenuOption::Close => {
@@ -267,14 +267,14 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                                             origin: head_message.origin.clone()
                                                         };
                                                         
-                                                        *replying_to.write() = Some(replying);
+                                                        replying_to.set(Some(replying));
                                                     }
                                                     MenuOption::Close => {
                                                         info!("close");
                                                     }
                                                     MenuOption::ShowThread => {
                                                         info!("thread");
-                                                        *timeline_thread.write() = Some(TimelineThread { event_id: event_id.clone(), thread: thread.clone(), count: count.clone(), latest_event: latest_event.clone() })
+                                                        threading_to.set(Some(TimelineThread { event_id: event_id.clone(), thread: thread.clone(), count: count.clone(), latest_event: latest_event.clone() }))
                                                     }
                                                     MenuOption::CreateThread => {
 
@@ -329,7 +329,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                                                 origin: message.origin.clone()
                                                             };
                                                             
-                                                            *replying_to.write() = Some(replying);
+                                                            replying_to.set(Some(replying));
                                                         }
                                                     }
                                                     MenuOption::Close => {

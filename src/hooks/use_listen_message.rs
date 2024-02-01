@@ -22,6 +22,7 @@ use crate::{
 use super::{
     use_client::use_client, use_init_app::MessageDispatchId, use_messages::use_messages,
     use_notification::use_notification, use_room::use_room, use_session::use_session,
+    use_thread::use_thread,
 };
 
 #[allow(clippy::needless_return)]
@@ -45,20 +46,12 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
 
     let message_dispatch_id =
         use_shared_state::<MessageDispatchId>(cx).expect("Unable to use MessageDispatchId");
-    let timeline_thread =
-        use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to use TimelineThread");
+    let threading_to = use_thread(cx);
 
     let task_sender = use_coroutine(
         cx,
         |mut rx: UnboundedReceiver<(MessageEvent, Option<usize>)>| {
-            to_owned![
-                client,
-                messages,
-                notification,
-                room,
-                timeline_thread,
-                session
-            ];
+            to_owned![client, messages, notification, room, threading_to, session];
 
             async move {
                 while let Some((message_event, message_position_local)) = rx.next().await {
@@ -187,7 +180,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                             "all messages listen message 167: {:#?}",
                             messages.get().deref()
                         );
-                        let mm = timeline_thread.read().clone();
+                        let mm = threading_to.get().clone();
 
                         if let Some(thread) = mm {
                             let ms = messages.get().clone();
@@ -200,12 +193,12 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
 
                                         // xthread.thread.append(&mut t.thread.clone());
 
-                                        *timeline_thread.write() = Some(TimelineThread {
+                                        threading_to.set(Some(TimelineThread {
                                             event_id: t.event_id.clone(),
                                             thread: t.thread.clone(),
                                             count: t.count.clone(),
                                             latest_event: t.latest_event.clone(),
-                                        });
+                                        }));
                                     }
 
                                     true
@@ -218,12 +211,12 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
 
                                             xthread.thread.push(t.clone());
 
-                                            *timeline_thread.write() = Some(TimelineThread {
+                                            threading_to.set(Some(TimelineThread {
                                                 event_id: event_id.clone(),
                                                 thread: xthread.thread.clone(),
                                                 count: xthread.count.clone(),
                                                 latest_event: xthread.latest_event.clone(),
-                                            });
+                                            }));
 
                                             true
                                         } else {

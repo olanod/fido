@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use dioxus::prelude::*;
 use dioxus_router::prelude::use_navigator;
 use dioxus_std::{i18n::use_i18, translate};
@@ -11,21 +9,19 @@ use crate::{
             input::InputType,
             Avatar, Close, Header, Icon,
         },
-        molecules::{
-            input_message::{FormMessageEvent, ReplyingTo},
-            rooms::CurrentRoom,
-            InputMessage, List,
-        },
+        molecules::{input_message::FormMessageEvent, rooms::CurrentRoom, InputMessage, List},
     },
     hooks::{
         use_chat::{use_chat, UseChat},
         use_messages::use_messages,
+        use_reply::use_reply,
         use_room::use_room,
         use_send_attach::use_send_attach,
         use_send_message::use_send_message,
+        use_thread::use_thread,
     },
     pages::{chat::chat::MessageItem, route::Route},
-    services::matrix::matrix::{Attachment, AttachmentStream, TimelineThread},
+    services::matrix::matrix::{Attachment, AttachmentStream},
 };
 
 pub fn ActiveRoom(cx: Scope) -> Element {
@@ -36,9 +32,8 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     let send_message = use_send_message(cx);
     let send_attach = use_send_attach(cx);
 
-    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to use ReplyingTo");
-    let timeline_thread =
-        use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to use TimelineThread");
+    let replying_to = use_reply(cx);
+    let threading_to = use_thread(cx);
 
     let use_m = use_chat(cx);
     let UseChat {
@@ -75,14 +70,14 @@ pub fn ActiveRoom(cx: Scope) -> Element {
 
         match evt.value {
             HeaderCallOptions::CLOSE => {
-                *replying_to.write() = None;
+                replying_to.set(None);
             }
             _ => {}
         }
     };
 
     let on_push_message = move |evt: FormMessageEvent, send_to_thread: bool| {
-        let reply_to = replying_to.read().clone().map(|r| r.event_id);
+        let reply_to = replying_to.get().map(|r| r.event_id);
 
         send_message.send(MessageItem {
             room_id: room.get().id.clone(),
@@ -134,7 +129,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                 }
             }
 
-            if let Some(t) = timeline_thread.read().deref() {
+            if let Some(t) = threading_to.get() {
                 rsx!(
                     div {
                         class: "active-room__thread",
@@ -148,7 +143,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                             button {
                                 class: "active-room__close",
                                 onclick: move |_| {
-                                    *timeline_thread.write() = None
+                                    threading_to.set(None)
                                 },
                                 Icon {
                                     stroke: "var(--icon-subdued)",

@@ -1,6 +1,6 @@
 use dioxus::{prelude::*, html::input_data::keyboard_types};
 use wasm_bindgen::JsCast;
-use crate::components::{atoms::{icon::Icon, Send}, molecules::input_message::ReplyingTo};
+use crate::components::atoms::{icon::Icon, Send};
 
 #[derive(Props)]
 pub struct TextareaInputProps<'a> {
@@ -13,8 +13,6 @@ pub struct TextareaInputProps<'a> {
 }
 
 pub fn TextareaInput<'a>(cx: Scope<'a, TextareaInputProps<'a>>) -> Element<'a> {
-    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to read replying_to");
-    
     let sent_handled = use_ref(cx, || false);
     let textarea_wrapper_ref = use_ref(cx, || None);
     let textarea_ref = use_ref(cx, || None);

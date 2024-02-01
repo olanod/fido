@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use dioxus::prelude::*;
 use gloo::storage::{errors::StorageError, LocalStorage};
 use matrix_sdk::Client;
