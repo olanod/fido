@@ -82,11 +82,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     };
 
     let on_push_message = move |evt: FormMessageEvent, send_to_thread: bool| {
-        let mut reply_to = None;
-
-        if let Some(r) = replying_to.read().deref() {
-            reply_to = Some(r.event_id.clone());
-        }
+        let reply_to = replying_to.read().clone().map(|r| r.event_id);
 
         send_message.send(MessageItem {
             room_id: room.get().id.clone(),
