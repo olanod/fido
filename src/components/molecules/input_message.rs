@@ -7,7 +7,7 @@ use futures_util::TryFutureExt;
 use crate::{
     components::{atoms::{header_main::{HeaderEvent, HeaderCallOptions}, hover_menu::{MenuEvent, MenuOption}, input::InputType, message::MessageView, Attach, Button, Close, Icon, Message, TextareaInput
     }, molecules::AttachPreview},
-    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachFile}, use_client::use_client, use_notification::use_notification, use_reply::use_reply, use_room::use_room, use_send_attach::SendAttachStatus},
+    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachError, AttachFile}, use_client::use_client, use_notification::use_notification, use_reply::use_reply, use_room::use_room, use_send_attach::SendAttachStatus},
 };
 
 #[derive(Debug, Clone)]
@@ -31,13 +31,6 @@ pub struct InputMessageProps<'a> {
     on_submit: EventHandler<'a, FormMessageEvent>,
     on_event: EventHandler<'a, HeaderEvent>,
     on_attach: Option<EventHandler<'a, Attachment>>
-}
-
-#[derive(Debug)]
-pub enum AttachError {
-    NotFound, 
-    UncoverType,
-    UnknownContent
 }
 
 pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {

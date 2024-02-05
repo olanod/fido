@@ -402,7 +402,7 @@ pub mod matrix {
         users: &[OwnedUserId],
         name: Option<String>,
         avatar: Option<Vec<u8>>,
-    ) -> HttpResult<api::client::room::create_room::v3::Response> {
+    ) -> Result<api::client::room::create_room::v3::Response, HttpError> {
         let mut request = api::client::room::create_room::v3::Request::new();
 
         let mut initstateevvec: Vec<Raw<AnyInitialStateEvent>> = vec![];

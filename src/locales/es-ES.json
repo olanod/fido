@@ -137,7 +137,8 @@
                     "event_id": "Error inesperado: (Id de evento)",
                     "room_id": "Error inesperado: (Id de sala)",
                     "user_id": "Error inesperado: (Id de usuario)",
-                    "device_id": "Error inesperado: (Id de dispositivo)"
+                    "device_id": "Error inesperado: (Id de dispositivo)",
+                    "server": "Error inesperado: (Servidor)"
                 }
             },
             "listen": {
@@ -251,9 +252,12 @@
             },
             "error": {
                 "not_found": "Nombre de usuario no encontrado",
-                "dm": "Ha ocurrido un error al crear el DM",
+                "dm": "Ha ocurrido un error al crear el grupo",
                 "profile": "Perfil no encontrado",
                 "file": "Tipo de archivo no válido"
+            },
+            "success": {
+                "description": "El grupo ha sido creado"
             }
         },
         "verify": {

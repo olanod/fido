@@ -251,9 +251,12 @@
             },
             "error": {
                 "not_found": "Username not found",
-                "dm": "Error occurred creating the DM",
+                "dm": "Error occurred creating the group",
                 "profile": "Profile not found",
                 "file": "Invalid file type"
+            },
+            "success": {
+                "description": "The group has been created"
             }
         },
         "verify": {
