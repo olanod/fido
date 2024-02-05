@@ -1,6 +1,6 @@
 use crate::{
     components::molecules::input_message::ReplyingTo,
-    hooks::use_session::{use_session, UseSessionState},
+    hooks::use_session::UserSession,
     services::matrix::matrix::{
         EventOrigin, RoomMember, TimelineMessage, TimelineMessageReply, TimelineMessageType,
         TimelineRelation, TimelineThread,
@@ -11,92 +11,53 @@ use dioxus::prelude::*;
 
 #[allow(clippy::needless_return)]
 
-pub fn use_text_message_factory(cx: &ScopeState) -> impl MessageFactory<String> {
-    let session = use_session(cx).clone();
-    TextMessageFactory { session }
+pub fn use_message_factory(cx: &ScopeState) -> MessageFactoryType {
+    MessageFactoryType {}
 }
 
-pub fn use_image_message_factory(cx: &ScopeState) -> impl MessageFactory<String> {
-    let session = use_session(cx).clone();
-    ImageMessageFactory { session }
-}
+#[derive(Clone)]
+pub struct MessageFactoryType {}
 
-pub fn use_reply_message_factory(cx: &ScopeState) -> impl MessageFactory<ReplyingTo> {
-    let session = use_session(cx).clone();
-    ReplyMessageFactory { session }
-}
+impl MessageFactoryType {
+    pub fn text(&self) -> impl MessageFactory {
+        TextMessageFactory {}
+    }
 
-pub fn use_custom_thread_message_factory(cx: &ScopeState) -> impl MessageFactory<TimelineThread> {
-    let session = use_session(cx).clone();
-    CustomThreadMessageFactory { session }
-}
+    pub fn reply(&self, relation: ReplyingTo) -> impl MessageFactory {
+        ReplyMessageFactory { relation }
+    }
 
-pub enum MessageFactoryType {
-    Text,
-    Reply,
-    CustomThread,
-}
-
-pub trait MessageFactory<T> {
-    fn create_message(
-        &self,
-        content: &TimelineMessageType,
-        uuid: &str,
-        time: &str,
-        related: &T,
-    ) -> TimelineRelation;
-}
-
-pub struct TextMessageFactory {
-    session: UseSessionState,
-}
-
-impl MessageFactory<String> for TextMessageFactory {
-    fn create_message(
-        &self,
-        content: &TimelineMessageType,
-        uuid: &str,
-        time: &str,
-        r: &String,
-    ) -> TimelineRelation {
-        TimelineRelation::None(TimelineMessage {
-            body: content.clone(),
-            event_id: Some(uuid.to_string()),
-            sender: RoomMember {
-                id: match self.session.get() {
-                    Some(u) => u.user_id,
-                    None => String::from(""),
-                },
-                name: String::from(""),
-                avatar_uri: None,
-            },
-            origin: EventOrigin::ME,
-            time: time.to_string(),
-        })
+    pub fn thread(&self, relation: TimelineThread) -> impl MessageFactory {
+        CustomThreadMessageFactory { relation }
     }
 }
 
-pub struct ImageMessageFactory {
-    session: UseSessionState,
-}
-
-impl MessageFactory<String> for ImageMessageFactory {
+pub trait MessageFactory {
     fn create_message(
         &self,
         content: &TimelineMessageType,
         uuid: &str,
         time: &str,
-        r: &String,
+        session: &UserSession,
+    ) -> TimelineRelation;
+}
+
+pub struct TextMessageFactory {}
+
+impl MessageFactory for TextMessageFactory {
+    fn create_message(
+        &self,
+        content: &TimelineMessageType,
+        uuid: &str,
+        time: &str,
+        session: &UserSession,
     ) -> TimelineRelation {
         TimelineRelation::None(TimelineMessage {
             body: content.clone(),
             event_id: Some(uuid.to_string()),
             sender: RoomMember {
-                id: match self.session.get() {
-                    Some(u) => u.user_id,
-                    None => String::from(""),
-                },
-                name: String::from(""),
+                id: session.user_id.clone(),
+                name: String::from("x"),
                 avatar_uri: None,
             },
             origin: EventOrigin::ME,
@@ -106,41 +67,38 @@ impl MessageFactory<String> for ImageMessageFactory {
 }
 
 struct ReplyMessageFactory {
-    session: UseSessionState,
+    relation: ReplyingTo,
 }
 
-impl MessageFactory<ReplyingTo> for ReplyMessageFactory {
+impl MessageFactory for ReplyMessageFactory {
     fn create_message(
         &self,
         content: &TimelineMessageType,
         uuid: &str,
         time: &str,
-        r: &ReplyingTo,
+        session: &UserSession,
     ) -> TimelineRelation {
         TimelineRelation::Reply(TimelineMessageReply {
             event: TimelineMessage {
                 body: content.clone(),
                 event_id: Some(uuid.to_string()),
                 sender: RoomMember {
-                    id: match self.session.get() {
-                        Some(u) => u.user_id,
-                        None => String::from(""),
-                    },
-                    name: String::from(""),
+                    id: session.user_id.clone(),
+                    name: String::from("x"),
                     avatar_uri: None,
                 },
                 origin: EventOrigin::ME,
                 time: time.to_string(),
             },
             reply: Some(TimelineMessage {
-                event_id: Some(r.event_id.clone()),
+                event_id: Some(self.relation.event_id.clone()),
                 sender: RoomMember {
                     id: String::from(""),
-                    name: r.display_name.clone(),
-                    avatar_uri: r.avatar_uri.clone(),
+                    name: self.relation.display_name.clone(),
+                    avatar_uri: self.relation.avatar_uri.clone(),
                 },
-                body: r.content.clone(),
-                origin: r.origin.clone(),
+                body: self.relation.content.clone(),
+                origin: self.relation.origin.clone(),
                 time: String::from(""),
             }),
         })
@@ -148,28 +106,25 @@ impl MessageFactory<ReplyingTo> for ReplyMessageFactory {
 }
 
 struct CustomThreadMessageFactory {
-    session: UseSessionState,
+    relation: TimelineThread,
 }
 
-impl MessageFactory<TimelineThread> for CustomThreadMessageFactory {
+impl MessageFactory for CustomThreadMessageFactory {
     fn create_message(
         &self,
         content: &TimelineMessageType,
         uuid: &str,
         time: &str,
-        t: &TimelineThread,
+        session: &UserSession,
     ) -> TimelineRelation {
-        let mut t = t.clone();
+        let mut t = self.relation.clone();
 
         t.thread.push(TimelineMessage {
             body: content.clone(),
             event_id: Some(uuid.to_string()),
             sender: RoomMember {
-                id: match self.session.get() {
-                    Some(u) => u.user_id,
-                    None => String::from(""),
-                },
-                name: String::from(""),
+                id: session.user_id.clone(),
+                name: String::from("x"),
                 avatar_uri: None,
             },
             origin: EventOrigin::ME,

@@ -137,7 +137,8 @@
                     "event_id": "Error inesperado: (Id de evento)",
                     "room_id": "Error inesperado: (Id de sala)",
                     "user_id": "Error inesperado: (Id de usuario)",
-                    "device_id": "Error inesperado: (Id de dispositivo)"
+                    "device_id": "Error inesperado: (Id de dispositivo)",
+                    "file_type": "Verifica que el archivo sea tipo multimedia o documento"
                 }
             },
             "listen": {
