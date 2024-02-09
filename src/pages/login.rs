@@ -301,43 +301,7 @@ pub fn Login(cx: Scope) -> Element {
                         ))
                     }
                 )
-            } else if auth.get().data.server.is_none() {
-                let on_handle_login = on_handle_login.clone();
-                rsx!(
-                    LoginForm {
-                        title: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_message)}",
-                        description: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_description)}",
-                        button_text: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_cta)}",
-                        emoji: "🛰️",
-                        error: error.get().as_ref(),
-                        on_handle: move |event: FormLoginEvent| match event {
-                            FormLoginEvent::FilledForm => on_update_homeserver(),
-                            FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
-                            FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
-                            FormLoginEvent::ClearData => on_handle_clear()
-                        },
-                        body: render!(rsx!(
-                            div {
-                                MessageInput {
-                                    message: "{homeserver.get()}",
-                                    placeholder: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_placeholder)}",
-                                    error: None,
-                                    on_input: move |event: FormEvent| {
-                                        homeserver.set(event.value.clone())
-                                    },
-                                    on_keypress: move |event: KeyboardEvent| {
-                                        if event.code() == keyboard_types::Code::Enter && !homeserver.get().is_empty() {
-                                            on_update_homeserver()
-                                        }
-                                    },
-                                    on_click: move |_| {
-                                        on_update_homeserver()
-                                    }
-                                }
-                            }
-                        ))
-                    }
-                )
+            
             } else if auth.get().data.username.is_none() || auth.get().data.password.is_none() {
                 rsx!(
                     LoginForm {
