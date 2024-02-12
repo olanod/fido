@@ -141,7 +141,8 @@
                     "room_id": "Unexpected error: (Room ID)",
                     "user_id": "Unexpected error: (User ID)",
                     "device_id": "Unexpected error: (Device ID)",
-                    "file_type": "Check that the file is a multimedia or document type"
+                    "file_type": "Check that the file is a multimedia or document type",
+                    "server": "Unexpected error: (Server)"
                 }
             },
             "listen": {
@@ -260,9 +261,12 @@
             },
             "error": {
                 "not_found": "Username not found",
-                "dm": "Error occurred creating the DM",
+                "dm": "Error occurred creating the group",
                 "profile": "Profile not found",
                 "file": "Invalid file type"
+            },
+            "success": {
+                "description": "The group has been created"
             }
         },
         "verify": {

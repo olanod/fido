@@ -141,7 +141,8 @@
                     "room_id": "Error inesperado: (Id de sala)",
                     "user_id": "Error inesperado: (Id de usuario)",
                     "device_id": "Error inesperado: (Id de dispositivo)",
-                    "file_type": "Verifica que el archivo sea tipo multimedia o documento"
+                    "file_type": "Verifica que el archivo sea tipo multimedia o documento",
+                    "server": "Error inesperado: (Servidor)"
                 }
             },
             "listen": {
@@ -260,9 +261,12 @@
             },
             "error": {
                 "not_found": "Nombre de usuario no encontrado",
-                "dm": "Ha ocurrido un error al crear el DM",
+                "dm": "Ha ocurrido un error al crear el grupo",
                 "profile": "Perfil no encontrado",
                 "file": "Tipo de archivo no válido"
+            },
+            "success": {
+                "description": "El grupo ha sido creado"
             }
         },
         "verify": {
