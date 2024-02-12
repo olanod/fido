@@ -3,24 +3,31 @@ use std::{collections::HashMap, ops::Deref};
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
 use futures_util::StreamExt;
-use log::info;
 use matrix_sdk::ruma::RoomId;
 
 use crate::{
     components::atoms::message::Messages,
-    hooks::use_notification::{NotificationHandle, NotificationItem, NotificationType},
     services::matrix::matrix::{timeline, TimelineRelation, TimelineThread},
 };
 
 use super::{
-    use_client::use_client, use_messages::use_messages, use_notification::use_notification,
-    use_room::use_room, use_session::use_session, use_thread::use_thread,
+    use_client::{use_client, UseClientState},
+    use_messages::{use_messages, UseMessagesState},
+    use_notification::use_notification,
+    use_room::use_room,
+    use_session::{use_session, UseSessionState},
+    use_thread::use_thread,
 };
+
+pub enum ChatError {
+    InvalidSession,
+    InvalidRoom,
+}
 
 #[allow(clippy::needless_return)]
 pub fn use_chat(cx: &ScopeState) -> &UseChatState {
     let i18 = use_i18(cx);
-    let client = use_client(cx).get();
+    let client = use_client(cx);
     let session = use_session(cx);
     let notification = use_notification(cx);
     let room = use_room(cx);
@@ -31,7 +38,7 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
 
     let messages_loading = use_ref::<bool>(cx, || false);
     let limit_events_by_room = use_ref::<HashMap<String, u64>>(cx, || HashMap::new());
-    let from = use_ref::<Option<String>>(cx, || None);
+    let from: &UseRef<Option<String>> = use_ref::<Option<String>>(cx, || None);
 
     let task_timeline = use_coroutine(cx, |mut rx: UnboundedReceiver<bool>| {
         to_owned![
@@ -51,72 +58,48 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
                 messages_loading.set(true);
 
                 let current_room_id = room.get().id.clone();
-                let current_events = match limit_events_by_room.read().get(&current_room_id) {
-                    Some(c) => c,
-                    None => &(15 as u64),
-                }
-                .clone();
+                let current_events = limit_events_by_room
+                    .read()
+                    .get(&current_room_id)
+                    .unwrap_or(&15)
+                    .clone();
 
-                let session_data = match session.get() {
-                    Some(data) => data,
-                    None => {
-                        notification.set(NotificationItem {
-                            title: String::from(""),
-                            body: String::from(""),
-                            show: false,
-                            handle: NotificationHandle {
-                                value: NotificationType::None,
-                            },
-                        });
-
-                        return;
-                    }
-                };
-
-                let room_id = match RoomId::parse(&current_room_id) {
-                    Ok(id) => id,
-                    Err(_) => {
-                        notification.handle_error("{key_common_error_room_id}");
-                        return;
-                    }
-                };
-                let ms = messages.get().clone();
-
-                let (f, msg) = timeline(
-                    &client,
-                    &room_id,
+                process(
                     current_events,
-                    from.read().clone(),
-                    ms.to_vec(),
-                    session_data,
+                    &session,
+                    &messages,
+                    &client,
+                    &from,
+                    &current_room_id,
                 )
-                .await;
+                .await
+                .map_err(|e: ChatError| {
+                    let message = match e {
+                        ChatError::InvalidSession => "x",
+                        ChatError::InvalidRoom => &key_common_error_room_id,
+                    };
 
-                from.set(f);
+                    messages_loading.set(false);
+                    notification.handle_error(&message);
 
-                info!("before write xxx");
-                messages.set(msg);
-                info!("after write xxx");
-                let mm = threading_to.get().clone();
+                    return;
+                });
 
-                if let Some(thread) = mm {
-                    let ms = messages.get().clone();
-                    let message = ms.iter().find(|m| {
-                        if let TimelineRelation::CustomThread(t) = m {
-                            if t.event_id.eq(&thread.event_id) {
-                                let mut xthread = thread.clone();
+                let thread_messages = threading_to.get().clone();
 
-                                info!("timeline when use messages: {t:#?}");
+                if let Some(thread) = thread_messages {
+                    messages.get().iter().find(|m| {
+                        let TimelineRelation::CustomThread(t) = m else {
+                            return false;
+                        };
 
-                                // xthread.thread.append(&mut t.thread.clone());
-
-                                threading_to.set(Some(TimelineThread {
-                                    event_id: t.event_id.clone(),
-                                    thread: t.thread.clone(),
-                                    count: t.count.clone(),
-                                    latest_event: t.latest_event.clone(),
-                                }));
-                            }
+                        if t.event_id.eq(&thread.event_id) {
+                            threading_to.set(Some(TimelineThread {
+                                event_id: t.event_id.clone(),
+                                thread: t.thread.clone(),
+                                count: t.count.clone(),
+                                latest_event: t.latest_event.clone(),
+                            }));
 
                             true
                         } else {
@@ -199,4 +182,33 @@ impl UseChatState {
             .limit
             .with_mut(|lr| lr.insert(current_room_id.to_string(), current_events + 5));
     }
+}
+
+async fn process(
+    current_events: u64,
+    session: &UseSessionState,
+    messages: &UseMessagesState,
+    client: &UseClientState,
+    from: &UseRef<Option<String>>,
+    current_room_id: &str,
+) -> Result<(), ChatError> {
+    let session_data = session.get().ok_or(ChatError::InvalidSession)?;
+    let room_id = RoomId::parse(&current_room_id).map_err(|_| ChatError::InvalidRoom)?;
+
+    let ms = messages.get().clone();
+
+    let (f, msg) = timeline(
+        &client.get(),
+        &room_id,
+        current_events,
+        from.read().clone(),
+        ms.to_vec(),
+        session_data,
+    )
+    .await;
+
+    from.set(f);
+    messages.set(msg);
+
+    Ok(())
 }

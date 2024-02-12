@@ -23,7 +23,7 @@ pub struct UseSessionState {
     data: UseSharedState<Option<UserSession>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UserSession {
     pub user_id: String,
     pub device_id: Option<String>,
@@ -42,12 +42,7 @@ impl UseSessionState {
         let user = client.whoami().await?;
         let data = UserSession {
             user_id: user.user_id.to_string(),
-            device_id: {
-                match user.device_id {
-                    Some(d) => Some(d.to_string()),
-                    None => None,
-                }
-            },
+            device_id: user.device_id.map(|id| id.to_string()),
         };
 
         Self::set(&self, data.clone());
