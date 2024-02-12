@@ -1,4 +1,6 @@
 use dioxus::prelude::*;
+use dioxus_std::i18n::use_i18;
+use dioxus_std::translate;
 use gloo::events::EventListener;
 use log::info;
 use wasm_bindgen::JsCast;
@@ -29,6 +31,7 @@ pub struct ListProps<'a> {
 }
 
 pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
+    let i18 = use_i18(cx);
     let replying_to = use_reply(cx);
     let threading_to = use_thread(cx);
 
@@ -226,8 +229,19 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                     let thread = message.thread.clone();
                                     let latest_event = message.latest_event.clone();
                                     let count = message.count.clone();
-                                    let head_message = thread[0].clone();
+                                    let head = thread.get(0).cloned();
                                     
+                                    let Some(head_message) = head else {
+                                        return render!(
+                                            rsx!(
+                                                div {
+                                                    class: "message__content",
+                                                    translate!(i18, "chat.message_list.errors.not_found")
+                                                }
+                                            )
+                                        );
+                                    };
+
                                     let mut thread_avatars: Vec<Sender> = vec![];
 
                                     for (i, t) in thread.iter().enumerate() {
@@ -237,6 +251,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
 
                                         thread_avatars.push(Sender{avatar_uri: t.sender.avatar_uri.clone(), display_name: t.sender.name.clone()})
                                     }
+
 
                                     cx.render(rsx!(
                                         MessageView {

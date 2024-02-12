@@ -115,7 +115,10 @@
                 }
             },
             "message_list": {
-                "see_more": "See more"
+                "see_more": "See more",
+                "errors": {
+                    "not_found": "Thread not found"
+                }
             },
             "attach_preview": {
                 "not_found": "No file found",
@@ -183,6 +186,11 @@
             "profile": "Profile",
             "chats": "Chats",
             "log_out": "Log Out"
+        },
+        "logout": {
+            "errors": {
+                "server": "Failed to log out"
+            }
         },
         "profile": {
             "username": {

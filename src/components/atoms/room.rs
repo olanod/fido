@@ -20,10 +20,7 @@ pub struct RoomViewProps<'a> {
 }
 
 pub fn RoomView<'a>(cx: Scope<'a, RoomViewProps<'a>>) -> Element<'a> {
-    let description = match cx.props.description {
-        Some(description) => description,
-        None => &"",
-    };
+    let description = cx.props.description.unwrap_or("");
 
     cx.render(rsx! {
       div {

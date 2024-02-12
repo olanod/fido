@@ -1,3 +1,4 @@
+use crate::hooks::use_notification::use_notification;
 use crate::MatrixClientState;
 use crate::{hooks::use_auth::use_auth, services::matrix::matrix::create_client};
 use crate::hooks::use_client::use_client;
@@ -5,7 +6,7 @@ use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
 use gloo::storage::LocalStorage;
 
-use crate::components::atoms::{ChatConversation, Icon, LogOut, MenuItem, UserCircle};
+use crate::components::atoms::{notification, ChatConversation, Icon, LogOut, MenuItem, UserCircle};
 
 use dioxus_router::prelude::*;
 
@@ -21,17 +22,24 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
     let nav = use_navigator(cx);
     let client = use_client(cx);
     let auth = use_auth(cx);
+    let notification = use_notification(cx);
 
     let key_profile = translate!(i18, "menu.profile");
     let key_chats = translate!(i18, "menu.chats");
     let key_log_out = translate!(i18, "menu.log_out");
+    let key_logout_error_server = translate!(i18, "logout.error.server");
 
     let log_out = move || {
         cx.spawn({
-            to_owned![client, auth];
+            to_owned![client, auth, notification, key_logout_error_server];
 
             async move {
-                let _ = client.get().logout().await;
+                let response = client.get().logout().await;
+
+                let Ok(_) = response else {
+                    return notification.handle_error(&key_logout_error_server)
+                };
+
                 let _ = <LocalStorage as gloo::storage::Storage>::delete("session_file");
                 
                 let c = create_client("https://matrix.org").await;

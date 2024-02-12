@@ -115,7 +115,10 @@
                 }
             },
             "message_list": {
-                "see_more": "Ver más"
+                "see_more": "Ver más",
+                "errors": {
+                    "not_found": "Hilo no encontrado"
+                }
             },
             "attach_preview": {
                 "not_found": "No se ha encontrado ningún archivo",
@@ -183,6 +186,11 @@
             "profile": "Perfil",
             "chats": "Chats",
             "log_out": "Cerrar sesión"
+        },
+        "logout": {
+            "errors": {
+                "server": "No se ha podido cerrar sesión"
+            }
         },
         "profile": {
             "username": {
