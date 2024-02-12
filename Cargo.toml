@@ -30,3 +30,4 @@ chrono = "0.4.26"
 infer = "0.15.0"
 ruma = { version = "0.7.4", features = ["unstable-sanitize", "unstable-msc2677", "unstable-msc3440", "client"] }
 uuid = "0.8"
+unic-langid = "0.9.1"

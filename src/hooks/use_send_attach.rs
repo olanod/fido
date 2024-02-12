@@ -172,10 +172,13 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                 .await
                 .map_err(|e| {
                     let message = match e {
-                        SendMessageError::InvalidRoom => &key_common_error_room_id,
+                        SendMessageError::RoomNotFound | SendMessageError::InvalidRoom => {
+                            &key_common_error_room_id
+                        }
                         SendMessageError::InvalidReplyEventId => &key_common_error_event_id,
                         SendMessageError::InvalidThreadEventId => &key_common_error_thread_id,
                         SendMessageError::DispatchMessage => &key_attach_error_send_message,
+                        SendMessageError::InvalidFile => &key_common_error_file_type,
                     };
 
                     notification.handle_error(message);

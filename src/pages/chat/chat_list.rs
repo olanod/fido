@@ -43,6 +43,7 @@ pub fn ChatList(cx: Scope) -> Element {
 
     let key_chat_list_home = translate!(i18, "chat.list.home");
     let key_chat_list_search = translate!(i18, "chat.list.search");
+    let key_session_error_not_found = translate!(i18, "chat.session.error.not_found");
 
     let rooms = use_state::<Vec<RoomItem>>(cx, || Vec::new());
     let all_rooms = use_state::<Vec<RoomItem>>(cx, || Vec::new());
@@ -72,24 +73,13 @@ pub fn ChatList(cx: Scope) -> Element {
             title_header,
             session,
             notification,
-            key_chat_list_home
+            key_chat_list_home,
+            key_session_error_not_found
         ];
 
         async move {
-            let session_data = match session.get() {
-                Some(data) => data,
-                None => {
-                    notification.set(NotificationItem {
-                        title: String::from(""),
-                        body: String::from(""),
-                        show: false,
-                        handle: NotificationHandle {
-                            value: NotificationType::None,
-                        },
-                    });
-
-                    return;
-                }
+            let Some(session_data) = session.get() else {
+                return notification.handle_error(&key_session_error_not_found);
             };
 
             let Conversations {

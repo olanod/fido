@@ -33,6 +33,8 @@ pub enum SendMessageError {
     InvalidReplyEventId,
     InvalidThreadEventId,
     DispatchMessage,
+    RoomNotFound,
+    InvalidFile,
 }
 
 #[derive(Clone)]
@@ -58,8 +60,20 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
     let key_common_error_event_id = translate!(i18, "chat.common.error.event_id");
     let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
     let key_common_error_user_id = translate!(i18, "chat.common.error.user_id");
+    let key_common_error_file_type = translate!(i18, "chat.common.error.file_type");
 
     let key_message_error_send_message = translate!(i18, "chat.message.error.send_message");
+
+    let key_message_error_send_message = translate!(i18, "chat.message.error.send_message");
+
+    let key_commands_join_errors_room_not_found =
+        translate!(i18, "chat.commands.join.errors.room_not_found");
+    let key_commands_join_errors_action_not_found =
+        translate!(i18, "chat.commands.join.errors.action_not_found");
+    let key_commands_join_errors_invalid_room =
+        translate!(i18, "chat.commands.join.errors.invalid_room");
+    let key_commands_join_errors_request_failed =
+        translate!(i18, "chat.commands.join.errors.request_failed");
 
     let message_dispatch_id =
         use_shared_state::<MessageDispatchId>(cx).expect("Unable to use MessageDispatchId");
@@ -84,7 +98,26 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
         async move {
             while let Some(message_item) = rx.next().await {
                 if message_item.msg.starts_with('!') {
-                    handle_command(&message_item, &client.get()).await;
+                    let Err(error) = handle_command(&message_item, &client.get()).await else {
+                        return;
+                    };
+
+                    let message = match error {
+                        handle_command::CommandError::RoomIdNotFound => {
+                            &key_commands_join_errors_room_not_found
+                        }
+                        handle_command::CommandError::ActionNotFound => {
+                            &key_commands_join_errors_action_not_found
+                        }
+                        handle_command::CommandError::InvalidRoomId => {
+                            &key_commands_join_errors_invalid_room
+                        }
+                        handle_command::CommandError::RequestFailed => {
+                            &key_commands_join_errors_request_failed
+                        }
+                    };
+
+                    notification.handle_error(message)
                 } else {
                     let mut back_messages = messages.get();
                     let uuid = Uuid::new_v4().to_string();
@@ -158,10 +191,13 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                     .await
                     .map_err(|e| {
                         let message = match e {
-                            SendMessageError::InvalidRoom => &key_common_error_room_id,
+                            SendMessageError::RoomNotFound | SendMessageError::InvalidRoom => {
+                                &key_common_error_room_id
+                            }
                             SendMessageError::InvalidReplyEventId => &key_common_error_event_id,
                             SendMessageError::InvalidThreadEventId => &key_common_error_thread_id,
                             SendMessageError::DispatchMessage => &key_message_error_send_message,
+                            SendMessageError::InvalidFile => &key_common_error_file_type,
                         };
 
                         notification.handle_error(message);

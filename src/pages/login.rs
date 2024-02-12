@@ -140,73 +140,63 @@ pub fn Login(cx: Scope) -> Element {
                 is_loading_loggedin.set(LoggedInStatus::Loading);
                 let login_config = auth.build();
 
-                match login_config {
-                    Ok(info) => {
-                        let response = login(
-                            &info.server.to_string(),
-                            &info.username,
-                            &info.password,
-                        )
-                        .await;
+                let Ok(info) = login_config else  {
+                    homeserver.set(String::new());
+                    username.set(String::new());
+                    password.set(String::new());
+                    
+                    return auth.reset();
+                };
 
-                        match response {
-                            Ok((c, serialized_session)) => {
-                                is_loading_loggedin.set(LoggedInStatus::Done);
+                let response = login(
+                    &info.server.to_string(),
+                    &info.username,
+                    &info.password,
+                )
+                .await;
 
-                                let display_name = match c.account().get_display_name().await {
-                                    Ok(name) => name,
-                                    Err(_) => None
-                                };
+                match response {
+                    Ok((c, serialized_session)) => {
+                        is_loading_loggedin.set(LoggedInStatus::Done);
 
-                                auth.persist_data(CacheLogin {
-                                    server: homeserver.get().to_string(),
-                                    username: username.get().to_string(),
-                                    display_name
-                                });
+                        let display_name = c.account().get_display_name().await.ok().flatten();
 
-                                <LocalStorage as gloo::storage::Storage>::set(
-                                    "session_file",
-                                    serialized_session,
-                                );
+                        auth.persist_data(CacheLogin {
+                            server: homeserver.get().to_string(),
+                            username: username.get().to_string(),
+                            display_name
+                        });
+
+                        <LocalStorage as gloo::storage::Storage>::set(
+                            "session_file",
+                            serialized_session,
+                        );
+
+                        is_loading_loggedin.set(LoggedInStatus::Persisting);
         
-                                is_loading_loggedin.set(LoggedInStatus::Persisting);
-                
-                                session.sync(c.clone(), None).await;
-        
-                                client.set(crate::MatrixClientState { client: Some(c.clone()) });
-                                
-                                let user_id = match c.user_id() {
-                                    Some(u) => u,
-                                    None => {
-                                        notification.handle_error("{key_chat_errors_not_found}");
-                                        return;
-                                    }
-                                };
+                        session.sync(c.clone(), None).await;
 
-                                is_loading_loggedin.set(LoggedInStatus::LoggedAs(user_id.to_string()));
-        
-                                auth.set_logged_in(true)
-                            }
-                            Err(err) => {
-                                is_loading_loggedin.set(LoggedInStatus::Start);
-                                if err
-                                    .to_string()
-                                    .eq("the server returned an error: [403 / M_FORBIDDEN] Invalid username or password")
-                                {
-                                    error.set(Some(error_invalid_credentials))
-                                } else {
-                                    error.set(Some(error_unknown))
-                                }
+                        client.set(crate::MatrixClientState { client: Some(c.clone()) });
+                        
+                        let Some(user_id) = c.user_id() else {
+                            return notification.handle_error("{key_chat_errors_not_found}");
+                        };
 
-                                homeserver.set(String::new());
-                                username.set(String::new());
-                                password.set(String::new());
-                                
-                                auth.reset()
-                            }
-                        }
+                        is_loading_loggedin.set(LoggedInStatus::LoggedAs(user_id.to_string()));
+
+                        auth.set_logged_in(true)
                     }
-                    Err(e) => {
+                    Err(err) => {
+                        is_loading_loggedin.set(LoggedInStatus::Start);
+                        if err
+                            .to_string()
+                            .eq("the server returned an error: [403 / M_FORBIDDEN] Invalid username or password")
+                        {
+                            error.set(Some(error_invalid_credentials))
+                        } else {
+                            error.set(Some(error_unknown))
+                        }
+
                         homeserver.set(String::new());
                         username.set(String::new());
                         password.set(String::new());
@@ -254,17 +244,7 @@ pub fn Login(cx: Scope) -> Element {
         div {
             class: "page--clamp",
             if auth.is_storage_data() && *is_loading_loggedin.read() == LoggedInStatus::Start {
-                let display_name = match auth.get_login_cache() {
-                    Some(data) => {
-                        match data.display_name {
-                            Some(name) => name,
-                            None => data.username
-                        }
-                    },
-                    None => {
-                        String::from("")
-                    }
-                };
+                let display_name = auth.get_login_cache().map(|data| data.display_name.unwrap_or(data.username)).unwrap_or(String::from(""));
     
                 rsx!(
                     LoginForm {

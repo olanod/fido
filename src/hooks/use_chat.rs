@@ -7,7 +7,7 @@ use matrix_sdk::ruma::RoomId;
 
 use crate::{
     components::atoms::message::Messages,
-    services::matrix::matrix::{timeline, TimelineRelation, TimelineThread},
+    services::matrix::matrix::{timeline, TimelineError, TimelineRelation, TimelineThread},
 };
 
 use super::{
@@ -22,6 +22,7 @@ use super::{
 pub enum ChatError {
     InvalidSession,
     InvalidRoom,
+    TimelineError(TimelineError),
 }
 
 #[allow(clippy::needless_return)]
@@ -35,6 +36,15 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
     let threading_to = use_thread(cx);
 
     let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
+    let key_chat_session_error_not_found = translate!(i18, "chat.session.error.not_found");
+    let key_chat_message_list_errors_thread_not_found =
+        translate!(i18, "chat.message_list.errors.thread_not_found");
+    let key_chat_message_list_errors_room_not_found =
+        translate!(i18, "chat.message_list.errors.room_not_found");
+    let key_chat_message_list_errors_timeline_invalid_limit =
+        translate!(i18, "chat.message_list.errors.timeline_invalid_limit");
+    let key_chat_message_list_errors_timeline_not_found =
+        translate!(i18, "chat.message_list.errors.timeline_not_found");
 
     let messages_loading = use_ref::<bool>(cx, || false);
     let limit_events_by_room = use_ref::<HashMap<String, u64>>(cx, || HashMap::new());
@@ -75,8 +85,17 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
                 .await
                 .map_err(|e: ChatError| {
                     let message = match e {
-                        ChatError::InvalidSession => "x",
+                        ChatError::InvalidSession => &key_chat_session_error_not_found,
                         ChatError::InvalidRoom => &key_common_error_room_id,
+                        ChatError::TimelineError(TimelineError::RoomNotFound) => {
+                            &key_chat_message_list_errors_room_not_found
+                        }
+                        ChatError::TimelineError(TimelineError::InvalidLimit) => {
+                            &key_chat_message_list_errors_timeline_invalid_limit
+                        }
+                        ChatError::TimelineError(TimelineError::MessagesNotFound) => {
+                            &key_chat_message_list_errors_timeline_not_found
+                        }
                     };
 
                     messages_loading.set(false);
@@ -85,12 +104,10 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
                     return;
                 });
 
-                let thread_messages = threading_to.get().clone();
-
-                if let Some(thread) = thread_messages {
-                    messages.get().iter().find(|m| {
+                if let Some(thread) = threading_to.get() {
+                    messages.get().iter().find_map(|m| {
                         let TimelineRelation::CustomThread(t) = m else {
-                            return false;
+                            return None;
                         };
 
                         if t.event_id.eq(&thread.event_id) {
@@ -101,10 +118,10 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
                                 latest_event: t.latest_event.clone(),
                             }));
 
-                            true
-                        } else {
-                            false
+                            return Some(());
                         }
+
+                        None
                     });
                 }
 
@@ -173,10 +190,13 @@ impl UseChatState {
     }
 
     pub fn loadmore(&self, current_room_id: &str) {
-        let current_events = match self.inner.limit.read().get(current_room_id) {
-            Some(c) => c.clone(),
-            None => 15 as u64,
-        };
+        let current_events = self
+            .inner
+            .limit
+            .read()
+            .get(current_room_id)
+            .unwrap_or(&(15 as u64))
+            .clone();
 
         self.inner
             .limit
@@ -195,17 +215,16 @@ async fn process(
     let session_data = session.get().ok_or(ChatError::InvalidSession)?;
     let room_id = RoomId::parse(&current_room_id).map_err(|_| ChatError::InvalidRoom)?;
 
-    let ms = messages.get().clone();
-
     let (f, msg) = timeline(
         &client.get(),
         &room_id,
         current_events,
         from.read().clone(),
-        ms.to_vec(),
+        messages.get().clone().to_vec(),
         session_data,
     )
-    .await;
+    .await
+    .map_err(|e| ChatError::TimelineError(e))?;
 
     from.set(f);
     messages.set(msg);

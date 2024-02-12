@@ -144,7 +144,7 @@ pub fn Profile(cx: Scope) -> Element {
                 .account()
                 .get_profile()
                 .await
-                .map_err(|e| ProfileError::UserNotFound)?;
+                .map_err(|_| ProfileError::UserNotFound)?;
 
             let avatar_uri: Option<String> = account_profile.avatar_url.and_then(|uri| {
                 mxc_to_thumbnail_uri(&uri, ImageSize::default(), ImageMethod::SCALE)

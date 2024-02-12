@@ -314,7 +314,9 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                         async move {
                             let message_type = &ev.content.msgtype;
                             let event_id = ev.event_id;
-                            let member = room_member(ev.sender, &room).await;
+                            let Ok(member) = room_member(ev.sender, &room).await else {
+                                return;
+                            };
                             let relates = &ev.content.relates_to;
                             let time = ev.origin_server_ts;
                             let to_find = to_find.clone();

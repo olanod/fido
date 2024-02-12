@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use chat::components::atoms::{LoadingStatus, Notification, Spinner};
+use chat::components::atoms::{notification, LoadingStatus, Notification, Spinner};
 use chat::hooks::use_auth::use_auth;
 use chat::hooks::use_client::use_client;
 use chat::hooks::use_init_app::{use_init_app, BeforeSession};
@@ -26,6 +26,7 @@ use ruma::api::client::sync::sync_events;
 use ruma::events::EventType;
 use std::str::FromStr;
 use std::time::Duration;
+use unic_langid::LanguageIdentifier;
 use web_sys::console::info;
 use web_sys::window;
 
@@ -38,28 +39,21 @@ static EN_US: &str = include_str!("./locales/en-US.json");
 static ES_ES: &str = include_str!("./locales/es-ES.json");
 
 fn App(cx: Scope) -> Element {
-    use_init_i18n(
-        cx,
-        "es-ES".parse().expect("can't parse es-ES language"),
-        "es-ES".parse().expect("can't parse es-ES language"),
-        || {
-            let en_us = Language::from_str(EN_US).expect("can't get EN_US language");
-            let es_es = Language::from_str(ES_ES).expect("can't get ES_ES language");
-            vec![en_us, es_es]
-        },
-    );
+    let selected_language: LanguageIdentifier =
+        "es-ES".parse().expect("can't parse es-ES language");
+    let fallback_language: LanguageIdentifier = selected_language.clone();
 
-    if let Some(window) = window() {
-        if let Some(document) = window.document() {
-            if let Some(static_login_form) = document.get_element_by_id("static-login-form") {
-                if let Some(parent) = static_login_form.parent_node() {
-                    parent
-                        .remove_child(&static_login_form)
-                        .expect("Failed to remove element");
-                }
-            }
-        }
-    }
+    use_init_i18n(cx, selected_language, fallback_language, || {
+        let en_us = Language::from_str(EN_US).expect("can't get EN_US language");
+        let es_es = Language::from_str(ES_ES).expect("can't get ES_ES language");
+        vec![en_us, es_es]
+    });
+
+    if let Some(static_login_form) = window()?.document()?.get_element_by_id("static-login-form") {
+        if let Some(parent) = static_login_form.parent_node() {
+            parent.remove_child(&static_login_form);
+        };
+    };
 
     use_init_app(cx);
 
@@ -74,13 +68,18 @@ fn App(cx: Scope) -> Element {
     let before_session =
         use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
 
+    let key_chat_common_error_sync = translate!(i18, "chat.common.error.sync");
+    let key_chat_common_error_default_server = translate!(i18, "logout.chat.common.error.default_server");
+
     let restoring_session = use_ref::<bool>(cx, || true);
 
     use_coroutine(cx, |_: UnboundedReceiver<MatrixClientState>| {
-        to_owned![client, auth, restoring_session, session];
+        to_owned![client, auth, restoring_session, session, notification];
 
         async move {
-            let c = create_client("https://matrix.org").await;
+            let Ok(c) = create_client("https://matrix.org").await else {
+                return notification.handle_error(&key_chat_common_error_default_server);
+            };
 
             client.set(MatrixClientState {
                 client: Some(c.clone()),
@@ -89,25 +88,27 @@ fn App(cx: Scope) -> Element {
             let serialized_session: Result<String, StorageError> =
                 <LocalStorage as gloo::storage::Storage>::get("session_file");
 
-            if let Ok(s) = serialized_session {
-                let (c, sync_token) = restore_session(&s)
-                    .await
-                    .expect("can't restore session: main");
+            let Ok(s) = serialized_session else {
+                return restoring_session.set(false);
+            };
 
-                client.set(MatrixClientState {
-                    client: Some(c.clone()),
-                });
+            let (c, sync_token) = restore_session(&s)
+                .await
+                .expect("can't restore session: main");
 
-                let x = session.sync(c.clone(), sync_token).await;
+            client.set(MatrixClientState {
+                client: Some(c.clone()),
+            });
 
-                auth.set_logged_in(true);
+            let sync_response = session.sync(c.clone(), sync_token).await;
 
-                info!("old session {:?}", x);
-                restoring_session.set(false);
-            } else {
-                restoring_session.set(false);
-                info!("else restoring ");
-            }
+            let Ok(()) = sync_response else {
+                return notification.handle_error(&key_chat_common_error_sync);
+            };
+
+            auth.set_logged_in(true);
+
+            restoring_session.set(false);
         }
     });
 

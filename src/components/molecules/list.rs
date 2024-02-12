@@ -236,7 +236,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                             rsx!(
                                                 div {
                                                     class: "message__content",
-                                                    translate!(i18, "chat.message_list.errors.not_found")
+                                                    translate!(i18, "chat.message_list.errors.thread_not_found")
                                                 }
                                             )
                                         );

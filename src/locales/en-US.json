@@ -117,7 +117,10 @@
             "message_list": {
                 "see_more": "See more",
                 "errors": {
-                    "not_found": "Thread not found"
+                    "thread_not_found": "Thread not found",
+                    "room_not_found": "Unavailable Room",
+                    "timeline_invalid_limit": "Cannot load messages",
+                    "timeline_not_found": "Cannot load messages"
                 }
             },
             "attach_preview": {
@@ -142,7 +145,9 @@
                     "user_id": "Unexpected error: (User ID)",
                     "device_id": "Unexpected error: (Device ID)",
                     "file_type": "Check that the file is a multimedia or document type",
-                    "server": "Unexpected error: (Server)"
+                    "server": "Unexpected error: (Server)",
+                    "sync": "Unexpected error: (Sync)",
+                    "default_server": "Could not connect to the default server"
                 }
             },
             "listen": {
@@ -182,6 +187,16 @@
             },
             "thread": {
                 "title": "Thread"
+            },
+            "commands": {
+                "join": {
+                    "errors": {
+                        "room_not_found": "Room not found",
+                        "action_not_found": "Action not found",
+                        "invalid_room": "Invalid room",
+                        "request_failed": "Request failed"
+                    }
+                }
             }
         },
         "menu": {

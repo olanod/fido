@@ -6,7 +6,7 @@ use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
 use gloo::storage::LocalStorage;
 
-use crate::components::atoms::{notification, ChatConversation, Icon, LogOut, MenuItem, UserCircle};
+use crate::components::atoms::{ChatConversation, Icon, LogOut, MenuItem, UserCircle};
 
 use dioxus_router::prelude::*;
 
@@ -28,10 +28,11 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
     let key_chats = translate!(i18, "menu.chats");
     let key_log_out = translate!(i18, "menu.log_out");
     let key_logout_error_server = translate!(i18, "logout.error.server");
+    let key_chat_common_error_default_server = translate!(i18, "logout.chat.common.error.default_server");
 
     let log_out = move || {
         cx.spawn({
-            to_owned![client, auth, notification, key_logout_error_server];
+            to_owned![client, auth, notification, key_logout_error_server, key_chat_common_error_default_server];
 
             async move {
                 let response = client.get().logout().await;
@@ -42,7 +43,9 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
 
                 let _ = <LocalStorage as gloo::storage::Storage>::delete("session_file");
                 
-                let c = create_client("https://matrix.org").await;
+                let Ok(c) = create_client("https://matrix.org").await else {
+                    return notification.handle_error(&key_chat_common_error_default_server)
+                };
 
                 client.set(MatrixClientState {
                     client: Some(c.clone()),
