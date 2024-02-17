@@ -13,6 +13,14 @@ pub struct AttachFile {
     pub size: u64,
 }
 
+#[derive(Clone)]
+#[derive(Debug)]
+pub enum AttachError {
+    NotFound, 
+    UncoverType,
+    UnknownContent
+}
+
 #[allow(clippy::needless_return)]
 pub fn use_attach(cx: &ScopeState) -> &UseAttachState {
     let attach = use_shared_state::<Option<AttachFile>>(cx).expect("Attach file not provided");
@@ -37,11 +45,12 @@ impl UseAttachState {
         *inner = value;
     }
 
-    pub fn get_file(&self) -> ObjectUrl {
+    pub fn get_file(&self) -> Result<ObjectUrl, AttachError> {
         let attach_read = self.inner.read().as_ref().cloned();
-        let attach_file = attach_read.unwrap();
-
-        attach_file.preview_url
+        match attach_read {
+            Some(file) => Ok(file.preview_url),
+            None => Err(AttachError::NotFound),
+        }
     }
 
     pub fn reset(&self) {

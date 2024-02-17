@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use dioxus::prelude::*;
 use gloo::storage::{errors::StorageError, LocalStorage};
 use matrix_sdk::Client;
@@ -50,12 +48,12 @@ impl LoginInfoBuilder {
         self.server = Some(server);
     }
 
-    pub fn username(&mut self, username: String) {
-        self.username = Some(username);
+    pub fn username(&mut self, username: &str) {
+        self.username = Some(username.to_owned());
     }
 
-    pub fn password(&mut self, password: String) {
-        self.password = Some(password);
+    pub fn password(&mut self, password: &str) {
+        self.password = Some(password.to_owned());
     }
 
     pub fn build(self) -> Result<LoginInfo, AuthError> {
@@ -109,7 +107,7 @@ pub struct UseAuth {
 }
 
 impl UseAuthState {
-    pub async fn set_server(&self, homeserver: Rc<String>) -> Result<(), AuthError> {
+    pub async fn set_server(&self, homeserver: &str) -> Result<(), AuthError> {
         let server_parsed =
             if homeserver.starts_with("http://") || homeserver.starts_with("https://") {
                 Url::parse(&homeserver)
@@ -139,8 +137,8 @@ impl UseAuthState {
         Ok(())
     }
 
-    pub fn set_username(&self, username: String, parse: bool) {
-        let mut username_parse = username;
+    pub fn set_username(&self, username: &str, parse: bool) {
+        let mut username_parse = username.to_owned();
 
         if parse {
             if !username_parse.starts_with("@") {
@@ -157,11 +155,11 @@ impl UseAuthState {
         }
 
         self.data.with_mut(|l| {
-            l.username(username_parse);
+            l.username(&username_parse);
         });
     }
 
-    pub fn set_password(&self, password: String) {
+    pub fn set_password(&self, password: &str) {
         self.data.with_mut(|l| {
             l.password(password);
         });

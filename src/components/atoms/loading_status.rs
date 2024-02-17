@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::components::atoms::Spinner;
 
 #[inline_props]
-pub fn LoadingStatus(cx: Scope, text: String) -> Element {
+pub fn LoadingStatus<'a>(cx: Scope<'a>, text: &'a str) -> Element<'a> {
     cx.render({
         rsx!(
             div {

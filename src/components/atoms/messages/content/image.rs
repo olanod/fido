@@ -1,10 +1,9 @@
-use std::ops::Deref;
-
 use dioxus::prelude::*;
-use gloo::file::BlobContents;
-use web_sys::Url;
 
-use crate::services::matrix::matrix::{FileContent, ImageType};
+use crate::{
+    services::matrix::matrix::{FileContent, ImageType},
+    utils::vec_to_url::vec_to_url,
+};
 
 #[derive(PartialEq, Props)]
 pub struct ImageProps<'a> {
@@ -19,28 +18,39 @@ pub fn ImageMessage<'a>(cx: Scope<'a, ImageProps<'a>>) -> Element<'a> {
         "message__content__image--not-replying"
     };
 
-    render!(match cx.props.body.source.clone().unwrap() {
-        ImageType::URL(url) => {
-            rsx!(img {
-                class: "{message__content__image}",
-                src: "{url}"
-            })
-        }
-        ImageType::Media(content) => {
-            let c = content.deref();
-            let parts = js_sys::Array::of1(&unsafe { c.into_jsvalue() });
-            let blob = web_sys::Blob::new_with_u8_array_sequence(&parts).unwrap();
-            let url = Url::create_object_url_with_blob(&blob).unwrap();
+    render!(match cx.props.body.source.clone() {
+        Some(source) => match source {
+            ImageType::URL(url) => {
+                rsx!(img {
+                    class: "{message__content__image}",
+                    src: "{url}"
+                })
+            }
+            ImageType::Media(content) => {
+                let url = vec_to_url(content);
 
-            rsx!(
-              img {
-                class: "{message__content__image}",
-                src: "{url}"
-              }
-              a {
-                href: "{url}",
-              }
-            )
-        }
+                match url {
+                    Ok(url) => rsx!(
+                      img {
+                        class: "{message__content__image}",
+                        src: "{url}"
+                      }
+                      a {
+                        href: "{url}",
+                      }
+                    ),
+                    Err(_) => rsx!(
+                        strong {
+                            "Unable to read file"
+                        }
+                    ),
+                }
+            }
+        },
+        None => rsx!(
+            strong {
+                "File Not Found"
+            }
+        ),
     })
 }

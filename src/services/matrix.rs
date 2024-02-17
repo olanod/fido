@@ -1,7 +1,6 @@
 pub mod matrix {
     use std::{
         collections::HashMap,
-        ops::Deref,
         time::{Duration, UNIX_EPOCH},
     };
 
@@ -11,7 +10,6 @@ pub mod matrix {
     use matrix_sdk::{
         self,
         attachment::AttachmentConfig,
-        config::SyncSettings,
         deserialized_responses::{SyncTimelineEvent, TimelineSlice},
         media::{MediaFormat, MediaRequest, MediaThumbnailSize},
         room::{MessagesOptions, Room},
@@ -24,7 +22,6 @@ pub mod matrix {
                     room::{create_room::v3::RoomPreset, Visibility},
                     uiaa,
                 },
-                error::{FromHttpResponseError, ServerError},
             },
             assign,
             events::{
@@ -44,15 +41,19 @@ pub mod matrix {
             serde::Raw,
             MilliSecondsSinceUnixEpoch, OwnedEventId, OwnedUserId, RoomId, TransactionId, UInt,
         },
-        Client, Error, HttpError, HttpResult,
+        Client, Error,
     };
     use mime::Mime;
-    use ruma::events::room::message::Thread;
+    use ruma::{
+        api::client::message::send_message_event::v3::Response, events::room::message::Thread,
+        OwnedMxcUri, OwnedRoomId,
+    };
     use url::Url;
 
     use crate::{
         components::atoms::room::RoomItem,
-        utils::matrix::{mxc_to_https_uri, ImageSize},
+        hooks::{use_send_message::SendMessageError, use_session::UserSession},
+        utils::matrix::{mxc_to_download_uri, mxc_to_thumbnail_uri, ImageMethod, ImageSize},
     };
 
     use matrix_sdk::ruma::exports::serde_json;
@@ -72,47 +73,33 @@ pub mod matrix {
         pub send_to_thread: bool,
     }
 
-    pub async fn create_client(homeserver_url_str: String) -> Client {
-        info!("create client ");
+    pub enum ClientError {
+        InvalidHomeserver,
+        RequestFailed,
+    }
+    pub async fn create_client(homeserver_url_str: &str) -> Result<Client, ClientError> {
         let homeserver_url =
-            Url::parse(&homeserver_url_str).expect("Couldn't parse the homeserver URL");
-        let client = Client::new(homeserver_url).await.unwrap();
-
-        client
+            Url::parse(&homeserver_url_str).map_err(|_| ClientError::InvalidHomeserver)?;
+        Client::new(homeserver_url)
+            .await
+            .map_err(|_| ClientError::RequestFailed)
     }
 
-    pub async fn login_and_sync(
+    pub enum JoinRoomError {
+        RequestFailed,
+        InvalidRoomId,
+    }
+
+    pub async fn join_room(
         client: &Client,
-        username: String,
-        password: String,
-    ) -> Result<String, String> {
-        info!("Logging");
+        room_id: &RoomId,
+    ) -> Result<OwnedRoomId, JoinRoomError> {
         let response = client
-            .login_username(&username, &password)
-            .initial_device_display_name("rust-sdk")
-            .send()
-            .await;
+            .join_room_by_id(&room_id)
+            .await
+            .map_err(|_| JoinRoomError::RequestFailed)?;
 
-        match response {
-            Ok(res) => {
-                info!("res: {:?}", res);
-                info!("Syncing");
-                client.sync_once(SyncSettings::default()).await.unwrap();
-
-                return Ok(String::from("Welcome"));
-            }
-            Err(err) => match err {
-                Error::Http(HttpError::Api(FromHttpResponseError::Server(ServerError::Known(
-                    matrix_sdk::RumaApiError::ClientApi(m),
-                )))) => return Err(m.message),
-                _ => return Err(String::from("An error have been ocurred!")),
-            },
-        }
-    }
-
-    pub async fn join_room(client: &Client, room_id: &RoomId) {
-        info!("Joining room");
-        client.join_room_by_id(&room_id).await.unwrap();
+        Ok(response.room_id)
     }
 
     pub async fn send_message(
@@ -122,121 +109,100 @@ pub mod matrix {
         reply_to: Option<OwnedEventId>,
         thread_to: Option<OwnedEventId>,
         latest_event: Option<OwnedEventId>,
-    ) {
-        let room = client.get_joined_room(&room_id).unwrap();
+    ) -> Result<Response, SendMessageError> {
+        let room = client
+            .get_joined_room(&room_id)
+            .ok_or(SendMessageError::RoomNotFound)?;
         let tx_id = TransactionId::new();
 
-        info!("Sending message");
-        info!(
-            "reply: {:?} \thread_to: {:?} \nlatest_event: {:?}",
-            reply_to.clone(),
-            thread_to.clone(),
-            latest_event.clone()
-        );
-        let mut x = RoomMessageEventContent::new(msg);
+        let mut event_content = RoomMessageEventContent::new(msg);
 
-        match reply_to {
-            Some(r) => {
-                x.relates_to = Some(matrix_sdk::ruma::events::room::message::Relation::Reply {
+        event_content.relates_to = if let Some(l) = latest_event {
+            thread_to
+                .as_ref()
+                .map(|t| Relation::Thread(Thread::plain(t.clone(), l)))
+        } else if let Some(r) = reply_to {
+            if let Some(t) = &thread_to {
+                Some(Relation::Thread(Thread::reply(t.clone(), r)))
+            } else {
+                Some(Relation::Reply {
                     in_reply_to: InReplyTo::new(r.clone()),
-                });
-
-                if let Some(t) = &thread_to {
-                    let thread = Thread::reply(t.clone(), r);
-
-                    x.relates_to = Some(matrix_sdk::ruma::events::room::message::Relation::Thread(
-                        thread,
-                    ));
-                }
+                })
             }
-            None => {}
-        }
+        } else {
+            None
+        };
 
-        match latest_event {
-            Some(l) => {
-                if let Some(t) = &thread_to {
-                    let thread = Thread::plain(t.clone(), l);
+        room.send(event_content, Some(&tx_id))
+            .await
+            .map_err(|_| SendMessageError::DispatchMessage)
+    }
 
-                    x.relates_to = Some(matrix_sdk::ruma::events::room::message::Relation::Thread(
-                        thread,
-                    ));
-                }
-            }
-            None => {}
-        }
-
-        info!("thread: {x:#?}");
-        room.send(x, Some(&tx_id)).await.unwrap();
+    pub async fn upload_attachment(
+        client: &Client,
+        attach: &Attachment,
+    ) -> Result<ruma::api::client::media::create_content::v3::Response, Error> {
+        client
+            .media()
+            .upload(&attach.content_type, &attach.data)
+            .await
     }
 
     pub async fn send_attachment(
         client: &Client,
         room_id: &RoomId,
+        uri: &OwnedMxcUri,
         attach: &Attachment,
         reply_to: Option<OwnedEventId>,
         thread_to: Option<OwnedEventId>,
         latest_event: Option<OwnedEventId>,
-    ) {
-        let room = client.get_joined_room(&room_id).unwrap();
+    ) -> Result<Response, SendMessageError> {
+        let room = client
+            .get_joined_room(&room_id)
+            .ok_or(SendMessageError::RoomNotFound)?;
 
-        info!("Sending attachment");
-
-        // TODO: send related message
-        let upload_response = client
-            .media()
-            .upload(&attach.content_type, &attach.data)
-            .await
-            .unwrap();
-
-        let uri = upload_response.content_uri;
-
-        let y = match attach.content_type.type_() {
+        let message_type = match attach.content_type.type_() {
             mime::IMAGE => {
-                let xx = ImageMessageEventContent::plain(attach.body.clone(), uri, None);
+                let event_content =
+                    ImageMessageEventContent::plain(attach.body.clone(), uri.clone(), None);
 
-                let x = MessageType::Image(xx);
-                Some(x)
+                MessageType::Image(event_content)
             }
             mime::VIDEO => {
-                let xx = VideoMessageEventContent::plain(attach.body.clone(), uri, None);
+                let event_content =
+                    VideoMessageEventContent::plain(attach.body.clone(), uri.clone(), None);
 
-                let x = MessageType::Video(xx);
-                Some(x)
+                MessageType::Video(event_content)
             }
             mime::APPLICATION => {
-                let xx = FileMessageEventContent::plain(attach.body.clone(), uri, None);
+                let event_content =
+                    FileMessageEventContent::plain(attach.body.clone(), uri.clone(), None);
 
-                let x = MessageType::File(xx);
-                Some(x)
+                MessageType::File(event_content)
             }
-            _ => None,
+            _ => return Err(SendMessageError::InvalidFile),
         };
 
-        if let Some(_) = &reply_to {
-            if let Some(value) = y {
-                send_message(client, room_id, value, reply_to, thread_to, latest_event).await;
-            } else {
-                info!("Unsuported file type")
-            }
-        } else if let Some(_) = latest_event {
-            if let Some(value) = y {
-                send_message(client, room_id, value, reply_to, thread_to, latest_event).await;
-            } else {
-                info!("Unsuported file type")
-            }
+        if reply_to.is_some() || latest_event.is_some() {
+            send_message(
+                client,
+                room_id,
+                message_type,
+                reply_to,
+                thread_to,
+                latest_event,
+            )
+            .await
         } else {
-            let x = room
-                .send_attachment(
-                    &attach.body,
-                    &attach.content_type,
-                    &attach.data,
-                    AttachmentConfig::new(),
-                )
-                .await
-                .unwrap();
+            room.send_attachment(
+                &attach.body,
+                &attach.content_type,
+                &attach.data,
+                AttachmentConfig::new(),
+            )
+            .await
+            .map_err(|_| SendMessageError::DispatchMessage)
         }
-
-        info!("Sent attachment");
     }
 
     pub fn listen_messages(client: &Client) {
@@ -250,23 +216,40 @@ pub mod matrix {
         pub spaces: HashMap<RoomItem, Vec<RoomItem>>,
     }
 
-    pub async fn list_rooms_and_spaces(client: &Client) -> Conversations {
+    pub async fn list_rooms_and_spaces(
+        client: &Client,
+        session_data: UserSession,
+    ) -> Conversations {
         let mut rooms = Vec::new();
         let mut spaces = HashMap::new();
 
-        for room in client.joined_rooms() {
+        for room in client.rooms() {
             let is_direct = room.is_direct();
             let is_space = room.is_space();
 
             let avatar_url = room.avatar_url();
 
-            let avatar_uri: Option<String> = match avatar_url {
-                Some(avatar) => {
-                    let (server, id) = avatar.parts().unwrap();
-                    let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=48&height=48&method=crop", server, id);
-                    Some(String::from(uri))
+            let avatar_uri: Option<String> = if is_direct {
+                if let Some(member) = room.direct_targets().into_iter().next() {
+                    room.get_member(&member)
+                        .await
+                        .ok()
+                        .flatten()
+                        .map(|member| {
+                            let avatar_url = member.avatar_url();
+
+                            avatar_url.and_then(|uri| {
+                                mxc_to_thumbnail_uri(&uri, ImageSize::default(), ImageMethod::CROP)
+                            })
+                        })
+                        .flatten()
+                } else {
+                    None
                 }
-                None => None,
+            } else {
+                avatar_url.and_then(|uri| {
+                    mxc_to_thumbnail_uri(&uri, ImageSize::default(), ImageMethod::CROP)
+                })
             };
 
             if let Some(name) = room.name() {
@@ -284,13 +267,12 @@ pub mod matrix {
                     rooms.push(room);
                 }
             } else {
-                let me = client.whoami().await.unwrap();
                 let users = room.members().await;
 
                 if let Ok(members) = users {
                     let member = members
                         .into_iter()
-                        .find(|member| !member.user_id().eq(&me.user_id));
+                        .find(|member| !member.user_id().to_string().eq(&session_data.user_id));
 
                     if let Some(m) = member {
                         let name = m.name();
@@ -322,9 +304,6 @@ pub mod matrix {
             });
         }
 
-        info!("final rooms {:#?}, ", to_list_rooms);
-        info!("final spaces {:#?}, ", spaces);
-
         Conversations {
             rooms: to_list_rooms,
             spaces: spaces,
@@ -338,38 +317,31 @@ pub mod matrix {
         pub avatar_uri: Option<String>,
     }
 
-    pub async fn room_member(member: OwnedUserId, room: &Room) -> RoomMember {
-        let member = room.get_member(&member).await;
+    pub enum RoomMemberError {
+        NotFound,
+    }
 
-        match member {
-            Ok(rm) => match rm {
-                Some(m) => {
-                    let avatar = m.avatar_url();
+    pub async fn room_member(
+        member_id: OwnedUserId,
+        room: &Room,
+    ) -> Result<RoomMember, RoomMemberError> {
+        let member = room
+            .get_member(&member_id)
+            .await
+            .map_err(|_| RoomMemberError::NotFound)?
+            .ok_or(RoomMemberError::NotFound)?;
 
-                    let avatar_uri: Option<String> = match avatar {
-                        Some(avatar) => {
-                            let (server, id) = avatar.parts().unwrap();
-                            let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=48&height=48&method=crop", server, id);
-                            Some(String::from(uri))
-                        }
-                        None => None,
-                    };
+        let avatar_uri = member
+            .avatar_url()
+            .and_then(|uri| mxc_to_thumbnail_uri(&uri, ImageSize::default(), ImageMethod::SCALE));
 
-                    match m.display_name() {
-                        Some(name) => RoomMember {
-                            id: String::from(m.user_id()),
-                            name: String::from(name),
-                            avatar_uri,
-                        },
-                        _ => panic!("Member not found"),
-                    }
-                }
-                _ => panic!("Member not found"),
-            },
-            Err(_) => {
-                panic!("Member not found")
-            }
-        }
+        let name = member.display_name().ok_or(RoomMemberError::NotFound)?;
+
+        Ok(RoomMember {
+            id: member.user_id().to_string(),
+            name: name.to_string(),
+            avatar_uri,
+        })
     }
 
     #[derive(Clone)]
@@ -382,33 +354,21 @@ pub mod matrix {
         let avatar = client.account().get_avatar_url().await;
         let display_name = client.account().get_display_name().await;
 
-        let avatar_uri = match avatar {
-            Ok(uri) => {
-                if let Some(avatar) = uri {
-                    let avatar = &*avatar;
-                    let (server, id) = avatar.parts().unwrap();
-                    let uri = format!("https://matrix-client.matrix.org/_matrix/media/r0/thumbnail/{}/{}?width=48&height=48&method=crop", server, id);
+        let avatar_uri = avatar
+            .ok()
+            .flatten()
+            .map(|uri| mxc_to_thumbnail_uri(&uri, ImageSize::default(), ImageMethod::CROP))
+            .flatten();
 
-                    Some(String::from(uri).to_owned())
-                } else {
-                    None
-                }
-            }
-            Err(_) => None,
-        };
-
-        let name = match display_name {
-            Ok(name) => {
-                if let Some(n) = name {
-                    n
-                } else {
-                    String::from("")
-                }
-            }
-            Err(_) => String::from(""),
-        };
+        let name = display_name.ok().flatten().unwrap_or(String::from(""));
 
         AccountInfo { name, avatar_uri }
+    }
+
+    pub enum CreateRoomError {
+        RequestFailed,
+        InvalidMedia,
+        InvalidInfo,
     }
 
     pub async fn create_room(
@@ -417,46 +377,49 @@ pub mod matrix {
         users: &[OwnedUserId],
         name: Option<String>,
         avatar: Option<Vec<u8>>,
-    ) -> HttpResult<api::client::room::create_room::v3::Response> {
+    ) -> Result<api::client::room::create_room::v3::Response, CreateRoomError> {
         let mut request = api::client::room::create_room::v3::Request::new();
 
-        let mut initstateevvec: Vec<Raw<AnyInitialStateEvent>> = vec![];
+        let mut init_state_ev_vec: Vec<Raw<AnyInitialStateEvent>> = vec![];
 
         if let Some(data) = avatar {
-            let media_uri = client.media().upload(&mime::IMAGE_JPEG, &data).await;
+            let response = client
+                .media()
+                .upload(&mime::IMAGE_JPEG, &data)
+                .await
+                .map_err(|_| CreateRoomError::InvalidMedia)?;
 
-            match media_uri {
-                Ok(response) => {
-                    let mut x = RoomAvatarEventContent::new();
-                    x.url = Some(response.content_uri);
+            let mut avatar_content = RoomAvatarEventContent::new();
+            avatar_content.url = Some(response.content_uri);
 
-                    let initstateev: InitialStateEvent<RoomAvatarEventContent> =
-                        InitialStateEvent {
-                            content: x,
-                            state_key: EmptyStateKey,
-                        };
+            let init_state_ev: InitialStateEvent<RoomAvatarEventContent> = InitialStateEvent {
+                content: avatar_content,
+                state_key: EmptyStateKey,
+            };
 
-                    let rawinitstateev = Raw::new(&initstateev).unwrap();
+            let raw_init_state_ev =
+                Raw::new(&init_state_ev).map_err(|_| CreateRoomError::InvalidInfo)?;
 
-                    let rawanyinitstateev: Raw<AnyInitialStateEvent> = rawinitstateev.cast();
-                    initstateevvec.push(rawanyinitstateev);
-                    request.initial_state = &initstateevvec;
-                }
-                Err(_) => {}
-            }
+            let raw_any_init_state_ev: Raw<AnyInitialStateEvent> = raw_init_state_ev.cast();
+            init_state_ev_vec.push(raw_any_init_state_ev);
+
+            request.initial_state = &init_state_ev_vec;
         }
 
         request.name = name.as_deref();
         request.is_direct = is_dm;
 
-        let vis = Visibility::Private;
+        let visibility = Visibility::Private;
         if is_dm {
             request.invite = users;
-            request.visibility = vis.clone();
+            request.visibility = visibility.clone();
             request.preset = Some(RoomPreset::PrivateChat);
         }
 
-        client.create_room(request).await
+        client
+            .create_room(request)
+            .await
+            .map_err(|_| CreateRoomError::RequestFailed)
     }
 
     #[derive(PartialEq, Debug, Clone)]
@@ -524,29 +487,39 @@ pub mod matrix {
         Thread(TimelineMessageThread),
     }
 
+    pub enum TimelineError {
+        RoomNotFound,
+        InvalidLimit,
+        MessagesNotFound,
+    }
+
     pub async fn timeline(
         client: &Client,
         room_id: &RoomId,
         limit: u64,
         from: Option<String>,
         old_messages: Vec<TimelineRelation>,
-    ) -> (Option<String>, Vec<TimelineRelation>) {
+        session_data: UserSession,
+    ) -> Result<(Option<String>, Vec<TimelineRelation>), TimelineError> {
         let mut messages: Vec<TimelineRelation> = old_messages;
 
-        let room = client.get_room(&room_id).unwrap();
+        let room = client
+            .get_room(&room_id)
+            .ok_or(TimelineError::RoomNotFound)?;
 
         let filter = assign!(RoomEventFilter::default(), {
             lazy_load_options: LazyLoadOptions::Enabled { include_redundant_members: false },
         });
         let options = assign!(MessagesOptions::backward(), {
-            limit: UInt::new(20).unwrap(),
+            limit: UInt::new(20).ok_or(TimelineError::InvalidLimit)?,
             filter,
             from: from.as_deref()
         });
 
-        let m = room.messages(options).await.unwrap();
-
-        info!("uncleared messagex matrix: {:#?}", m);
+        let m = room
+            .messages(options)
+            .await
+            .map_err(|_| TimelineError::MessagesNotFound)?;
 
         let t = TimelineSlice::new(
             m.chunk.into_iter().map(SyncTimelineEvent::from).collect(),
@@ -556,211 +529,226 @@ pub mod matrix {
             false,
         );
 
-        let user = client.whoami().await;
-        let mut me = String::from("");
-
-        if let Ok(u) = user {
-            me = u.user_id.to_string();
-        }
-
-        for zz in t.events.iter() {
+        for sync_timeline_event in t.events.iter() {
             let deserialized = deserialize_any_timeline_event(
-                zz.event.deserialize().unwrap(),
+                sync_timeline_event
+                    .event
+                    .deserialize()
+                    .expect("can't deserialize iter events: timeline"),
                 &room,
-                &me,
+                &session_data.user_id,
                 &client,
             )
             .await;
 
-            if let Some(d) = deserialized {
-                match &d {
-                    TimelineRelation::Thread(x) => {
+            if let Some(timeline_relation) = deserialized {
+                match &timeline_relation {
+                    TimelineRelation::Thread(thread) => {
                         // Position of an existing thread timeline
 
                         let position = messages.iter().position(|m| {
-                            if let TimelineRelation::CustomThread(y) = m {
-                                y.event_id.eq(&x.event_id)
+                            if let TimelineRelation::CustomThread(thread) = m {
+                                thread.event_id.eq(&thread.event_id)
                             } else {
                                 false
                             }
                         });
 
                         if let Some(p) = position {
-                            if let TimelineRelation::CustomThread(ref mut z) = messages[p] {
-                                z.thread.push(x.thread[0].clone())
+                            if let TimelineRelation::CustomThread(ref mut timeline_thread) =
+                                messages[p]
+                            {
+                                timeline_thread.thread.push(thread.thread[0].clone());
+                                timeline_thread.thread.rotate_right(1);
                             };
                         } else {
                             let n = TimelineRelation::CustomThread(TimelineThread {
-                                event_id: x.event_id.clone(),
-                                thread: x.thread.clone(),
-                                latest_event: x.thread[x.thread.len() - 1]
+                                event_id: thread.event_id.clone(),
+                                thread: thread.thread.clone(),
+                                latest_event: thread.thread[thread.thread.len() - 1]
                                     .clone()
                                     .event_id
-                                    .unwrap(),
-                                count: x.thread.len(),
+                                    .expect("can't get eventid from thread: timeline"),
+                                count: thread.thread.len(),
                             });
 
                             messages.push(n);
+                            messages.rotate_right(1);
                         }
                     }
-                    TimelineRelation::None(x) => {
+                    TimelineRelation::None(message) => {
                         // Position of a head thread timeline
                         let position = messages.iter().position(|m| {
-                            if let TimelineRelation::CustomThread(y) = m {
-                                y.event_id.eq(x.event_id.as_ref().unwrap())
-                            } else {
-                                false
-                            }
+                            let TimelineRelation::CustomThread(thread) = m else {
+                                return false;
+                            };
+
+                            thread.event_id.eq(message
+                                .event_id
+                                .as_ref()
+                                .expect("can't compare event id: timeline"))
                         });
 
-                        if let Some(p) = position {
-                            if let TimelineRelation::CustomThread(ref mut z) = messages[p] {
-                                let mm = format_head_thread(zz.event.deserialize().unwrap());
+                        let Some(p) = position else {
+                            messages.push(timeline_relation);
+                            messages.rotate_right(1);
+                            break;
+                        };
 
-                                if let Some(x) = mm {
-                                    z.latest_event = x.1;
-                                }
-                                z.thread.push(x.clone());
-                            };
-                        } else {
-                            messages.push(d);
-                        }
+                        if let TimelineRelation::CustomThread(ref mut timeline_thread) = messages[p]
+                        {
+                            let formatted_thread = format_head_thread(
+                                sync_timeline_event
+                                    .event
+                                    .deserialize()
+                                    .expect("can't deserialize event custom thread: timeline"),
+                            );
+
+                            if let Some((_, latest_event)) = formatted_thread {
+                                timeline_thread.latest_event = latest_event;
+                            }
+                            timeline_thread.thread.push(message.clone());
+                            timeline_thread.thread.rotate_right(1);
+                        };
                     }
                     _ => {
-                        messages.push(d);
+                        messages.push(timeline_relation);
+                        messages.rotate_right(1);
                     }
                 }
             }
         }
 
-        (m.end, messages)
+        Ok((m.end, messages))
     }
 
     pub fn format_head_thread(ev: AnySyncTimelineEvent) -> Option<(usize, String)> {
-        if let AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::RoomMessage(
+        let AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::RoomMessage(
             SyncMessageLikeEvent::Original(original),
         )) = ev
-        {
-            if let Some(x) = original.unsigned.relations {
-                if let Some(y) = x.thread {
-                    Some((
+        else {
+            return None;
+        };
+
+        original
+            .unsigned
+            .relations
+            .map(|relations| {
+                relations.thread.map(|thread| {
+                    (
                         2,
-                        y.latest_event.deserialize().unwrap().event_id().to_string(),
-                    ))
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        } else {
-            None
-        }
+                        thread
+                            .latest_event
+                            .deserialize()
+                            .expect("can't deserialize latest event: format_head_thread")
+                            .event_id()
+                            .to_string(),
+                    )
+                })
+            })
+            .flatten()
     }
 
     pub async fn deserialize_any_timeline_event(
-        ev: AnySyncTimelineEvent,
+        event: AnySyncTimelineEvent,
         room: &Room,
         logged_user_id: &str,
         client: &Client,
     ) -> Option<TimelineRelation> {
-        match ev {
-            AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::RoomMessage(
-                SyncMessageLikeEvent::Original(original),
-            )) => {
-                let n = &original.content.msgtype;
-                let event = original.event_id;
+        let AnySyncTimelineEvent::MessageLike(AnySyncMessageLikeEvent::RoomMessage(
+            SyncMessageLikeEvent::Original(original),
+        )) = event
+        else {
+            return None;
+        };
 
-                if let Some(x) = original.unsigned.relations {
-                    // x.thread.unwrap().latest_event
-                }
+        let message_type = &original.content.msgtype;
+        let event_id = original.event_id;
 
-                let member = room_member(original.sender, &room).await;
-                let relates = &original.content.relates_to;
-                let time = original.origin_server_ts;
+        let Ok(member) = room_member(original.sender, &room).await else {
+            return None;
+        };
 
-                let formatted_message = format_original_any_room_message_event(
-                    &n,
-                    event,
-                    &member,
-                    &logged_user_id,
-                    time,
-                    &client,
-                )
-                .await;
+        let relates = &original.content.relates_to;
+        let time = original.origin_server_ts;
 
-                let mut message_result = None;
+        let formatted_message = format_original_any_room_message_event(
+            &message_type,
+            event_id,
+            &member,
+            &logged_user_id,
+            time,
+            &client,
+        )
+        .await;
 
-                match relates {
-                    Some(relation) => {
-                        match &relation {
-                            Relation::_Custom => {
-                                if let Some(x) = formatted_message {
-                                    message_result = Some(TimelineRelation::None(x));
-                                }
-                            }
+        let mut message_result = None;
 
-                            _ => {
-                                if let Some(x) = formatted_message {
-                                    message_result = format_relation_from_event(
-                                        &n,
-                                        relates,
-                                        &room,
-                                        x,
-                                        &member,
-                                        &logged_user_id,
-                                        time,
-                                        &client,
-                                    )
-                                    .await;
-                                }
-                            }
-                        }
+        let Some(relation) = relates else {
+            if let Some(message) = formatted_message {
+                message_result = Some(TimelineRelation::None(message));
+            }
 
-                        message_result
-                    }
-                    None => {
-                        if let Some(x) = formatted_message {
-                            message_result = Some(TimelineRelation::None(x));
-                        }
+            return message_result;
+        };
 
-                        message_result
-                    }
+        match &relation {
+            Relation::_Custom => {
+                if let Some(message) = formatted_message {
+                    message_result = Some(TimelineRelation::None(message));
                 }
             }
-            _ => None,
+            _ => {
+                if let Some(message) = formatted_message {
+                    message_result = format_relation_from_event(
+                        &message_type,
+                        relates,
+                        &room,
+                        message,
+                        &member,
+                        &logged_user_id,
+                        time,
+                        &client,
+                    )
+                    .await;
+                }
+            }
         }
+        message_result
     }
 
     pub async fn deserialize_timeline_event(
-        ev: AnyTimelineEvent,
+        event: AnyTimelineEvent,
         room: &Room,
         logged_user_id: &str,
         client: &Client,
     ) -> Option<TimelineMessage> {
-        match ev {
-            AnyTimelineEvent::MessageLike(AnyMessageLikeEvent::RoomMessage(
-                MessageLikeEvent::Original(original),
-            )) => {
-                let n = &original.content.msgtype;
-                let member = room_member(original.sender, &room).await;
-                let event = original.event_id;
-                let time = original.origin_server_ts;
+        let AnyTimelineEvent::MessageLike(AnyMessageLikeEvent::RoomMessage(
+            MessageLikeEvent::Original(original),
+        )) = event
+        else {
+            return None;
+        };
 
-                let message_result = format_original_any_room_message_event(
-                    &n,
-                    event,
-                    &member,
-                    &logged_user_id,
-                    time,
-                    &client,
-                )
-                .await;
+        let Ok(member) = room_member(original.sender, &room).await else {
+            return None;
+        };
 
-                message_result
-            }
-            _ => None,
-        }
+        let message_type = &original.content.msgtype;
+        let event_id = original.event_id;
+        let time = original.origin_server_ts;
+
+        let message_result = format_original_any_room_message_event(
+            &message_type,
+            event_id,
+            &member,
+            &logged_user_id,
+            time,
+            &client,
+        )
+        .await;
+
+        message_result
     }
 
     pub async fn format_original_any_room_message_event(
@@ -781,44 +769,19 @@ pub mod matrix {
         };
 
         match &n {
-            MessageType::Image(nm) => match &nm.source {
+            MessageType::Image(message_event_content) => match &message_event_content.source {
                 MediaSource::Plain(mx_uri) => {
-                    let x = client
-                        .media()
-                        .get_media_content(
-                            &MediaRequest {
-                                source: nm.source.clone(),
-                                format: MediaFormat::File,
-                            },
-                            true,
-                        )
-                        .await;
+                    let https_uri = mxc_to_download_uri(&mx_uri);
 
-                    let https_uri = mxc_to_https_uri(
-                        &mx_uri,
-                        ImageSize {
-                            width: 800,
-                            height: 600,
-                        },
-                    );
-
-                    let size = if let Some(file_info) = nm.info.clone() {
-                        match file_info.size {
-                            Some(size) => {
-                                let size = size.to_string();
-                                let size = size.parse::<u64>();
-
-                                if let Ok(size) = size {
-                                    Some(size)
-                                } else {
-                                    None
-                                }
-                            }
-                            None => None,
-                        }
-                    } else {
-                        None
-                    };
+                    let size = message_event_content
+                        .info
+                        .as_ref()
+                        .and_then(|file_info| {
+                            file_info
+                                .size
+                                .map(|size| size.to_string().parse::<u64>().ok())
+                        })
+                        .flatten();
 
                     if let Some(uri) = https_uri {
                         message_result = Some(TimelineMessage {
@@ -826,7 +789,7 @@ pub mod matrix {
                             sender: member.clone(),
                             body: TimelineMessageType::Image(FileContent {
                                 size,
-                                body: nm.body.clone(),
+                                body: message_event_content.body.clone(),
                                 source: Some(ImageType::URL(uri)),
                             }),
                             origin: if member.id.eq(logged_user_id) {
@@ -838,12 +801,12 @@ pub mod matrix {
                         });
                     }
                 }
-                MediaSource::Encrypted(file) => {
-                    let x = client
+                MediaSource::Encrypted(_) => {
+                    let media_content = client
                         .media()
                         .get_media_content(
                             &MediaRequest {
-                                source: nm.source.clone(),
+                                source: message_event_content.source.clone(),
                                 format: MediaFormat::Thumbnail(MediaThumbnailSize {
                                     method: Method::Crop,
                                     width: UInt::new(16).unwrap(),
@@ -854,31 +817,23 @@ pub mod matrix {
                         )
                         .await;
 
-                    let size = if let Some(file_info) = nm.info.clone() {
-                        match file_info.size {
-                            Some(size) => {
-                                let size = size.to_string();
-                                let size = size.parse::<u64>();
+                    let size = message_event_content
+                        .info
+                        .as_ref()
+                        .and_then(|file_info| {
+                            file_info
+                                .size
+                                .map(|size| size.to_string().parse::<u64>().ok())
+                        })
+                        .flatten();
 
-                                if let Ok(size) = size {
-                                    Some(size)
-                                } else {
-                                    None
-                                }
-                            }
-                            None => None,
-                        }
-                    } else {
-                        None
-                    };
-
-                    if let Ok(content) = x {
+                    if let Ok(content) = media_content {
                         message_result = Some(TimelineMessage {
                             event_id: Some(String::from(event.as_str())),
                             sender: member.clone(),
                             body: TimelineMessageType::Image(FileContent {
                                 size,
-                                body: nm.body.clone(),
+                                body: message_event_content.body.clone(),
                                 source: Some(ImageType::Media(content)),
                             }),
                             origin: if member.id.eq(logged_user_id) {
@@ -907,48 +862,36 @@ pub mod matrix {
                 if let Some(formatted) = &content.formatted {
                     match formatted.format {
                         MessageFormat::Html => {
-                            if let Some(ref mut x) = message_result {
-                                x.body = TimelineMessageType::Html(formatted.body.clone());
+                            if let Some(ref mut message) = message_result {
+                                message.body = TimelineMessageType::Html(formatted.body.clone());
                             }
                         }
                         _ => {}
                     }
                 };
             }
-            MessageType::File(f) => match &f.source {
+            MessageType::File(message) => match &message.source {
                 MediaSource::Plain(mx_uri) => {
-                    let (server, id) = mx_uri.parts().unwrap();
+                    let uri = mxc_to_download_uri(&mx_uri);
+                    let source = uri.and_then(|uri| Some(ImageType::URL(uri)));
 
-                    let uri = format!(
-                        "https://matrix-client.matrix.org/_matrix/media/v3/download/{}/{}",
-                        server, id
-                    );
-
-                    let size = if let Some(file_info) = f.info.clone() {
-                        match file_info.size {
-                            Some(size) => {
-                                let size = size.to_string();
-                                let size = size.parse::<u64>();
-
-                                if let Ok(size) = size {
-                                    Some(size)
-                                } else {
-                                    None
-                                }
-                            }
-                            None => None,
-                        }
-                    } else {
-                        None
-                    };
+                    let size = message
+                        .info
+                        .as_ref()
+                        .and_then(|file_info| {
+                            file_info
+                                .size
+                                .map(|size| size.to_string().parse::<u64>().ok())
+                        })
+                        .flatten();
 
                     message_result = Some(TimelineMessage {
                         event_id: Some(String::from(event.as_str())),
                         sender: member.clone(),
                         body: TimelineMessageType::File(FileContent {
                             size,
-                            body: f.body.clone(),
-                            source: Some(ImageType::URL(uri)),
+                            body: message.body.clone(),
+                            source,
                         }),
                         origin: if member.id.eq(logged_user_id) {
                             EventOrigin::ME
@@ -959,38 +902,26 @@ pub mod matrix {
                     });
                 }
                 MediaSource::Encrypted(file) => {
-                    let (server, id) = file.url.parts().unwrap();
+                    let uri = mxc_to_download_uri(&file.url);
+                    let source = uri.and_then(|uri| Some(ImageType::URL(uri)));
 
-                    let uri = format!(
-                        "https://matrix-client.matrix.org/_matrix/media/v3/download/{}/{}",
-                        server, id
-                    );
-
-                    let size = if let Some(file_info) = f.info.clone() {
-                        match file_info.size {
-                            Some(size) => {
-                                let size = size.to_string();
-                                let size = size.parse::<u64>();
-
-                                if let Ok(size) = size {
-                                    Some(size)
-                                } else {
-                                    None
-                                }
-                            }
-                            None => None,
-                        }
-                    } else {
-                        None
-                    };
+                    let size = message
+                        .info
+                        .as_ref()
+                        .and_then(|file_info| {
+                            file_info
+                                .size
+                                .map(|size| size.to_string().parse::<u64>().ok())
+                        })
+                        .flatten();
 
                     message_result = Some(TimelineMessage {
                         event_id: Some(String::from(event.as_str())),
                         sender: member.clone(),
                         body: TimelineMessageType::File(FileContent {
                             size,
-                            body: f.body.clone(),
-                            source: Some(ImageType::URL(uri)),
+                            body: message.body.clone(),
+                            source,
                         }),
                         origin: if member.id.eq(logged_user_id) {
                             EventOrigin::ME
@@ -1003,30 +934,18 @@ pub mod matrix {
             },
             MessageType::Video(video) => match &video.source {
                 MediaSource::Plain(mx_uri) => {
-                    let (server, id) = mx_uri.parts().unwrap();
+                    let uri = mxc_to_download_uri(&mx_uri);
+                    let source = uri.and_then(|uri| Some(ImageType::URL(uri)));
 
-                    let uri = format!(
-                        "https://matrix-client.matrix.org/_matrix/media/v3/download/{}/{}",
-                        server, id
-                    );
-
-                    let size = if let Some(file_info) = video.info.clone() {
-                        match file_info.size {
-                            Some(size) => {
-                                let size = size.to_string();
-                                let size = size.parse::<u64>();
-
-                                if let Ok(size) = size {
-                                    Some(size)
-                                } else {
-                                    None
-                                }
-                            }
-                            None => None,
-                        }
-                    } else {
-                        None
-                    };
+                    let size = video
+                        .info
+                        .as_ref()
+                        .and_then(|file_info| {
+                            file_info
+                                .size
+                                .map(|size| size.to_string().parse::<u64>().ok())
+                        })
+                        .flatten();
 
                     message_result = Some(TimelineMessage {
                         event_id: Some(String::from(event.as_str())),
@@ -1034,7 +953,7 @@ pub mod matrix {
                         body: TimelineMessageType::Video(FileContent {
                             size,
                             body: video.body.clone(),
-                            source: Some(ImageType::URL(uri)),
+                            source,
                         }),
                         origin: if member.id.eq(logged_user_id) {
                             EventOrigin::ME
@@ -1044,8 +963,8 @@ pub mod matrix {
                         time: timestamp,
                     });
                 }
-                MediaSource::Encrypted(file) => {
-                    let x = client
+                MediaSource::Encrypted(_) => {
+                    let message_content = client
                         .media()
                         .get_media_content(
                             &MediaRequest {
@@ -1056,25 +975,17 @@ pub mod matrix {
                         )
                         .await;
 
-                    let size = if let Some(file_info) = video.info.clone() {
-                        match file_info.size {
-                            Some(size) => {
-                                let size = size.to_string();
-                                let size = size.parse::<u64>();
+                    let size = video
+                        .info
+                        .as_ref()
+                        .and_then(|file_info| {
+                            file_info
+                                .size
+                                .map(|size| size.to_string().parse::<u64>().ok())
+                        })
+                        .flatten();
 
-                                if let Ok(size) = size {
-                                    Some(size)
-                                } else {
-                                    None
-                                }
-                            }
-                            None => None,
-                        }
-                    } else {
-                        None
-                    };
-
-                    if let Ok(content) = x {
+                    if let Ok(content) = message_content {
                         message_result = Some(TimelineMessage {
                             event_id: Some(String::from(event.as_str())),
                             sender: member.clone(),
@@ -1111,129 +1022,103 @@ pub mod matrix {
         time: MilliSecondsSinceUnixEpoch,
         client: &Client,
     ) -> Option<TimelineRelation> {
-        match relates {
-            Some(r) => match r {
-                Relation::Reply { in_reply_to } => {
-                    let room_event = room.event(&in_reply_to.event_id).await;
-                    let timestamp = {
-                        let d = UNIX_EPOCH + Duration::from_millis(time.0.into());
-                        let datetime = DateTime::<Utc>::from(d);
-                        datetime.format("%H:%M").to_string()
+        let Some(r) = relates else {
+            return None;
+        };
+        match r {
+            Relation::Reply { in_reply_to } => {
+                let event = room.event(&in_reply_to.event_id).await.ok()?;
+                let timestamp = {
+                    let d = UNIX_EPOCH + Duration::from_millis(time.0.into());
+                    let datetime = DateTime::<Utc>::from(d);
+                    datetime.format("%H:%M").to_string()
+                };
+
+                let desc_event = event
+                    .event
+                    .deserialize()
+                    .expect("can't deserialize event: format_relation_from_event");
+
+                let reply =
+                    deserialize_timeline_event(desc_event, room, &logged_user_id, &client).await;
+
+                reply.map(|r| {
+                    let mut final_message = TimelineMessageReply {
+                        event: message_result,
+                        reply: Some(r.clone()),
                     };
 
-                    match room_event {
-                        Ok(event) => {
-                            let desc_event = event.event.deserialize().unwrap();
+                    match &r.body {
+                        TimelineMessageType::Image(_) => {
+                            if n.body().contains("sent an image.") {
+                                let to_remove = format!("> <{}> {}", r.sender.id, "sent an image.");
 
-                            let reply = deserialize_timeline_event(
-                                desc_event,
-                                room,
-                                &logged_user_id,
-                                &client,
-                            )
-                            .await;
+                                let uncleared_content = n.body();
+                                let n = uncleared_content.replace(&to_remove, "").clone();
 
-                            match reply {
-                                Some(r) => {
-                                    let mut final_message = TimelineMessageReply {
-                                        event: message_result,
-                                        reply: Some(r.clone()),
-                                    };
+                                let content_body = TimelineMessageType::Text(n);
 
-                                    match &r.body {
-                                        TimelineMessageType::Image(_uri) => {
-                                            if n.body().contains("sent an image.") {
-                                                let to_remove = format!(
-                                                    "> <{}> {}",
-                                                    r.sender.id, "sent an image."
-                                                );
-
-                                                let uncleared_content = n.body();
-                                                let n = uncleared_content
-                                                    .replace(&to_remove, "")
-                                                    .clone();
-
-                                                let content_body = TimelineMessageType::Text(n);
-
-                                                final_message.event = TimelineMessage {
-                                                    event_id: None,
-                                                    sender: member.clone(),
-                                                    body: content_body,
-                                                    origin: if member.id.eq(logged_user_id) {
-                                                        EventOrigin::ME
-                                                    } else {
-                                                        EventOrigin::OTHER
-                                                    },
-                                                    time: timestamp,
-                                                };
-                                            }
-                                        }
-                                        TimelineMessageType::Text(body) => {
-                                            if body.starts_with(">") {
-                                                let to_remove = format!(
-                                                    "> <{}> {}",
-                                                    r.clone().sender.id,
-                                                    body.trim()
-                                                );
-
-                                                let uncleared_content = n.body();
-                                                let n = uncleared_content
-                                                    .replace(&to_remove, "")
-                                                    .clone();
-
-                                                let content_body = TimelineMessageType::Text(n);
-
-                                                final_message.event = TimelineMessage {
-                                                    event_id: None,
-                                                    sender: member.clone(),
-                                                    body: content_body,
-                                                    origin: if member.id.eq(logged_user_id) {
-                                                        EventOrigin::ME
-                                                    } else {
-                                                        EventOrigin::OTHER
-                                                    },
-                                                    time: timestamp,
-                                                };
-                                            } else {
-                                                final_message.reply = Some(r);
-                                            }
-                                        }
-                                        TimelineMessageType::Html(_) => {
-                                            final_message.reply = Some(r);
-                                        }
-                                        TimelineMessageType::File(_) => {
-                                            final_message.reply = Some(r);
-                                        }
-                                        TimelineMessageType::Video(_) => {
-                                            final_message.reply = Some(r);
-                                        }
-                                    }
-
-                                    Some(TimelineRelation::Reply(final_message))
-                                }
-                                _ => None,
+                                final_message.event = TimelineMessage {
+                                    event_id: None,
+                                    sender: member.clone(),
+                                    body: content_body,
+                                    origin: if member.id.eq(logged_user_id) {
+                                        EventOrigin::ME
+                                    } else {
+                                        EventOrigin::OTHER
+                                    },
+                                    time: timestamp,
+                                };
                             }
                         }
-                        Err(_) => None,
+                        TimelineMessageType::Text(body) => {
+                            if body.starts_with(">") {
+                                let to_remove =
+                                    format!("> <{}> {}", r.clone().sender.id, body.trim());
+
+                                let uncleared_content = n.body();
+                                let n = uncleared_content.replace(&to_remove, "").clone();
+
+                                let content_body = TimelineMessageType::Text(n);
+
+                                final_message.event = TimelineMessage {
+                                    event_id: None,
+                                    sender: member.clone(),
+                                    body: content_body,
+                                    origin: if member.id.eq(logged_user_id) {
+                                        EventOrigin::ME
+                                    } else {
+                                        EventOrigin::OTHER
+                                    },
+                                    time: timestamp,
+                                };
+                            } else {
+                                final_message.reply = Some(r);
+                            }
+                        }
+                        TimelineMessageType::Html(_) => {
+                            final_message.reply = Some(r);
+                        }
+                        TimelineMessageType::File(_) => {
+                            final_message.reply = Some(r);
+                        }
+                        TimelineMessageType::Video(_) => {
+                            final_message.reply = Some(r);
+                        }
                     }
-                }
-                Relation::Thread(in_reply_to) => {
-                    info!(
-                        "event id: {:?} \n\n {:?}",
-                        in_reply_to.event_id, message_result
-                    );
 
-                    let final_message = TimelineMessageThread {
-                        event_id: in_reply_to.event_id.to_string(),
-                        thread: vec![message_result.clone()],
-                    };
+                    Some(TimelineRelation::Reply(final_message))
+                })?
+            }
+            Relation::Thread(in_reply_to) => {
+                let final_message = TimelineMessageThread {
+                    event_id: in_reply_to.event_id.to_string(),
+                    thread: vec![message_result.clone()],
+                };
 
-                    Some(TimelineRelation::Thread(final_message))
-                }
-                // Relation::Replacement(in_reply_to) => info!("replacement: {:?}", in_reply_to),
-                _ => None,
-            },
-            None => None,
+                Some(TimelineRelation::Thread(final_message))
+            }
+            _ => None,
         }
     }
 
@@ -1269,7 +1154,7 @@ pub mod matrix {
         let uiaa_dummy = uiaa::Dummy::new();
         request.auth = Some(uiaa::AuthData::Dummy(uiaa_dummy));
 
-        let result = build_client(homeserver.to_string()).await;
+        let result = build_client(homeserver).await;
         let (client, client_session) = match result {
             Ok((client, client_session)) => (client, client_session),
             Err(_) => panic!("Can't create client"),
@@ -1300,7 +1185,7 @@ pub mod matrix {
             request.auth = Some(uiaa::AuthData::ReCaptcha(uiaa_recaptcha));
         }
 
-        let result = build_client(homeserver.to_string()).await;
+        let result = build_client(homeserver).await;
         let (client, client_session) = match result {
             Ok((client, client_session)) => (client, client_session),
             Err(_) => panic!("Can't create client"),
@@ -1325,7 +1210,7 @@ pub mod matrix {
     ) -> anyhow::Result<(Client, String)> {
         info!("No previous session found, logging in…");
 
-        let (client, client_session) = build_client(homeserver.to_string()).await?;
+        let (client, client_session) = build_client(homeserver).await?;
 
         match client
             .login_username(&username, &password)
@@ -1387,7 +1272,7 @@ pub mod matrix {
         Ok((client, sync_token))
     }
 
-    pub async fn build_client(homeserver: String) -> anyhow::Result<(Client, ClientSession)> {
+    pub async fn build_client(homeserver: &str) -> anyhow::Result<(Client, ClientSession)> {
         loop {
             match Client::builder()
                 .homeserver_url(&homeserver)
@@ -1395,7 +1280,14 @@ pub mod matrix {
                 .await
             {
                 Ok(builder) => match builder.build().await {
-                    Ok(client) => return Ok((client, ClientSession { homeserver })),
+                    Ok(client) => {
+                        return Ok((
+                            client,
+                            ClientSession {
+                                homeserver: homeserver.into(),
+                            },
+                        ))
+                    }
                     Err(error) => match &error {
                         matrix_sdk::ClientBuildError::AutoDiscovery(_)
                         | matrix_sdk::ClientBuildError::Url(_)

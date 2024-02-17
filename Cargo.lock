@@ -379,7 +379,9 @@ dependencies = [
  "serde_json",
  "time 0.3.22",
  "tokio",
+ "unic-langid",
  "url",
+ "uuid 0.8.2",
  "wasm-bindgen",
  "web-sys",
 ]

@@ -112,17 +112,14 @@ pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
               _ => None
             }
 
-            if cx.props.message.reply.is_some() {
+            cx.props.message.reply.as_ref().map(|reply| render!(
               rsx!(
                 MessageReply{
-                  message: cx.props.message.reply.clone().unwrap(),
-                  is_replying_for_me: match cx.props.message.origin {
-                    EventOrigin::ME => true,
-                    _ => false
-                  }
+                  message: reply.clone(),
+                  is_replying_for_me: matches!(cx.props.message.origin, EventOrigin::ME)
                 }
               )
-            }
+            ))
 
             div {
               class: "message__container__content",

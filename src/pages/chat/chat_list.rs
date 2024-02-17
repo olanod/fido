@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use dioxus::prelude::*;
 use dioxus_router::prelude::use_navigator;
+use dioxus_std::{i18n::use_i18, translate};
 
 use crate::{
     components::{
@@ -15,19 +16,34 @@ use crate::{
         },
         organisms::{chat::ActiveRoom, main::TitleHeaderMain},
     },
-    hooks::use_client::use_client,
+    hooks::{
+        use_client::use_client,
+        use_messages::use_messages,
+        use_notification::{
+            use_notification, NotificationHandle, NotificationItem, NotificationType,
+        },
+        use_room::use_room,
+        use_session::use_session,
+    },
     services::matrix::matrix::{list_rooms_and_spaces, Conversations},
 };
 
 #[inline_props]
 pub fn ChatList(cx: Scope) -> Element {
+    let i18 = use_i18(cx);
     let nav = use_navigator(cx);
     let client = use_client(cx).get();
-
+    let session = use_session(cx);
+    let notification = use_notification(cx);
+    let room = use_room(cx);
+    let messages = use_messages(cx);
     // use_shared_state_provider::<HashMap<CurrentRoom, Messages>>(cx, || HashMap::new());
 
-    let current_room = use_shared_state::<CurrentRoom>(cx).expect("Unable to read current room");
     let room_tabs = use_ref::<HashMap<CurrentRoom, Messages>>(cx, || HashMap::new());
+
+    let key_chat_list_home = translate!(i18, "chat.list.home");
+    let key_chat_list_search = translate!(i18, "chat.list.search");
+    let key_session_error_not_found = translate!(i18, "chat.session.error.not_found");
 
     let rooms = use_state::<Vec<RoomItem>>(cx, || Vec::new());
     let all_rooms = use_state::<Vec<RoomItem>>(cx, || Vec::new());
@@ -36,17 +52,13 @@ pub fn ChatList(cx: Scope) -> Element {
     let pattern = use_state(cx, String::new);
     let rooms_filtered = use_ref(cx, || Vec::new());
     let selected_space = use_ref::<String>(cx, || String::new());
-    let messages = use_shared_state::<Messages>(cx).unwrap();
     let title_header =
         use_shared_state::<TitleHeaderMain>(cx).expect("Unable to read title header");
 
     let on_click_room = move |evt: FormRoomEvent| {
-        // nav.push(Route::ChatRoom {
-        //     name: evt.room.id.clone(),
-        // });
-        *current_room.write() = evt.room.clone();
+        room.set(evt.room.clone());
         room_tabs.with_mut(|tabs| tabs.insert(evt.room, vec![]));
-        messages.write().clear();
+        messages.reset();
     };
 
     use_coroutine(cx, |_: UnboundedReceiver<bool>| {
@@ -58,14 +70,22 @@ pub fn ChatList(cx: Scope) -> Element {
             rooms_filtered,
             all_rooms,
             selected_space,
-            title_header
+            title_header,
+            session,
+            notification,
+            key_chat_list_home,
+            key_session_error_not_found
         ];
 
         async move {
+            let Some(session_data) = session.get() else {
+                return notification.handle_error(&key_session_error_not_found);
+            };
+
             let Conversations {
                 rooms: r,
                 spaces: s,
-            } = list_rooms_and_spaces(&client).await;
+            } = list_rooms_and_spaces(&client, session_data).await;
 
             rooms.set(r.clone());
             spaces.set(s.clone());
@@ -83,8 +103,8 @@ pub fn ChatList(cx: Scope) -> Element {
             rooms_to_list.set(r.clone());
             rooms_filtered.set(r);
 
-            selected_space.set(String::from("Inicio"));
-            title_header.write().title = String::from("Inicio");
+            selected_space.set(key_chat_list_home.clone());
+            title_header.write().title = key_chat_list_home.clone();
         }
     });
 
@@ -99,11 +119,11 @@ pub fn ChatList(cx: Scope) -> Element {
                       onclick: move |_| {
                           rooms_to_list.set(rooms.get().clone());
                           rooms_filtered.set(rooms.get().clone());
-                          selected_space.set(String::from("Inicio"));
-                          title_header.write().title = String::from("Inicio");
+                          selected_space.set(key_chat_list_home.clone());
+                          title_header.write().title = key_chat_list_home.clone();
                       },
                       Avatar {
-                          name: String::from("Inicio"),
+                          name: key_chat_list_home.clone(),
                           size: 50,
                           uri: None,
                           variant: Variant::SemiRound
@@ -137,7 +157,7 @@ pub fn ChatList(cx: Scope) -> Element {
                         class: "chat-list__rooms",
                         MessageInput {
                             message: "{pattern}",
-                            placeholder: "Buscar",
+                            placeholder: "{key_chat_list_search}",
                             itype: InputType::Search,
                             error: None,
                             on_input: move |event: FormEvent| {
@@ -169,7 +189,7 @@ pub fn ChatList(cx: Scope) -> Element {
                 )
             }
 
-            if !current_room.read().name.is_empty() {
+            if !room.get().name.is_empty() {
                 let room_tabs = room_tabs.read().clone();
                 rsx!(
                     section {

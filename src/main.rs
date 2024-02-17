@@ -1,12 +1,14 @@
 #![allow(non_snake_case)]
-use chat::components::atoms::{LoadingStatus, Notification, Spinner};
+use chat::components::atoms::{notification, LoadingStatus, Notification, Spinner};
 use chat::hooks::use_auth::use_auth;
 use chat::hooks::use_client::use_client;
 use chat::hooks::use_init_app::{use_init_app, BeforeSession};
 use chat::hooks::use_notification::{use_notification, NotificationType};
+use chat::hooks::use_session::use_session;
 use chat::pages::login::{LoggedIn, Login};
 use chat::pages::route::Route;
 use chat::pages::signup::Signup;
+use chat::utils::get_element;
 use chat::MatrixClientState;
 use dioxus::prelude::*;
 use dioxus_router::prelude::Router;
@@ -19,7 +21,14 @@ use dioxus_std::{i18n::*, translate};
 use matrix_sdk::config::SyncSettings;
 use matrix_sdk::ruma::exports::serde_json;
 use matrix_sdk::Client;
+use ruma::api::client::filter::{Filter, FilterDefinition, RoomEventFilter, RoomFilter};
+use ruma::api::client::sync::sync_events;
+use ruma::events::EventType;
 use std::str::FromStr;
+use std::time::Duration;
+use unic_langid::LanguageIdentifier;
+use web_sys::console::info;
+use web_sys::window;
 
 fn main() {
     dioxus_logger::init(LevelFilter::Info).expect("failed to init logger");
@@ -30,35 +39,47 @@ static EN_US: &str = include_str!("./locales/en-US.json");
 static ES_ES: &str = include_str!("./locales/es-ES.json");
 
 fn App(cx: Scope) -> Element {
-    use_init_i18n(
-        cx,
-        "es-ES".parse().unwrap(),
-        "es-ES".parse().unwrap(),
-        || {
-            let en_us = Language::from_str(EN_US).unwrap();
-            let es_es = Language::from_str(ES_ES).unwrap();
-            vec![en_us, es_es]
-        },
-    );
+    let selected_language: LanguageIdentifier =
+        "es-ES".parse().expect("can't parse es-ES language");
+    let fallback_language: LanguageIdentifier = selected_language.clone();
+
+    use_init_i18n(cx, selected_language, fallback_language, || {
+        let en_us = Language::from_str(EN_US).expect("can't get EN_US language");
+        let es_es = Language::from_str(ES_ES).expect("can't get ES_ES language");
+        vec![en_us, es_es]
+    });
+
+    if let Some(static_login_form) = window()?.document()?.get_element_by_id("static-login-form") {
+        if let Some(parent) = static_login_form.parent_node() {
+            parent.remove_child(&static_login_form);
+        };
+    };
 
     use_init_app(cx);
 
     let client = use_client(cx);
     let auth = use_auth(cx);
+    let session = use_session(cx);
     let notification = use_notification(cx);
     let i18 = use_i18(cx);
 
-    let matrix_client = use_shared_state::<MatrixClientState>(cx).unwrap();
+    let matrix_client =
+        use_shared_state::<MatrixClientState>(cx).expect("Unable to use matrix client");
     let before_session =
         use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
+
+    let key_chat_common_error_sync = translate!(i18, "chat.common.error.sync");
+    let key_chat_common_error_default_server = translate!(i18, "logout.chat.common.error.default_server");
 
     let restoring_session = use_ref::<bool>(cx, || true);
 
     use_coroutine(cx, |_: UnboundedReceiver<MatrixClientState>| {
-        to_owned![client, auth, restoring_session];
+        to_owned![client, auth, restoring_session, session, notification];
 
         async move {
-            let c = create_client(String::from("https://matrix.org")).await;
+            let Ok(c) = create_client("https://matrix.org").await else {
+                return notification.handle_error(&key_chat_common_error_default_server);
+            };
 
             client.set(MatrixClientState {
                 client: Some(c.clone()),
@@ -67,22 +88,27 @@ fn App(cx: Scope) -> Element {
             let serialized_session: Result<String, StorageError> =
                 <LocalStorage as gloo::storage::Storage>::get("session_file");
 
-            if let Ok(s) = serialized_session {
-                let (c, sync_token) = restore_session(&s).await.unwrap();
+            let Ok(s) = serialized_session else {
+                return restoring_session.set(false);
+            };
 
-                client.set(MatrixClientState {
-                    client: Some(c.clone()),
-                });
-                let x = sync(c.clone(), sync_token).await;
+            let (c, sync_token) = restore_session(&s)
+                .await
+                .expect("can't restore session: main");
 
-                auth.set_logged_in(true);
+            client.set(MatrixClientState {
+                client: Some(c.clone()),
+            });
 
-                info!("old session {:?}", x);
-                restoring_session.set(false);
-            } else {
-                restoring_session.set(false);
-                info!("else restoring ");
-            }
+            let sync_response = session.sync(c.clone(), sync_token).await;
+
+            let Ok(()) = sync_response else {
+                return notification.handle_error(&key_chat_common_error_sync);
+            };
+
+            auth.set_logged_in(true);
+
+            restoring_session.set(false);
         }
     });
 
@@ -126,12 +152,13 @@ fn App(cx: Scope) -> Element {
                                 }
                             )
                         } else if *restoring_session.read() {
+                            let key_main_loading_title = translate!(
+                                i18,
+                                "main.loading.title"
+                            );
                             rsx!(
                                 LoadingStatus {
-                                    text: translate!(
-                                        i18,
-                                        "main.loading.title"
-                                    ),
+                                    text: "{key_main_loading_title}",
                                 }
                             )
                         } else {
@@ -161,43 +188,4 @@ fn App(cx: Scope) -> Element {
             }
         )
     }
-}
-
-pub async fn sync(client: Client, initial_sync_token: Option<String>) -> anyhow::Result<()> {
-    let mut sync_settings = SyncSettings::default();
-
-    if let Some(sync_token) = initial_sync_token {
-        sync_settings = sync_settings.token(sync_token);
-    }
-
-    loop {
-        match client.sync_once(sync_settings.clone()).await {
-            Ok(response) => {
-                persist_sync_token(response.next_batch).await?;
-                break;
-            }
-            Err(error) => {
-                info!("An error occurred during initial sync: {error}");
-                info!("Trying again…");
-            }
-        }
-    }
-
-    info!("The client is ready! Listening to new messages…");
-
-    Ok(())
-}
-
-pub async fn persist_sync_token(sync_token: String) -> anyhow::Result<()> {
-    let serialized_session: Result<String, StorageError> =
-        <LocalStorage as gloo::storage::Storage>::get("session_file");
-
-    let serialized_session = serialized_session.unwrap();
-    let mut full_session: FullSession = serde_json::from_str(&serialized_session)?;
-
-    full_session.sync_token = Some(sync_token);
-    let serialized_session = serde_json::to_string(&full_session)?;
-    let _ = <LocalStorage as gloo::storage::Storage>::set("session_file", serialized_session);
-
-    Ok(())
 }

@@ -20,6 +20,8 @@ pub struct RoomViewProps<'a> {
 }
 
 pub fn RoomView<'a>(cx: Scope<'a, RoomViewProps<'a>>) -> Element<'a> {
+    let description = cx.props.description.unwrap_or("");
+
     cx.render(rsx! {
       div {
         class: "room-view",
@@ -38,7 +40,7 @@ pub fn RoomView<'a>(cx: Scope<'a, RoomViewProps<'a>>) -> Element<'a> {
           p {
             class: "room-view__message",
             span {
-              "{cx.props.description.unwrap_or(&String::new())}"
+              "{description}"
             }
           }
         }

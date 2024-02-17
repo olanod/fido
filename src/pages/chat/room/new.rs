@@ -1,9 +1,8 @@
-use std::{collections::HashMap, ops::Deref};
+use std::collections::HashMap;
 
 use dioxus::{html::input_data::keyboard_types, prelude::*};
 use dioxus_router::prelude::use_navigator;
 use dioxus_std::{i18n::use_i18, translate};
-use log::info;
 use matrix_sdk::ruma::UserId;
 
 use crate::{
@@ -11,22 +10,28 @@ use crate::{
         atoms::{Header, MessageInput, RoomView},
         molecules::rooms::CurrentRoom,
     },
-    hooks::use_client::use_client,
-    pages::route::Route,
+    hooks::{use_client::use_client, use_notification::use_notification, use_room::use_room},
+    pages::chat::room::group::{self, CreateRoomError, Profile},
     services::matrix::matrix::create_room,
     utils::i18n_get_key_value::i18n_get_key_value,
-    utils::matrix::{mxc_to_https_uri, ImageSize},
 };
-use futures_util::StreamExt;
-
-#[derive(Clone)]
-pub struct Profile {
-    displayname: String,
-    avatar_uri: Option<String>,
-}
+use futures_util::{StreamExt, TryFutureExt};
 
 pub fn RoomNew(cx: Scope) -> Element {
     let i18 = use_i18(cx);
+
+    let key_common_error_thread_id = translate!(i18, "chat.common.error.thread_id");
+    let key_common_error_event_id = translate!(i18, "chat.common.error.event_id");
+    let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
+    let key_dm_error_not_found = translate!(i18, "chat.common.error.user_id");
+    let key_common_error_user_id = translate!(i18, "chat.common.error.user_id");
+    let key_common_error_server = translate!(i18, "chat.common.error.server");
+
+    let key_dm_error_not_found = translate!(i18, "dm.error.not_found");
+    let key_dm_error_dm = translate!(i18, "dm.error.dm");
+    let key_dm_error_profile = translate!(i18, "dm.error.profile");
+    let key_dm_error_file = translate!(i18, "dm.error.file");
+
     let key_dm_title = "dm-title";
     let key_dm_label = "dm-label";
     let key_dm_placeholder = "dm-placeholder";
@@ -41,45 +46,23 @@ pub fn RoomNew(cx: Scope) -> Element {
 
     let navigation = use_navigator(cx);
     let client = use_client(cx);
-    let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
+    let notification = use_notification(cx);
+    let room = use_room(cx);
+
     let user_id = use_state::<String>(cx, || String::from(""));
     let user = use_state::<Option<Profile>>(cx, || None);
     let error_field = use_state::<Option<String>>(cx, || None);
     let error_creation = use_state::<Option<String>>(cx, || None);
 
     let task_search_user = use_coroutine(cx, |mut rx: UnboundedReceiver<String>| {
-        to_owned![client, user];
+        to_owned![client, user, notification, key_dm_error_not_found];
 
         async move {
             while let Some(id) = rx.next().await {
-                let u = UserId::parse(&id).unwrap();
-                let u = u.deref();
-
-                let request =
-                    matrix_sdk::ruma::api::client::profile::get_profile::v3::Request::new(u);
-                let resp = client.get().send(request, None).await;
-
-                match resp {
-                    Ok(u) => {
-                        let avatar_uri: Option<String> = if let Some(uri) = u.avatar_url {
-                            mxc_to_https_uri(
-                                &uri,
-                                ImageSize {
-                                    width: 48,
-                                    height: 48,
-                                },
-                            )
-                        } else {
-                            None
-                        };
-
-                        user.set(Some(Profile {
-                            displayname: String::from(u.displayname.unwrap()),
-                            avatar_uri: avatar_uri,
-                        }))
-                    }
+                match group::process_find_user_by_id(&id, &client).await {
+                    Ok(profile) => user.set(Some(profile)),
                     Err(err) => {
-                        info!("{err:?}");
+                        notification.handle_error(&key_dm_error_not_found);
                     }
                 }
             }
@@ -93,41 +76,45 @@ pub fn RoomNew(cx: Scope) -> Element {
                 user_id,
                 error_creation,
                 navigation,
-                current_room,
-                user
+                room,
+                user,
+                key_common_error_user_id,
+                key_dm_error_profile,
+                key_dm_error_not_found,
+                key_common_error_server,
+                notification
             ];
 
             async move {
-                let u = UserId::parse(&user_id.get()).unwrap();
-                let room_meta = create_room(&client.get(), true, &[u], None, None).await;
+                let u =
+                    UserId::parse(&user_id.get()).map_err(|_| CreateRoomError::InvalidUserId)?;
 
-                info!("{room_meta:?}");
+                let room_meta = create_room(&client.get(), true, &[u], None, None)
+                    .await
+                    .map_err(|_| CreateRoomError::ServerError)?;
 
-                match room_meta {
-                    Ok(res) => {
-                        let room_id = res.room_id.to_string();
+                let room_id = room_meta.room_id.to_string();
 
-                        let Profile {
-                            displayname,
-                            avatar_uri,
-                        } = user.get().clone().unwrap();
+                let profile = user.get().clone().ok_or(CreateRoomError::InvalidUserId)?;
 
-                        *current_room.write() = CurrentRoom {
-                            id: room_id.clone(),
-                            name: displayname,
-                            avatar_uri: avatar_uri,
-                        };
+                room.set(CurrentRoom {
+                    id: room_id.clone(),
+                    name: profile.displayname,
+                    avatar_uri: profile.avatar_uri,
+                });
 
-                        info!("{:?}", *current_room.read());
-
-                        navigation.push(Route::ChatRoom { name: room_id });
-                    }
-                    Err(_) => {
-                        let e = Some(String::from("Ha ocurrido un error al crear el DM"));
-                        error_creation.set(e)
-                    }
-                }
+                Ok::<(), CreateRoomError>(())
             }
+            .unwrap_or_else(move |e: CreateRoomError| {
+                let message_error = match e {
+                    CreateRoomError::InvalidUserId => &key_common_error_user_id,
+                    CreateRoomError::UserNotFound => &key_dm_error_profile,
+                    CreateRoomError::InvalidUsername => &key_dm_error_not_found,
+                    CreateRoomError::ServerError => &key_common_error_server,
+                };
+
+                notification.handle_error(&message_error);
+            })
         })
     };
 

@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use dioxus_std::{i18n::use_i18, translate};
 
 use crate::components::atoms::{FileDownload, Icon, Layers, Reply};
 
@@ -23,6 +24,8 @@ pub struct HoverMenuProps<'a> {
 }
 
 pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
+    let i18 = use_i18(cx);
+
     cx.render(rsx!(
         section {
             class: "hover-menu",
@@ -43,7 +46,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                         }
                                         span {
                                             class: "hover-menu__option__title",
-                                            "Responder"
+                                            translate!(i18, "chat.menu.reply")
                                         }
                                     }
                                 }
@@ -63,7 +66,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                         }
                                         span {
                                             class: "hover-menu__option__title",
-                                            "Ver hilo"
+                                            translate!(i18, "chat.menu.see")
                                         }
                                     }
                                 }
@@ -83,7 +86,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                         }
                                         span {
                                             class: "hover-menu__option__title",
-                                            "Crear hilo"
+                                            translate!(i18, "chat.menu.create")
                                         }
                                     }
                                 }
@@ -103,7 +106,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                         }
                                         span {
                                             class: "hover-menu__option__title",
-                                            "Descargar"
+                                            translate!(i18, "chat.menu.download")
                                         }
                                     }
                                 }

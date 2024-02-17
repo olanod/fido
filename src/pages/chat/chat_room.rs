@@ -1,17 +1,17 @@
 use dioxus::prelude::*;
 
-use crate::components::{atoms::message::Messages, organisms::chat::ActiveRoom};
+use crate::{components::organisms::chat::ActiveRoom, hooks::use_messages::use_messages};
 
 // The name prop comes from the /:name route segment
 #[inline_props]
 pub fn ChatRoom(cx: Scope, name: String) -> Element {
-    let messages = use_shared_state::<Messages>(cx).unwrap();
+    let messages = use_messages(cx);
 
     use_coroutine(cx, |_: UnboundedReceiver<bool>| {
         to_owned![messages];
 
         async move {
-            messages.write().clear();
+            messages.reset();
         }
     });
 

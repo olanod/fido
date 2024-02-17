@@ -8,18 +8,22 @@ pub mod components {
 }
 
 pub mod hooks {
+    pub mod factory;
     pub mod use_attach;
     pub mod use_auth;
+    pub mod use_chat;
     pub mod use_client;
     pub mod use_init_app;
     pub mod use_listen_message;
     pub mod use_messages;
     pub mod use_modal;
     pub mod use_notification;
+    pub mod use_reply;
     pub mod use_room;
     pub mod use_send_attach;
     pub mod use_send_message;
     pub mod use_session;
+    pub mod use_thread;
 }
 
 pub mod services {
@@ -31,6 +35,7 @@ pub mod utils {
     pub mod i18n_get_key_value;
     pub mod matrix;
     pub mod nice_bytes;
+    pub mod vec_to_url;
 }
 
 pub mod pages {

@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-
-use crate::hooks::use_auth::use_auth;
+use crate::hooks::use_notification::use_notification;
+use crate::MatrixClientState;
+use crate::{hooks::use_auth::use_auth, services::matrix::matrix::create_client};
 use crate::hooks::use_client::use_client;
-use crate::utils::i18n_get_key_value::i18n_get_key_value;
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
 use gloo::storage::LocalStorage;
-use log::info;
 
 use crate::components::atoms::{ChatConversation, Icon, LogOut, MenuItem, UserCircle};
 
@@ -21,45 +19,37 @@ pub struct MenuProps<'a> {
 
 pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
     let i18 = use_i18(cx);
-    let i18n_map = HashMap::from([
-        ("profile", translate!(i18, "menu.profile")),
-        ("chats", translate!(i18, "menu.chats")),
-        ("log_out", translate!(i18, "menu.log_out")),
-    ]);
-
-    let key_profile = "profile";
-    let key_chats = "chats";
-    let key_log_out = "log_out";
-
     let nav = use_navigator(cx);
-    let client = use_client(cx).get();
+    let client = use_client(cx);
     let auth = use_auth(cx);
+    let notification = use_notification(cx);
+
+    let key_profile = translate!(i18, "menu.profile");
+    let key_chats = translate!(i18, "menu.chats");
+    let key_log_out = translate!(i18, "menu.log_out");
+    let key_logout_error_server = translate!(i18, "logout.error.server");
+    let key_chat_common_error_default_server = translate!(i18, "logout.chat.common.error.default_server");
 
     let log_out = move || {
         cx.spawn({
-            to_owned![client, auth];
+            to_owned![client, auth, notification, key_logout_error_server, key_chat_common_error_default_server];
 
             async move {
-                
-                let _ = client.logout().await;
+                let response = client.get().logout().await;
+
+                let Ok(_) = response else {
+                    return notification.handle_error(&key_logout_error_server)
+                };
+
                 let _ = <LocalStorage as gloo::storage::Storage>::delete("session_file");
                 
-                let window = web_sys::window().expect("global window does not exists");
-                let x = window.indexed_db();
+                let Ok(c) = create_client("https://matrix.org").await else {
+                    return notification.handle_error(&key_chat_common_error_default_server)
+                };
 
-                match x {
-                    Ok(index_db) => {
-                        if let Some(db) = index_db {
-                            let x = db.delete_database("b");
-                            info!("delete: {:?}", x);
-                            let x = db.delete_database("b::matrix-sdk-crypto");
-                            info!("delete: {:?}", x);
-                            let x = db.delete_database("b::matrix-sdk-state");
-                            info!("delete: {:?}", x);
-                        } 
-                    },
-                    Err(err) => todo!(),
-                }
+                client.set(MatrixClientState {
+                    client: Some(c.clone()),
+                });
 
                 auth.set_logged_in(false)
             }
@@ -74,7 +64,7 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
                 ul {
                     li {
                         MenuItem {
-                            title: "{i18n_get_key_value(&i18n_map, key_profile)}",
+                            title: "{key_profile}",
                             icon: cx.render(rsx!(Icon {height: 24, width: 24, stroke: "var(--text-1)", icon: UserCircle})),
                             on_click: move |event| {
                                 cx.props.on_click.call(event);
@@ -85,7 +75,7 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
     
                      li {
                         MenuItem {
-                            title: "{i18n_get_key_value(&i18n_map, key_chats)}",
+                            title: "{key_chats}",
                             icon: cx.render(rsx!(Icon {height: 24, width: 24, stroke: "var(--text-1)", icon: ChatConversation})),
                             on_click: move |event| {
                                 cx.props.on_click.call(event);
@@ -97,7 +87,7 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
                 ul {
                     li {
                         MenuItem {
-                            title: "{i18n_get_key_value(&i18n_map, key_log_out)}",
+                            title: "{key_log_out}",
                             icon: cx.render(rsx!(Icon {height: 24, width: 24, stroke: "var(--text-1)", icon: LogOut})),
                             on_click: move |_| {
                                 log_out()

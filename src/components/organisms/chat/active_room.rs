@@ -1,5 +1,3 @@
-use std::{collections::HashMap, ops::Deref};
-
 use dioxus::prelude::*;
 use dioxus_router::prelude::use_navigator;
 use dioxus_std::{i18n::use_i18, translate};
@@ -11,64 +9,45 @@ use crate::{
             input::InputType,
             Avatar, Close, Header, Icon,
         },
-        molecules::{
-            input_message::{FormMessageEvent, ReplyingTo},
-            rooms::CurrentRoom,
-            InputMessage, List,
-        },
+        molecules::{input_message::FormMessageEvent, rooms::CurrentRoom, InputMessage, List},
     },
     hooks::{
-        use_messages::{use_messages, UseMessages},
+        use_chat::{use_chat, UseChat},
+        use_messages::use_messages,
+        use_reply::use_reply,
         use_room::use_room,
         use_send_attach::use_send_attach,
         use_send_message::use_send_message,
+        use_thread::use_thread,
     },
     pages::{chat::chat::MessageItem, route::Route},
-    services::matrix::matrix::{Attachment, AttachmentStream, TimelineMessageType, TimelineThread},
-    utils::i18n_get_key_value::i18n_get_key_value,
+    services::matrix::matrix::{Attachment, AttachmentStream},
 };
 
 pub fn ActiveRoom(cx: Scope) -> Element {
     let i18 = use_i18(cx);
-
-    let i18n_map = HashMap::from([
-        ("join-title", translate!(i18, "chat.helpers.join.title")),
-        (
-            "join-description",
-            translate!(i18, "chat.helpers.join.description"),
-        ),
-        (
-            "join-subtitle",
-            translate!(i18, "chat.helpers.join.subtitle"),
-        ),
-        (
-            "inputs-plain-message",
-            translate!(i18, "chat.inputs.plain-message"),
-        ),
-        (
-            "message-list-see-more",
-            translate!(i18, "chat.message_list.see_more"),
-        ),
-    ]);
-
     let nav = use_navigator(cx);
     let room = use_room(cx);
-    let current_room = use_shared_state::<CurrentRoom>(cx).unwrap();
+    let messages = use_messages(cx);
     let send_message = use_send_message(cx);
     let send_attach = use_send_attach(cx);
 
-    let replying_to = use_shared_state::<Option<ReplyingTo>>(cx).unwrap();
-    let timeline_thread = use_shared_state::<Option<TimelineThread>>(cx).unwrap();
-    let use_m = use_messages(cx);
-    let UseMessages {
-        messages,
+    let replying_to = use_reply(cx);
+    let threading_to = use_thread(cx);
+
+    let use_m = use_chat(cx);
+    let UseChat {
+        messages: _,
         isLoading: is_loading,
         limit: _,
         task: _,
     } = use_m.get();
 
-    let input_placeholder =
-        use_state::<String>(cx, || i18n_get_key_value(&i18n_map, "inputs-plain-message"));
+    let messages = messages.get();
+
+    let input_placeholder = use_state::<String>(cx, || {
+        translate!(i18, "chat.inputs.plain_message.placeholder")
+    });
 
     let header_event = move |evt: HeaderEvent| {
         to_owned![room];
@@ -91,28 +70,20 @@ pub fn ActiveRoom(cx: Scope) -> Element {
 
         match evt.value {
             HeaderCallOptions::CLOSE => {
-                *replying_to.write() = None;
+                replying_to.set(None);
             }
             _ => {}
         }
     };
 
     let on_push_message = move |evt: FormMessageEvent, send_to_thread: bool| {
-        let mut reply_to = None;
-
-        if let Some(r) = replying_to.read().deref() {
-            reply_to = Some(r.event_id.clone());
-        }
+        let reply_to = replying_to.get().map(|r| r.event_id);
 
         send_message.send(MessageItem {
             room_id: room.get().id.clone(),
             msg: evt.value,
             reply_to,
             send_to_thread,
-        });
-
-        input_message_event(HeaderEvent {
-            value: HeaderCallOptions::CLOSE,
         });
     };
 
@@ -124,16 +95,15 @@ pub fn ActiveRoom(cx: Scope) -> Element {
     };
 
     cx.render(rsx! {
-            // Room messages
             div {
                 class: "active-room",
                 Header {
-                    text: "{current_room.read().name.clone()}",
+                    text: "{room.get().name.clone()}",
                     avatar_element: render!(rsx!(
                         Avatar {
-                            name: (*current_room.read()).name.to_string(),
+                            name: (room.get()).name.to_string(),
                             size: 32,
-                            uri: current_room.read().avatar_uri.clone()
+                            uri: room.get().avatar_uri.clone()
                         }
                     )),
                     on_event: header_event
@@ -143,7 +113,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                     thread: None,
                     is_loading: is_loading,
                     on_scroll: move |_| {
-                        use_m.loadmore(current_room.read().id.clone());
+                        use_m.loadmore("{room.get().id}");
                     }
                 },
                 InputMessage {
@@ -159,28 +129,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                 }
             }
 
-            if let Some(t) = timeline_thread.read().deref() {
-                let head_message = &t.thread[t.thread.len() - 1];
-                let x = &head_message.body;
-
-                let title_thread = match x {
-                    TimelineMessageType::Image(file) => {
-                        file.body.clone()
-                    },
-                    TimelineMessageType::Text(text) => {
-                        text.clone()
-                    },
-                    TimelineMessageType::Html(html) => {
-                        html.clone()
-                    },
-                    TimelineMessageType::File(file) => {
-                        file.body.clone()
-                    },
-                    TimelineMessageType::Video(file) => {
-                        file.body.clone()
-                    },
-                };
-
+            if let Some(t) = threading_to.get() {
                 rsx!(
                     div {
                         class: "active-room__thread",
@@ -189,12 +138,12 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                             class: "active-room__thread__head",
                             p {
                                 class: "active-room__thread__title",
-                                "Hilo {title_thread}"
+                                translate!(i18, "chat.thread.title")
                             }
                             button {
                                 class: "active-room__close",
                                 onclick: move |_| {
-                                    *timeline_thread.write() = None
+                                    threading_to.set(None)
                                 },
                                 Icon {
                                     stroke: "var(--icon-subdued)",
@@ -205,16 +154,13 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                             }
                         }
 
-
                         // thread messages
-
-
                         List {
                             messages: vec![],
                             thread: Some(t.thread.clone()),
                             is_loading: is_loading,
                             on_scroll: move |_| {
-                                use_m.loadmore(current_room.read().id.clone());
+                                use_m.loadmore("{room.get().id}");
                             }
                         },
                         InputMessage {

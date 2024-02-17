@@ -1,9 +1,6 @@
-use std::collections::HashMap;
-
 use crate::{
     components::atoms::{Avatar, ChatConversation, Close, Group, Icon, NewChat},
     hooks::use_modal::use_modal,
-    utils::i18n_get_key_value::i18n_get_key_value,
 };
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
@@ -13,7 +10,6 @@ pub struct ModalForm {
 
 #[derive(Props)]
 pub struct ModalProps<'a> {
-    // account: &'a AccountInfo,
     on_click: EventHandler<'a, ModalForm>,
     on_close: EventHandler<'a, MouseEvent>,
 }
@@ -25,28 +21,8 @@ pub enum RoomType {
 }
 
 pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
-    let modal = use_modal(cx);
     let i18 = use_i18(cx);
-
-    let key_modal_title = "modal-title";
-    let key_modal_subtitle = "modal-subtitle";
-    let key_modal_option_dm = "modal-option-dm";
-    let key_modal_option_group = "modal-option-group";
-    let key_modal_option_channel = "modal-option-channel";
-
-    let i18n_map = HashMap::from([
-        (key_modal_title, translate!(i18, "modal.title")),
-        (key_modal_subtitle, translate!(i18, "modal.subtitle")),
-        (key_modal_option_dm, translate!(i18, "modal.options.dm")),
-        (
-            key_modal_option_group,
-            translate!(i18, "modal.options.group"),
-        ),
-        (
-            key_modal_option_channel,
-            translate!(i18, "modal.options.channel"),
-        ),
-    ]);
+    let modal = use_modal(cx);
 
     cx.render(rsx! {
         section {
@@ -64,7 +40,6 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                     div {
                         class: "modal__user",
                         if let Some(account) = modal.get().account {
-                            let i18n_map = i18n_map.clone();
                             rsx!(
                                 Avatar {
                                     name: account.name.clone(),
@@ -74,11 +49,11 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                                 div {
                                     p {
                                         class: "modal__user__title",
-                                        "{account.name}, {i18n_get_key_value(&i18n_map, key_modal_title)}"
+                                        "{account.name}, " translate!(i18, "modal.title")
                                     }
                                     p {
                                         class: "modal__user__subtitle",
-                                        "{i18n_get_key_value(&i18n_map, key_modal_subtitle)}"
+                                        translate!(i18, "modal.subtitle")
                                     }
                                 }
                             )
@@ -106,7 +81,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                         }
                         span {
                             class: "modal__cta__title",
-                            "{i18n_get_key_value(&i18n_map, key_modal_option_dm)}"
+                            translate!(i18, "modal.options.dm")
                         }
                     }
                     button {
@@ -120,7 +95,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                         }
                         span {
                             class: "modal__cta__title",
-                            "{i18n_get_key_value(&i18n_map, key_modal_option_group)}"
+                            translate!(i18, "modal.options.group")
                         }
                     }
                     button {
@@ -134,7 +109,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                         }
                         span {
                             class: "modal__cta__title",
-                            "{i18n_get_key_value(&i18n_map, key_modal_option_channel)}"
+                            translate!(i18, "modal.options.channel")
                         }
                     }
                 }
