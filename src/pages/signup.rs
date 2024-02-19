@@ -279,6 +279,7 @@ pub fn Signup(cx: Scope) -> Element {
                     description: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_description)}",
                     button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_cta)}",
                     emoji: "🛰️",
+                    status: None,
                     error: error.get().as_ref(),
                     on_handle: move |event: FormLoginEvent| match event {
                         FormLoginEvent::FilledForm => on_update_homeserver(),
@@ -314,6 +315,7 @@ pub fn Signup(cx: Scope) -> Element {
                     description: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_description)}",
                     button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_cta)}",
                     emoji: "✍️",
+                    status: None,
                     error: error.get().as_ref(),
                     on_handle: move |event: FormLoginEvent| match event {
                         FormLoginEvent::FilledForm => on_handle_login(),
@@ -379,6 +381,7 @@ pub fn Signup(cx: Scope) -> Element {
                                     description: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_description)}",
                                     button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_cta)}",
                                     emoji: "✍️",
+                                    status: None,
                                     error: error.get().as_ref(),
                                     on_handle: move |event: FormLoginEvent| match event {
                                         FormLoginEvent::FilledForm => on_handle_captcha(),

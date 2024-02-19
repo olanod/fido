@@ -3,10 +3,7 @@ use dioxus_std::{i18n::use_i18, translate};
 use log::info;
 use matrix_sdk::encryption::verification::{SasVerification, Verification};
 
-use crate::{
-    components::atoms::Button, hooks::use_client::use_client,
-    utils::i18n_get_key_value::i18n_get_key_value,
-};
+use crate::{components::atoms::Button, hooks::use_client::use_client};
 
 use futures_util::StreamExt;
 
@@ -276,12 +273,14 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                                         class: "verify__spacer row",
                                         Button {
                                             text: "{key_verify_unverified_cta_disagree}",
+                                            status: None,
                                             on_click: move |_| {
                                                 on_handle_cancel(sas.clone());
                                             }
                                         }
                                         Button {
                                             text: "{key_verify_unverified_cta_match}",
+                                            status: None,
                                             on_click: move |_| {
                                                 on_handle_confirm(sas.clone());
                                             }

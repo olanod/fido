@@ -5,7 +5,7 @@ use dioxus_std::{translate, i18n::use_i18};
 use gloo::storage::LocalStorage;
 use crate::{
     components::{
-        atoms::{MessageInput, input::InputType, LoadingStatus},
+        atoms::{MessageInput, input::InputType},
         organisms::{login_form::FormLoginEvent, LoginForm},
     },
     utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::login, hooks::{use_client::use_client, use_init_app::BeforeSession, use_auth::{use_auth, CacheLogin}, use_session::use_session, use_notification::use_notification},
@@ -21,6 +21,34 @@ pub enum LoggedInStatus {
     Done,
     Persisting,
     LoggedAs(String)
+}
+
+impl LoggedInStatus {
+    fn has_status(&self) -> bool {
+        match self {
+            LoggedInStatus::Start |
+            LoggedInStatus::Loading |
+            LoggedInStatus::Done |
+            LoggedInStatus::Persisting |
+            LoggedInStatus::LoggedAs(_) => true,
+            _ => false
+        }
+    } 
+
+    fn get_text<'a>(&self, key_loading: &'a str,  key_logged: &'a str,  key_done: &'a str, key_persisting: &'a str) -> Option<&'a str> {
+        match self {
+            LoggedInStatus::Loading => Some(key_loading),
+            LoggedInStatus::LoggedAs(_) => Some(key_logged),
+            LoggedInStatus::Done => Some(key_done),
+            LoggedInStatus::Persisting => Some(key_persisting),
+            LoggedInStatus::Start => None
+        }
+    }
+}
+
+enum LoginFrom {
+    SavedData,
+    FullForm
 }
 
 pub fn Login(cx: Scope) -> Element {
@@ -53,6 +81,11 @@ pub fn Login(cx: Scope) -> Element {
     let key_login_chat_errors_invalid_url = "login-chat-errors-invalid-url";
     let key_login_chat_errors_unknown = "login-chat-errors-unknown";
     let key_login_chat_errors_invalid_username_password = "login-chat-errors-invalid-username-password";
+
+    let key_login_status_loading = translate!(i18, "login.status.loading");
+    let key_login_status_logged = translate!(i18, "login.status.logged");
+    let key_login_status_done = translate!(i18, "login.status.done");
+    let key_login_status_persisting = translate!(i18, "login.status.persisting");
 
     let i18n_map = HashMap::from([
         (key_login_chat_homeserver_message, translate!(i18, "login.chat_steps.homeserver.message")),
@@ -88,6 +121,7 @@ pub fn Login(cx: Scope) -> Element {
     let username = use_state(cx, || String::from(""));
     let password = use_state(cx, || String::from(""));
     let error = use_state(cx, || None);
+    let login_from = use_state(cx, || if auth.is_storage_data() {LoginFrom::SavedData} else {LoginFrom::FullForm});
 
     let before_session =
         use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
@@ -114,10 +148,11 @@ pub fn Login(cx: Scope) -> Element {
 
     let on_handle_clear = Rc::new(move || {
         cx.spawn({
-            to_owned![homeserver, username, password, auth];
+            to_owned![homeserver, username, password, auth, login_from];
 
             async move {
                 auth.reset();
+                login_from.set(LoginFrom::FullForm);
 
                 homeserver.set(String::new());
                 username.set(String::new());
@@ -161,12 +196,6 @@ pub fn Login(cx: Scope) -> Element {
 
                         let display_name = c.account().get_display_name().await.ok().flatten();
 
-                        auth.persist_data(CacheLogin {
-                            server: homeserver.get().to_string(),
-                            username: username.get().to_string(),
-                            display_name
-                        });
-
                         <LocalStorage as gloo::storage::Storage>::set(
                             "session_file",
                             serialized_session,
@@ -184,7 +213,14 @@ pub fn Login(cx: Scope) -> Element {
 
                         is_loading_loggedin.set(LoggedInStatus::LoggedAs(user_id.to_string()));
 
-                        auth.set_logged_in(true)
+                        auth.set_logged_in(true);
+
+                        auth.persist_data(CacheLogin {
+                            server: homeserver.get().to_string(),
+                            username: username.get().to_string(),
+                            display_name
+                        });
+
                     }
                     Err(err) => {
                         is_loading_loggedin.set(LoggedInStatus::Start);
@@ -243,9 +279,16 @@ pub fn Login(cx: Scope) -> Element {
     render!(
         div {
             class: "page--clamp",
-            if auth.is_storage_data() && *is_loading_loggedin.read() == LoggedInStatus::Start {
+            if (auth.is_storage_data() && matches!(*is_loading_loggedin.read(), LoggedInStatus::Start)) || (is_loading_loggedin.read().has_status() && matches!(*login_from.get(), LoginFrom::SavedData)) {
                 let display_name = auth.get_login_cache().map(|data| data.display_name.unwrap_or(data.username)).unwrap_or(String::from(""));
-    
+                
+                let loggedin_status = is_loading_loggedin.read().get_text(
+                    &key_login_status_loading,
+                    &key_login_status_logged,
+                    &key_login_status_done,
+                    &key_login_status_persisting
+                );
+
                 rsx!(
                     LoginForm {
                         title: "{key_login_unlock_title} {display_name}",
@@ -254,6 +297,7 @@ pub fn Login(cx: Scope) -> Element {
                         emoji: "👋",
                         error: error.get().as_ref(),
                         clear_data: true,
+                        status: loggedin_status.map(|t|String::from(t)),
                         on_handle: on_handle_form_event,
                         body: render!(rsx!(
                             div {
@@ -293,6 +337,7 @@ pub fn Login(cx: Scope) -> Element {
                             FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
                             FormLoginEvent::ClearData => on_handle_clear()
                         },
+                        status: None,
                         body: render!(rsx!(
                             div {
                                 MessageInput {
@@ -311,11 +356,19 @@ pub fn Login(cx: Scope) -> Element {
                                         on_update_homeserver()
                                     }
                                 }
-                            }
+                            },
+                        
                         ))
                     }
                 )
-            } else if auth.get().data.username.is_none() || auth.get().data.password.is_none() {
+            } else if (auth.get().data.username.is_none() || auth.get().data.password.is_none()) || (is_loading_loggedin.read().has_status() && matches!(*login_from.get(), LoginFrom::FullForm)) {
+                let loggedin_status = is_loading_loggedin.read().get_text(
+                    &key_login_status_loading,
+                    &key_login_status_logged,
+                    &key_login_status_done,
+                    &key_login_status_persisting
+                );
+
                 rsx!(
                     LoginForm {
                         title: "{i18n_get_key_value(&i18n_map, key_login_chat_credentials_title)}",
@@ -324,6 +377,7 @@ pub fn Login(cx: Scope) -> Element {
                         emoji: "👋",
                         error: error.get().as_ref(),
                         on_handle: on_handle_form_event,
+                        status: loggedin_status.map(|t|String::from(t)),
                         body: render!(rsx!(
                             div {
                                 MessageInput {
@@ -366,37 +420,6 @@ pub fn Login(cx: Scope) -> Element {
                         ))
                     }
                 )
-            } else {
-                let key_login_status_loading = translate!(i18, "login.status.loading");
-                let key_login_status_logged = translate!(i18, "login.status.logged");
-                let key_login_status_done = translate!(i18, "login.status.done");
-                let key_login_status_persisting = translate!(i18, "login.status.persisting");
-                
-                match &*is_loading_loggedin.read() {
-                    LoggedInStatus::Loading => {
-                        rsx!(
-                            LoadingStatus {text: "{key_login_status_loading}"}
-                        )
-                    }
-                    LoggedInStatus::LoggedAs(user) => {
-                        rsx!(
-                            LoadingStatus {text: "{key_login_status_logged}"}
-                        )
-                    },
-                    LoggedInStatus::Done => {
-                        rsx!(
-                            LoadingStatus {text: "{key_login_status_done}"}
-                        )
-                    }
-                    LoggedInStatus::Persisting => {
-                        rsx!(
-                            LoadingStatus {text: "{key_login_status_persisting}"}
-                        )
-                    }
-                    _ => {
-                        rsx!(div{})
-                    }  
-                }    
             }
         }
     )

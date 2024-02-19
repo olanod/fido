@@ -1,8 +1,13 @@
 use dioxus::prelude::*;
 use gloo::storage::{errors::StorageError, LocalStorage};
+use log::info;
 use matrix_sdk::Client;
+use ruma::{api::IncomingResponse, client::http_client};
 use serde::{Deserialize, Serialize};
+use serde_json::{from_str, Value};
 use url::Url;
+
+use ruma::api::client::discovery::discover_homeserver::Response as WellKnownResponse;
 
 use crate::pages::login::LoggedIn;
 
@@ -11,6 +16,12 @@ pub enum AuthError {
     BuildError,
     InvalidHomeserver,
     ServerNotFound,
+}
+
+impl From<serde_json::Error> for AuthError {
+    fn from(_: serde_json::Error) -> Self {
+        AuthError::InvalidHomeserver
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,12 +128,30 @@ impl UseAuthState {
 
         let server = server_parsed.map_err(|_| AuthError::InvalidHomeserver)?;
 
+        let request_url = format!("{}.well-known/matrix/client", server.to_string());
+
+        let res = reqwest::Client::new()
+            .get(&request_url)
+            .send()
+            .await
+            .map_err(|_| AuthError::InvalidHomeserver)?;
+
+        let body = res.text().await.map_err(|_| AuthError::InvalidHomeserver)?;
+
+        let well_response = WellKnownResponse::try_from_http_response(http::Response::new(body))
+            .map_err(|_| AuthError::InvalidHomeserver)?;
+
+        let url_base = Url::parse(&well_response.homeserver.base_url)
+            .map_err(|_| AuthError::InvalidHomeserver)?;
+
         let result = Client::builder()
-            .homeserver_url(&server.as_str())
+            .homeserver_url(&url_base)
             .build()
             .await
-            .map(|_| server)
+            .map(|_| url_base)
             .map_err(|_| AuthError::ServerNotFound);
+
+        log::info!("client result: {:?}", result);
 
         match result {
             Ok(server) => {
@@ -138,7 +167,7 @@ impl UseAuthState {
     }
 
     pub fn set_username(&self, username: &str, parse: bool) {
-        let mut username_parse = username.to_owned();
+        let mut username_parse = username.trim().to_string();
 
         if parse {
             if !username_parse.starts_with("@") {
@@ -147,8 +176,9 @@ impl UseAuthState {
 
             if let Some(server) = &self.data.read().server {
                 if let Some(domain) = server.domain() {
-                    if !username_parse.ends_with(domain) {
-                        username_parse = format!("{}:{}", username_parse, domain);
+                    let domain_name = extract_domain_name(domain);
+                    if !username_parse.ends_with(domain_name.as_str()) {
+                        username_parse = format!("{}:{}", username_parse, domain_name);
                     }
                 }
             }
@@ -161,7 +191,7 @@ impl UseAuthState {
 
     pub fn set_password(&self, password: &str) {
         self.data.with_mut(|l| {
-            l.password(password);
+            l.password(password.trim());
         });
     }
 
@@ -214,4 +244,17 @@ impl UseAuthState {
     pub fn set_logged_in(&self, option: bool) {
         *self.logged_in.write() = LoggedIn(option);
     }
+}
+
+fn extract_domain_name(host: &str) -> String {
+    let segs: Vec<&str> = host
+        .split('.')
+        .filter(|&s| !s.is_empty())
+        .rev()
+        .collect::<Vec<&str>>();
+
+    let suffix = segs[0];
+    let domain = segs[1];
+
+    format!("{}.{}", domain, suffix)
 }

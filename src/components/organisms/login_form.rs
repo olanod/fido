@@ -25,6 +25,8 @@ pub struct LoginFormProps<'a> {
     #[props(default = false)]
     clear_data: bool,
     on_handle: EventHandler<'a, FormLoginEvent>,
+    #[props(!optional)]
+    status: Option<String>,
 }
 
 pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
@@ -53,7 +55,7 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                 "{cx.props.description}"
             }
 
-           div {
+            div {
                 class: "login-form__form__head",
                 &cx.props.body
 
@@ -71,12 +73,13 @@ pub fn LoginForm<'a>(cx: Scope<'a, LoginFormProps<'a>>) -> Element<'a> {
                         }
                     )
                 }
-           }
+            }
 
             div {
                 class: "login-form__cta--filled",
                 Button {
                     text: "{cx.props.button_text}",
+                    status: cx.props.status.clone(),
                     on_click: move |_| {
                         cx.props.on_handle.call(FormLoginEvent::FilledForm)
                     }

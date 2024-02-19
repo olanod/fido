@@ -317,6 +317,7 @@ pub fn Profile(cx: Scope) -> Element {
                         class: "profile__cta",
                         Button {
                             text: "{i18n_get_key_value(&i18n_map, key_username_cta_update)}",
+                            status: None,
                             on_click: move |_| {
                                 cx.spawn({
                                     to_owned![client, original_profile, current_profile, attach];
@@ -391,6 +392,7 @@ pub fn Profile(cx: Scope) -> Element {
                                 class: "profile__cta",
                                 Button {
                                     text: "{key_management_info_cta}",
+                                    status: None,
                                     on_click: move |_| {
                                         navigator.push(Route::Verify { id: String::from("fidoid") });
                                     }
@@ -414,6 +416,7 @@ pub fn Profile(cx: Scope) -> Element {
                         class: "profile__cta",
                         Button {
                             text: "{i18n_get_key_value(&i18n_map, key_management_deactivate_cta_deactivate)}",
+                            status: None,
                             on_click: move |_| {
                                 // cx.spawn({
                                 //     to_owned!(client);

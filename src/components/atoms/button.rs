@@ -13,6 +13,8 @@ pub struct ButtonProps<'a> {
     #[props(default = false)]
     disabled: bool,
     on_click: EventHandler<'a, MouseEvent>,
+    #[props(!optional)]
+    status: Option<String>,
 }
 
 pub fn Button<'a>(cx: Scope<'a, ButtonProps<'a>>) -> Element<'a> {
@@ -27,12 +29,31 @@ pub fn Button<'a>(cx: Scope<'a, ButtonProps<'a>>) -> Element<'a> {
         ""
     };
 
-    cx.render(rsx!(
-        button {
-          class: "button {variant} {disabled}",
-          disabled: cx.props.disabled,
-          onclick: move |event| cx.props.on_click.call(event),
-          "{cx.props.text}"
-      }
-    ))
+    let loading = if cx.props.status.is_some() {
+        "button--loading"
+    } else {
+        ""
+    };
+
+    match &cx.props.status {
+        Some(s) => {
+            render!(rsx!(
+                button {
+                  class: "button {variant} {loading}",
+                  disabled: true,
+                  "{s}"
+              }
+            ))
+        }
+        None => {
+            render!(rsx!(
+                button {
+                  class: "button {variant} {disabled}",
+                  disabled: cx.props.disabled,
+                  onclick: move |event| cx.props.on_click.call(event),
+                  "{cx.props.text}"
+              }
+            ))
+        }
+    }
 }
