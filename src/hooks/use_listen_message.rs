@@ -248,7 +248,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
 
                         if let Some(content) = plain_message {
                             notification.handle_notification(NotificationItem {
-                                title: String::from(room_name),
+                                title: room_name,
                                 body: String::from(content),
                                 show: true,
                                 handle: NotificationHandle {
