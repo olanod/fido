@@ -390,7 +390,6 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                     }
                                 }
                             }
-                            log::info!("here before send");
                             task_sender.send((
                                 MessageEvent {
                                     room,
