@@ -3,7 +3,7 @@ use matrix_sdk::encryption::verification::SasVerification;
 
 use crate::pages::route::Route;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct NotificationItem {
     pub title: String,
     pub body: String,
@@ -11,35 +11,17 @@ pub struct NotificationItem {
     pub handle: NotificationHandle,
 }
 
-impl Default for NotificationItem {
-    fn default() -> Self {
-        NotificationItem {
-            title: String::new(),
-            body: String::new(),
-            show: false,
-            handle: NotificationHandle {
-                value: NotificationType::default(),
-            },
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct NotificationHandle {
     pub value: NotificationType,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum NotificationType {
     Click,
     AcceptSas(SasVerification, Option<Route>),
+    #[default]
     None,
-}
-
-impl Default for NotificationType {
-    fn default() -> Self {
-        NotificationType::None
-    }
 }
 
 #[allow(clippy::needless_return)]
