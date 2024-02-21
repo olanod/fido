@@ -8,7 +8,6 @@ use matrix_sdk::{
 use ruma::events::room::message::Relation;
 
 use crate::{
-    components::organisms::chat::utils::handle_notification,
     hooks::use_notification::{NotificationHandle, NotificationItem, NotificationType},
     pages::chat::chat::MessageEvent,
     services::matrix::matrix::{
@@ -142,18 +141,18 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                             let Some(position) = message_position_local else {
                                                 msgs.push(message.clone());
 
-                                                plain_message = Some(message_to_plain_content(
-                                                    &timeline_message.body,
-                                                    &key_listen_message_image,
-                                                    &key_listen_message_file,
-                                                    &key_listen_message_video,
-                                                    &key_listen_message_html,
-                                                ));
-
                                                 return;
                                             };
 
                                             msgs[position] = message.clone()
+                                        } else {
+                                            plain_message = Some(message_to_plain_content(
+                                                &timeline_message.body,
+                                                &key_listen_message_image,
+                                                &key_listen_message_file,
+                                                &key_listen_message_video,
+                                                &key_listen_message_html,
+                                            ));
                                         }
                                     }
                                 }
@@ -162,18 +161,19 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                 if is_in_current_room {
                                     let Some(position) = message_position_local else {
                                         msgs.push(message.clone());
-                                        plain_message = Some(message_to_plain_content(
-                                            &timeline_message.event.body,
-                                            &key_listen_message_image,
-                                            &key_listen_message_file,
-                                            &key_listen_message_video,
-                                            &key_listen_message_html,
-                                        ));
 
                                         return;
                                     };
 
                                     msgs[position] = message.clone()
+                                } else {
+                                    plain_message = Some(message_to_plain_content(
+                                        &timeline_message.event.body,
+                                        &key_listen_message_image,
+                                        &key_listen_message_file,
+                                        &key_listen_message_video,
+                                        &key_listen_message_html,
+                                    ));
                                 }
                             }
                             TimelineRelation::CustomThread(timeline_message) => {
@@ -247,17 +247,14 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                         };
 
                         if let Some(content) = plain_message {
-                            handle_notification(
-                                NotificationItem {
-                                    title: String::from(room_name),
-                                    body: String::from(content),
-                                    show: true,
-                                    handle: NotificationHandle {
-                                        value: NotificationType::Click,
-                                    },
+                            notification.handle_notification(NotificationItem {
+                                title: room_name,
+                                body: String::from(content),
+                                show: true,
+                                handle: NotificationHandle {
+                                    value: NotificationType::Click,
                                 },
-                                notification.to_owned(),
-                            );
+                            })
                         }
                     }
                 }
@@ -389,7 +386,6 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                     }
                                 }
                             }
-
                             task_sender.send((
                                 MessageEvent {
                                     room,

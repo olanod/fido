@@ -182,7 +182,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
 
                 let _ = client.get().sync_once(SyncSettings::default()).await;
 
-                notification_success.set(NotificationItem {
+                notification_success.handle_notification(NotificationItem {
                     title: name,
                     body: key_group_success_description,
                     show: true,
