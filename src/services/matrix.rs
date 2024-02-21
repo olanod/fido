@@ -592,7 +592,7 @@ pub mod matrix {
                         let Some(p) = position else {
                             messages.push(timeline_relation);
                             messages.rotate_right(1);
-                            break;
+                            continue;
                         };
 
                         if let TimelineRelation::CustomThread(ref mut timeline_thread) = messages[p]
