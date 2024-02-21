@@ -12,7 +12,7 @@ use matrix_sdk::encryption::verification::SasVerification;
 use ruma::api::client::uiaa::AuthType;
 
 use super::use_auth::CacheLogin;
-use super::use_notification::{NotificationHandle, NotificationItem, NotificationType};
+use super::use_notification::NotificationItem;
 use super::use_send_attach::SendAttachStatus;
 use super::use_session::UserSession;
 use super::{use_attach::AttachFile, use_modal::ModalState};
@@ -47,14 +47,7 @@ pub fn use_init_app(cx: &ScopeState) {
     use_shared_state_provider::<Messages>(cx, || Vec::new());
     use_shared_state_provider::<Option<AttachFile>>(cx, || None);
     use_shared_state_provider::<Option<ReplyingTo>>(cx, || None);
-    use_shared_state_provider::<NotificationItem>(cx, || NotificationItem {
-        title: String::from(""),
-        body: String::from(""),
-        show: false,
-        handle: NotificationHandle {
-            value: NotificationType::None,
-        },
-    });
+    use_shared_state_provider::<NotificationItem>(cx, || NotificationItem::default());
 
     use_shared_state_provider::<Option<SasVerification>>(cx, || None);
     use_shared_state_provider::<Option<TimelineThread>>(cx, || None);

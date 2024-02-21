@@ -8,7 +8,6 @@ use matrix_sdk::{
 use ruma::events::room::message::Relation;
 
 use crate::{
-    components::organisms::chat::utils::handle_notification,
     hooks::use_notification::{NotificationHandle, NotificationItem, NotificationType},
     pages::chat::chat::MessageEvent,
     services::matrix::matrix::{
@@ -248,17 +247,14 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                         };
 
                         if let Some(content) = plain_message {
-                            handle_notification(
-                                NotificationItem {
-                                    title: String::from(room_name),
-                                    body: String::from(content),
-                                    show: true,
-                                    handle: NotificationHandle {
-                                        value: NotificationType::Click,
-                                    },
+                            notification.handle_notification(NotificationItem {
+                                title: room_name,
+                                body: String::from(content),
+                                show: true,
+                                handle: NotificationHandle {
+                                    value: NotificationType::Click,
                                 },
-                                notification.to_owned(),
-                            );
+                            })
                         }
                     }
                 }
