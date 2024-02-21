@@ -142,18 +142,18 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                             let Some(position) = message_position_local else {
                                                 msgs.push(message.clone());
 
-                                                plain_message = Some(message_to_plain_content(
-                                                    &timeline_message.body,
-                                                    &key_listen_message_image,
-                                                    &key_listen_message_file,
-                                                    &key_listen_message_video,
-                                                    &key_listen_message_html,
-                                                ));
-
                                                 return;
                                             };
 
                                             msgs[position] = message.clone()
+                                        } else {
+                                            plain_message = Some(message_to_plain_content(
+                                                &timeline_message.body,
+                                                &key_listen_message_image,
+                                                &key_listen_message_file,
+                                                &key_listen_message_video,
+                                                &key_listen_message_html,
+                                            ));
                                         }
                                     }
                                 }
@@ -162,18 +162,19 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                 if is_in_current_room {
                                     let Some(position) = message_position_local else {
                                         msgs.push(message.clone());
-                                        plain_message = Some(message_to_plain_content(
-                                            &timeline_message.event.body,
-                                            &key_listen_message_image,
-                                            &key_listen_message_file,
-                                            &key_listen_message_video,
-                                            &key_listen_message_html,
-                                        ));
 
                                         return;
                                     };
 
                                     msgs[position] = message.clone()
+                                } else {
+                                    plain_message = Some(message_to_plain_content(
+                                        &timeline_message.event.body,
+                                        &key_listen_message_image,
+                                        &key_listen_message_file,
+                                        &key_listen_message_video,
+                                        &key_listen_message_html,
+                                    ));
                                 }
                             }
                             TimelineRelation::CustomThread(timeline_message) => {
@@ -389,7 +390,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                     }
                                 }
                             }
-
+                            log::info!("here before send");
                             task_sender.send((
                                 MessageEvent {
                                     room,
