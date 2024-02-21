@@ -12,7 +12,7 @@ use matrix_sdk::encryption::verification::SasVerification;
 use ruma::api::client::uiaa::AuthType;
 
 use super::use_auth::CacheLogin;
-use super::use_notification::{NotificationHandle, NotificationItem, NotificationType};
+use super::use_notification::NotificationItem;
 use super::use_send_attach::SendAttachStatus;
 use super::use_session::UserSession;
 use super::{use_attach::AttachFile, use_modal::ModalState};
