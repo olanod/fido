@@ -42,20 +42,34 @@ impl UseNotificationState {
         self.inner.read().clone()
     }
 
-    pub fn set(&self, item: NotificationItem) {
-        let mut inner = self.inner.write();
-        *inner = item;
+    pub fn handle_notification(&self, item: NotificationItem) {
+        let this = self.clone();
+        let inner = self.inner.clone();
+        *inner.write() = item;
+
+        gloo::timers::callback::Timeout::new(3000, move || this.clear()).forget();
     }
 
     pub fn handle_error(&self, body: &str) {
-        let mut inner = self.inner.write();
-        *inner = NotificationItem {
+        self.handle_notification(NotificationItem {
             title: String::from("Error"),
             body: String::from(body),
             show: true,
             handle: NotificationHandle {
                 value: NotificationType::None,
             },
-        };
+        });
+    }
+
+    pub fn clear(&self) {
+        let mut inner = self.inner.write();
+        *inner = NotificationItem {
+            title: String::from(""),
+            body: String::from(""),
+            show: false,
+            handle: NotificationHandle {
+                value: NotificationType::None,
+            },
+        }
     }
 }
