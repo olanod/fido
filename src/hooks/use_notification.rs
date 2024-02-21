@@ -11,6 +11,19 @@ pub struct NotificationItem {
     pub handle: NotificationHandle,
 }
 
+impl Default for NotificationItem {
+    fn default() -> Self {
+        NotificationItem {
+            title: String::new(),
+            body: String::new(),
+            show: false,
+            handle: NotificationHandle {
+                value: NotificationType::default(),
+            },
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct NotificationHandle {
     pub value: NotificationType,
@@ -21,6 +34,12 @@ pub enum NotificationType {
     Click,
     AcceptSas(SasVerification, Option<Route>),
     None,
+}
+
+impl Default for NotificationType {
+    fn default() -> Self {
+        NotificationType::None
+    }
 }
 
 #[allow(clippy::needless_return)]
@@ -63,13 +82,6 @@ impl UseNotificationState {
 
     pub fn clear(&self) {
         let mut inner = self.inner.write();
-        *inner = NotificationItem {
-            title: String::from(""),
-            body: String::from(""),
-            show: false,
-            handle: NotificationHandle {
-                value: NotificationType::None,
-            },
-        }
+        *inner = NotificationItem::default();
     }
 }

@@ -47,14 +47,7 @@ pub fn use_init_app(cx: &ScopeState) {
     use_shared_state_provider::<Messages>(cx, || Vec::new());
     use_shared_state_provider::<Option<AttachFile>>(cx, || None);
     use_shared_state_provider::<Option<ReplyingTo>>(cx, || None);
-    use_shared_state_provider::<NotificationItem>(cx, || NotificationItem {
-        title: String::from(""),
-        body: String::from(""),
-        show: false,
-        handle: NotificationHandle {
-            value: NotificationType::None,
-        },
-    });
+    use_shared_state_provider::<NotificationItem>(cx, || NotificationItem::default());
 
     use_shared_state_provider::<Option<SasVerification>>(cx, || None);
     use_shared_state_provider::<Option<TimelineThread>>(cx, || None);
