@@ -32,6 +32,8 @@ pub mod services {
 
 pub mod utils {
     pub mod get_element;
+    pub mod get_homeserver;
+    pub mod get_param;
     pub mod i18n_get_key_value;
     pub mod matrix;
     pub mod nice_bytes;

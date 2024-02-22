@@ -1,10 +1,8 @@
 use dioxus::prelude::*;
 use gloo::storage::{errors::StorageError, LocalStorage};
-use log::info;
 use matrix_sdk::Client;
-use ruma::{api::IncomingResponse, client::http_client};
+use ruma::api::IncomingResponse;
 use serde::{Deserialize, Serialize};
-use serde_json::{from_str, Value};
 use url::Url;
 
 use ruma::api::client::discovery::discover_homeserver::Response as WellKnownResponse;

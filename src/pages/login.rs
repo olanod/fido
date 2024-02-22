@@ -8,7 +8,13 @@ use crate::{
         atoms::{MessageInput, input::InputType},
         organisms::{login_form::FormLoginEvent, LoginForm},
     },
-    utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::login, hooks::{use_client::use_client, use_init_app::BeforeSession, use_auth::{use_auth, CacheLogin}, use_session::use_session, use_notification::use_notification},
+    utils::i18n_get_key_value::i18n_get_key_value, services::matrix::matrix::login, hooks::{
+        use_client::use_client, 
+        use_init_app::BeforeSession, 
+        use_auth::{use_auth, CacheLogin}, 
+        use_session::use_session, 
+        use_notification::use_notification
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -55,14 +61,10 @@ pub fn Login(cx: Scope) -> Element {
     let i18 = use_i18(cx);
 
     let key_chat_errors_not_found = translate!(i18, "login.chat_errors.not_found");
+    let key_login_chat_errors_invalid_server = translate!(i18, "login.chat_errors.invalid_server");
     let key_login_unlock_title = translate!(i18, "login.unlock.title");
     let key_login_unlock_description = translate!(i18, "login.unlock.description");
     let key_login_unlock_cta = translate!(i18, "login.unlock.cta");
-
-    let key_login_chat_homeserver_message = "login-chat-homeserver-message";
-    let key_login_chat_homeserver_description = "login-chat-homeserver-description";
-    let key_login_chat_homeserver_placeholder = "login-chat-homeserver-placeholder";
-    let key_login_chat_homeserver_cta = "login-chat-homeserver-cta";
 
     let key_login_chat_credentials_description = "login-chat-credentials-description";
     let key_login_chat_credentials_title = "login-chat-credentials-title";
@@ -88,11 +90,6 @@ pub fn Login(cx: Scope) -> Element {
     let key_login_status_persisting = translate!(i18, "login.status.persisting");
 
     let i18n_map = HashMap::from([
-        (key_login_chat_homeserver_message, translate!(i18, "login.chat_steps.homeserver.message")),
-        (key_login_chat_homeserver_description, translate!(i18, "login.chat_steps.homeserver.description")),
-        (key_login_chat_homeserver_placeholder, translate!(i18, "login.chat_steps.homeserver.placeholder")),
-        (key_login_chat_homeserver_cta, translate!(i18, "login.chat_steps.homeserver.cta")),
-
         (key_login_chat_credentials_title, translate!(i18, "login.chat_steps.credentials.title")),
         
         (key_login_chat_credentials_description, translate!(i18, "login.chat_steps.credentials.description")),
@@ -136,25 +133,14 @@ pub fn Login(cx: Scope) -> Element {
         &i18n_map, key_login_chat_errors_unknown,
     );
 
-    let on_update_homeserver = move || {
-        cx.spawn({
-            to_owned![homeserver, auth];
-
-            async move {
-                auth.set_server(homeserver.get()).await;
-            }
-        })
-    };
-
     let on_handle_clear = Rc::new(move || {
         cx.spawn({
-            to_owned![homeserver, username, password, auth, login_from];
+            to_owned![username, password, auth, login_from];
 
             async move {
                 auth.reset();
                 login_from.set(LoginFrom::FullForm);
 
-                homeserver.set(String::new());
                 username.set(String::new());
                 password.set(String::new());
             }
@@ -164,25 +150,33 @@ pub fn Login(cx: Scope) -> Element {
     let on_handle_clear_clone = on_handle_clear.clone();
 
     let on_handle_login = Rc::new(move || {
-        auth.set_server(homeserver.get());
-        auth.set_username(username.get(), true);
-        auth.set_password(password.get());
-
         cx.spawn({
-            to_owned![auth, session, username, password, is_loading_loggedin, client, error, error_invalid_credentials, error_unknown, homeserver, notification];
-
+            to_owned![auth, session, username, password, is_loading_loggedin, client, error, error_invalid_credentials, error_unknown, homeserver, notification, key_login_chat_errors_invalid_server];
+            
             async move {
                 is_loading_loggedin.set(LoggedInStatus::Loading);
-                let login_config = auth.build();
+                if username.get().contains(':') {
+                    let parts = username.get().splitn(2, ':').collect::<Vec<&str>>();
 
+                    if let Err(_) = auth.set_server(parts[1]).await {
+                        notification.handle_error(&format!("{}: {}", key_login_chat_errors_invalid_server, parts[1]));
+                        is_loading_loggedin.set(LoggedInStatus::Start);
+                        return;
+                    };
+                }
+
+                auth.set_server(homeserver.get()).await;
+                auth.set_username(username.get(), true);
+                auth.set_password(password.get());
+                
+                let login_config = auth.build();
+                
                 let Ok(info) = login_config else  {
-                    homeserver.set(String::new());
                     username.set(String::new());
                     password.set(String::new());
                     
                     return auth.reset();
                 };
-
                 let response = login(
                     &info.server.to_string(),
                     &info.username,
@@ -233,7 +227,6 @@ pub fn Login(cx: Scope) -> Element {
                             error.set(Some(error_unknown))
                         }
 
-                        homeserver.set(String::new());
                         username.set(String::new());
                         password.set(String::new());
                         
@@ -248,23 +241,27 @@ pub fn Login(cx: Scope) -> Element {
     let on_handle_login_clone = on_handle_login.clone();
 
     use_coroutine(cx, |_: UnboundedReceiver::<()>| {
-        to_owned![auth, homeserver, username];
+        to_owned![auth, homeserver, username, client];
         
         async move {
-            let data = auth.get_storage_data();
+            let Ok(data) = auth.get_storage_data() else {
+                let url = client.get().homeserver().await;
+                let Some(domain) = url.domain() else {
+                    return;
+                };
+                return homeserver.set(format!("{}://{}", url.scheme(), domain));
+            };
 
-            if let Ok(data) = data {
-                let deserialize_data = serde_json::from_str::<CacheLogin>(&data);
+            let deserialize_data = serde_json::from_str::<CacheLogin>(&data);
 
-                if let Ok(data) = deserialize_data {
-                    auth.set_login_cache(data.clone());
+            if let Ok(data) = deserialize_data {
+                auth.set_login_cache(data.clone());
 
-                    homeserver.set(data.server.clone());
-                    username.set(data.username.clone());
-                    
-                    auth.set_server(&data.server).await;
-                    auth.set_username(&data.username, true);
-                }
+                homeserver.set(data.server.clone());
+                username.set(data.username.clone());
+                
+                auth.set_server(&data.server).await;
+                auth.set_username(&data.username, true);
             }
         }
     });
@@ -319,45 +316,6 @@ pub fn Login(cx: Scope) -> Element {
                                     }
                                 }
                             }
-                        ))
-                    }
-                )
-            } else if auth.get().data.server.is_none() {
-                let on_handle_login = on_handle_login.clone();
-                rsx!(
-                    LoginForm {
-                        title: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_message)}",
-                        description: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_description)}",
-                        button_text: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_cta)}",
-                        emoji: "🛰️",
-                        error: error.get().as_ref(),
-                        on_handle: move |event: FormLoginEvent| match event {
-                            FormLoginEvent::FilledForm => on_update_homeserver(),
-                            FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
-                            FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
-                            FormLoginEvent::ClearData => on_handle_clear()
-                        },
-                        status: None,
-                        body: render!(rsx!(
-                            div {
-                                MessageInput {
-                                    message: "{homeserver.get()}",
-                                    placeholder: "{i18n_get_key_value(&i18n_map, key_login_chat_homeserver_placeholder)}",
-                                    error: None,
-                                    on_input: move |event: FormEvent| {
-                                        homeserver.set(event.value.clone())
-                                    },
-                                    on_keypress: move |event: KeyboardEvent| {
-                                        if event.code() == keyboard_types::Code::Enter && !homeserver.get().is_empty() {
-                                            on_update_homeserver()
-                                        }
-                                    },
-                                    on_click: move |_| {
-                                        on_update_homeserver()
-                                    }
-                                }
-                            },
-                        
                         ))
                     }
                 )

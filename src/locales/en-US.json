@@ -8,6 +8,12 @@
                     "found": "Session found",
                     "restoring": "Restoring session"
                 }
+            },
+            "errors": {
+                "homeserver": {
+                    "invalid_url": "Url isn't valid"
+                },
+                "restore": "Can't restore session"
             }
         },
         "login": {
@@ -52,7 +58,8 @@
                 "invalid_url": "Error: Relative URL without base",
                 "unknown": "Error: Unknown error",
                 "invalid_username_password": "Error: Invalid username or password",
-                "not_found": "User not found"
+                "not_found": "User not found",
+                "invalid_server": "Invalid server"
             },
             "status": {
                 "loading": "We are verifying your data",

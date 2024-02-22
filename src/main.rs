@@ -8,16 +8,18 @@ use chat::hooks::use_session::use_session;
 use chat::pages::login::{LoggedIn, Login};
 use chat::pages::route::Route;
 use chat::pages::signup::Signup;
-use chat::utils::get_element;
+use chat::utils::get_homeserver::{Homeserver, HomeserverError};
+use chat::utils::{get_element, get_homeserver};
 use chat::MatrixClientState;
 use dioxus::prelude::*;
 use dioxus_router::prelude::Router;
 use gloo::storage::errors::StorageError;
 use gloo::storage::LocalStorage;
-use log::{info, LevelFilter};
+use log::LevelFilter;
 
 use chat::services::matrix::matrix::*;
 use dioxus_std::{i18n::*, translate};
+use futures_util::TryFutureExt;
 use matrix_sdk::config::SyncSettings;
 use matrix_sdk::ruma::exports::serde_json;
 use matrix_sdk::Client;
@@ -25,9 +27,7 @@ use ruma::api::client::filter::{Filter, FilterDefinition, RoomEventFilter, RoomF
 use ruma::api::client::sync::sync_events;
 use ruma::events::EventType;
 use std::str::FromStr;
-use std::time::Duration;
 use unic_langid::LanguageIdentifier;
-use web_sys::console::info;
 use web_sys::window;
 
 fn main() {
@@ -69,7 +69,10 @@ fn App(cx: Scope) -> Element {
         use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
 
     let key_chat_common_error_sync = translate!(i18, "chat.common.error.sync");
-    let key_chat_common_error_default_server = translate!(i18, "logout.chat.common.error.default_server");
+    let key_chat_common_error_default_server = translate!(i18, "chat.common.error.default_server");
+    let key_main_error_homeserver_invalid_url =
+        translate!(i18, "main.errors.homeserver.invalid_url");
+    let key_main_error_restore = translate!(i18, "main.errors.restore");
 
     let restoring_session = use_ref::<bool>(cx, || true);
 
@@ -77,9 +80,19 @@ fn App(cx: Scope) -> Element {
         to_owned![client, auth, restoring_session, session, notification];
 
         async move {
-            let Ok(c) = create_client("https://matrix.org").await else {
-                return notification.handle_error(&key_chat_common_error_default_server);
-            };
+            let homeserver = Homeserver::new().map_err(|e| match e {
+                HomeserverError::InvalidUrl => key_main_error_homeserver_invalid_url,
+            })?;
+
+            let c = create_client(&homeserver.get_base_url())
+                .await
+                .map_err(|_| {
+                    format!(
+                        "{} {}",
+                        key_chat_common_error_default_server,
+                        homeserver.get_base_url()
+                    )
+                })?;
 
             client.set(MatrixClientState {
                 client: Some(c.clone()),
@@ -89,27 +102,32 @@ fn App(cx: Scope) -> Element {
                 <LocalStorage as gloo::storage::Storage>::get("session_file");
 
             let Ok(s) = serialized_session else {
-                return restoring_session.set(false);
+                restoring_session.set(false);
+                return Ok(());
             };
 
             let (c, sync_token) = restore_session(&s)
                 .await
-                .expect("can't restore session: main");
+                .map_err(|_| key_main_error_restore)?;
 
             client.set(MatrixClientState {
                 client: Some(c.clone()),
             });
 
-            let sync_response = session.sync(c.clone(), sync_token).await;
-
-            let Ok(()) = sync_response else {
-                return notification.handle_error(&key_chat_common_error_sync);
-            };
+            session
+                .sync(c.clone(), sync_token)
+                .await
+                .map_err(|_| key_chat_common_error_sync)?;
 
             auth.set_logged_in(true);
 
             restoring_session.set(false);
+
+            Ok::<(), String>(())
         }
+        .unwrap_or_else(move |e: String| {
+            notification.handle_error(&e);
+        })
     });
 
     render! {
