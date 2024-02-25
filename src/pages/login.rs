@@ -335,7 +335,7 @@ pub fn Login(cx: Scope) -> Element {
                         emoji: "👋",
                         error: error.get().as_ref(),
                         on_handle: on_handle_form_event,
-                        status: loggedin_status.map(|t|String::from(t)),
+                        status: loggedin_status.map(String::from),
                         body: render!(rsx!(
                             div {
                                 MessageInput {
