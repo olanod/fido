@@ -17,10 +17,10 @@ log = "0.4.17"
 matrix-sdk = { version = "0.6.2", default-features = false, features = ["js", "native-tls", "e2e-encryption", "indexeddb", "experimental-timeline"] }
 tokio = "1.27.0"
 url = "2.3.1"
-web-sys = {version = "0.3.61", features = ["Document", "Element", "HtmlElement", "HtmlBodyElement", "Node", "NodeList", "Window", "console", "CssStyleDeclaration"]}
+web-sys = {version = "0.3.61", features = ["Document", "Element", "HtmlElement", "HtmlBodyElement", "Node", "NodeList", "Window", "console", "CssStyleDeclaration", "Location"]}
 time = "0.3.22"
 anyhow = "1"
-serde = { version = "1.0.96", features = ["derive"]}
+serde = { version = "1.0.96", features = ["derive"] }
 mime = "0.3.17"
 js-sys = "0.3.64"
 wasm-bindgen = "0.2.55"
@@ -31,3 +31,5 @@ infer = "0.15.0"
 ruma = { version = "0.7.4", features = ["unstable-sanitize", "unstable-msc2677", "unstable-msc3440", "client"] }
 uuid = "0.8"
 unic-langid = "0.9.1"
+reqwest = "0.11"
+http = "0.2"

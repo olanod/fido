@@ -8,6 +8,12 @@
                     "fount": "Sesión encontrada",
                     "restoring": "Restaurando sesión"
                 }
+            },
+            "errors": {
+                "homeserver": {
+                    "invalid_url": "Url encontrada no es válida"
+                },
+                "restore": "No se ha podido restaurar la sesión"
             }
         },
         "login": {
@@ -52,7 +58,8 @@
                 "invalid_url": "Error: URL relativa sin base",
                 "unknown": "Error: Error desconocido",
                 "invalid_username_password": "Error: Nombre de usuario o contraseña inválidos",
-                "not_found": "No se ha encontrado el usuario"
+                "not_found": "No se ha encontrado el usuario",
+                "invalid_server": "El servidor no es válido"
             },
             "status": {
                 "loading": "Estamos verificando tus datos",

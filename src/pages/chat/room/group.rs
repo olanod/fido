@@ -346,6 +346,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     class: "group__cta__wrapper row",
                     Button {
                         text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_back)}",
+                        status: None, 
                         variant: &Variant::Secondary,
                         on_click: move |_| {
                             handle_complete_group.set(false)
@@ -353,6 +354,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     }
                     Button {
                         text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_create)}",
+                        status: None,
                         disabled: group_name.get().len() == 0,
                         on_click: on_handle_create
                     }
@@ -421,6 +423,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     Button {
                         text: "{i18n_get_key_value(&i18n_map, key_group_select_cta)}",
                         disabled: if selected_users.read().profiles.len() == 0 { true } else { false },
+                        status: None,
                         on_click: move |_| {
                             handle_complete_group.set(true)
                         }

@@ -63,6 +63,7 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
                                 Button {
                                     text: "{key_attach_preview_cta_cancel}",
                                     variant: &Variant::Secondary,
+                                    status: None,
                                     on_click: on_handle_card
                                 }
                             }
@@ -103,6 +104,7 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
                                     Button {
                                         text: "{key_attach_preview_cta_cancel}",
                                         variant: &Variant::Secondary,
+                                        status: None,
                                         on_click: on_handle_card
                                     }
                                 }

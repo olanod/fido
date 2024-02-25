@@ -190,6 +190,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                 rsx!(
                     Button {
                         text: "{key_input_message_cta}",
+                        status: None,
                         on_click: move |event| {
                             if let Some(l) = &cx.props.on_attach {
                                 let attachment = Attachment {
