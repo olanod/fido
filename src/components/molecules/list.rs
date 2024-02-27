@@ -28,6 +28,8 @@ pub struct ListProps<'a> {
     thread: Option<Vec<TimelineMessage>>,
     is_loading: bool,
     on_scroll: EventHandler<'a, ListEvent>,
+    #[props(default = false)]
+    show_load_button: bool
 }
 
 pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
@@ -357,7 +359,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                                         info!("thread");
                                                     }
                                                 }
-                                                
+                                                 
                                             }
                                         }
                                     ))
@@ -367,6 +369,20 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                     )
                 }
             )
+            if cx.props.show_load_button && !cx.props.is_loading {
+                rsx!(
+                    div {
+                        class: "list__cta",
+                        button {
+                            class: "button button--secondary button--small",
+                            onclick: move |_| {
+                                cx.props.on_scroll.call(ListEvent {  });
+                            },
+                            translate!(i18, "chat.message_list.see_more")
+                        }
+                    }
+                )
+            } 
         }
     })
 }
