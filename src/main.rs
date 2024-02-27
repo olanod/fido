@@ -31,7 +31,7 @@ use unic_langid::LanguageIdentifier;
 use web_sys::window;
 
 fn main() {
-    dioxus_logger::init(LevelFilter::Info).expect("failed to init logger");
+    wasm_logger::init(wasm_logger::Config::default());
     dioxus_web::launch(App);
 }
 
@@ -84,15 +84,17 @@ fn App(cx: Scope) -> Element {
                 HomeserverError::InvalidUrl => key_main_error_homeserver_invalid_url,
             })?;
 
-            let c = create_client(&homeserver.get_base_url())
-                .await
-                .map_err(|_| {
-                    format!(
-                        "{} {}",
-                        key_chat_common_error_default_server,
-                        homeserver.get_base_url()
-                    )
-                })?;
+            let c = create_client(&homeserver.get_base_url()).await.unwrap_or(
+                create_client(&Homeserver::default().get_base_url())
+                    .await
+                    .map_err(|_| {
+                        format!(
+                            "{} {}",
+                            key_chat_common_error_default_server,
+                            homeserver.get_base_url()
+                        )
+                    })?,
+            );
 
             client.set(MatrixClientState {
                 client: Some(c.clone()),
