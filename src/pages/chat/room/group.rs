@@ -3,26 +3,29 @@ use std::{collections::HashMap, ops::Deref};
 use dioxus::{html::input_data::keyboard_types, prelude::*};
 use dioxus_router::prelude::use_navigator;
 use dioxus_std::{i18n::use_i18, translate};
-use matrix_sdk::{
-    config::SyncSettings,
-    ruma::{OwnedUserId, UserId},
-};
+use matrix_sdk::ruma::{OwnedUserId, UserId};
 
 use crate::{
-    components::atoms::{
-        attach::AttachType, button::Variant, Attach, Avatar, Button, Close, Header, Icon,
-        MessageInput, RoomView,
+    components::{
+        atoms::{
+            attach::AttachType, button::Variant, Attach, Avatar, Button, Close, Header, Icon,
+            MessageInput, RoomView,
+        },
+        molecules::rooms::CurrentRoom,
     },
     hooks::{
         use_attach::{use_attach, AttachError, AttachFile},
         use_client::{use_client, UseClientState},
-        use_notification::{
-            use_notification, NotificationHandle, NotificationItem, NotificationType,
-        },
+        use_notification::use_notification,
+        use_room::use_room,
     },
+    pages::chat::room::new::CreationStatus,
     services::matrix::matrix::create_room,
-    utils::i18n_get_key_value::i18n_get_key_value,
-    utils::matrix::{mxc_to_thumbnail_uri, ImageMethod, ImageSize},
+    utils::{
+        i18n_get_key_value::i18n_get_key_value,
+        matrix::{mxc_to_thumbnail_uri, ImageMethod, ImageSize},
+        sync_room::sync_created_room,
+    },
 };
 use futures_util::{StreamExt, TryFutureExt};
 
@@ -112,6 +115,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
     let client = use_client(cx);
     let attach = use_attach(cx);
     let notification = use_notification(cx);
+    let room = use_room(cx);
 
     let selected_users =
         use_shared_state::<SelectedProfiles>(cx).expect("Unable to use SelectedProfile");
@@ -124,6 +128,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
 
     let handle_complete_group = use_ref::<bool>(cx, || false);
     let group_name = use_state::<String>(cx, || String::from(""));
+    let status = use_state::<CreationStatus>(cx, || CreationStatus::Start);
 
     let task_search_user = use_coroutine(cx, |mut rx: UnboundedReceiver<String>| {
         to_owned![client, users, notification, key_group_error_not_found];
@@ -158,12 +163,15 @@ pub fn RoomGroup(cx: Scope) -> Element {
                 key_group_error_not_found,
                 key_common_error_server,
                 key_group_success_description,
-                notification
+                notification,
+                status,
+                room
             ];
 
-            let notification_success = notification.clone();
+            let status_error = status.clone();
 
             async move {
+                status.set(CreationStatus::Creating);
                 let users = selected_users
                     .read()
                     .profiles
@@ -180,16 +188,27 @@ pub fn RoomGroup(cx: Scope) -> Element {
                         .await
                         .map_err(|_| CreateRoomError::ServerError)?;
 
-                let _ = client.get().sync_once(SyncSettings::default()).await;
+                status.set(CreationStatus::Ok);
 
-                notification_success.handle_notification(NotificationItem {
-                    title: name,
-                    body: key_group_success_description,
-                    show: true,
-                    handle: NotificationHandle {
-                        value: NotificationType::None,
-                    },
+                sync_created_room(&room_meta.room_id, &client.get()).await;
+
+                let room_info = client
+                    .get()
+                    .get_room(&room_meta.room_id)
+                    .expect("Unable to load created room");
+
+                room.set(CurrentRoom {
+                    id: room_meta.room_id.to_string().clone(),
+                    name: name,
+                    avatar_uri: room_info
+                        .avatar_url()
+                        .map(|uri| {
+                            mxc_to_thumbnail_uri(&uri, ImageSize::default(), ImageMethod::CROP)
+                        })
+                        .flatten(),
                 });
+
+                navigation.go_back();
 
                 Ok::<(), CreateRoomError>(())
             }
@@ -201,6 +220,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     CreateRoomError::ServerError => &key_common_error_server,
                 };
 
+                status_error.set(CreationStatus::Error(e));
                 notification.handle_error(&message_error);
             })
         })
@@ -342,25 +362,90 @@ pub fn RoomGroup(cx: Scope) -> Element {
                         )
                     }).flatten()
                 })
-                div {
-                    class: "group__cta__wrapper row",
-                    Button {
-                        text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_back)}",
-                        status: None, 
-                        variant: &Variant::Secondary,
-                        on_click: move |_| {
-                            handle_complete_group.set(false)
+                if !matches!(status.get(), CreationStatus::Start) {
+                    rsx!(
+                        match status.get() {
+                            CreationStatus::Creating => {
+                                render!(rsx! {
+                                    div {
+                                        class: "room-new__status-container",
+                                        p {
+                                            class: "room-new__status__description",
+                                            translate!(i18, "group.status.creating")
+                                        }
+                                    }
+                                })
+                            },
+                            CreationStatus::Ok => {
+                                render!(rsx! {
+                                    div {
+                                        class: "room-new__status-container",
+                                        p {
+                                            class: "room-new__status__description",
+                                            translate!(i18, "group.status.created")
+                                        }
+                                    }
+                                })
+                            },
+                            CreationStatus::Error(CreateRoomError::ServerError) => {
+                                let cta_back = translate!(i18, "group.status.error.cta.back");
+                                let cta_try = translate!(i18, "group.status.error.cta.try");
+                                render!(rsx! {
+                                    div {
+                                        class: "room-new__status-container",
+                                        h3 {
+                                            class: "room-new__status__title",
+                                            translate!(i18, "group.status.error.title")
+                                        }
+                                        p {
+                                            class: "room-new__status__description",
+                                            translate!(i18, "group.status.error.description")
+                                        }
+                                        div {
+                                            class: "row room-new__status-cta",
+                                            Button{
+                                                text: "{cta_back}",
+                                                variant: &Variant::Secondary,
+                                                on_click: move |_| {
+                                                    navigation.go_back()
+                                                },
+                                                status: None
+                                            }
+                                            Button{
+                                                text: "{cta_try}",
+                                                on_click: on_handle_create,
+                                                status: None
+                                            }
+                                        }
+                                    }
+                                })
+                            },
+                            _ => None
                         }
-                    }
-                    Button {
-                        text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_create)}",
-                        status: None,
-                        disabled: group_name.get().len() == 0,
-                        on_click: on_handle_create
-                    }
+                    )
+                } else {
+                    rsx!(
+                        div {
+                            class: "group__cta__wrapper row",
+                            Button {
+                                text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_back)}",
+                                status: None,
+                                variant: &Variant::Secondary,
+                                on_click: move |_| {
+                                    handle_complete_group.set(false)
+                                }
+                            }
+                            Button {
+                                text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_create)}",
+                                status: None,
+                                disabled: group_name.get().len() == 0,
+                                on_click: on_handle_create
+                            }
+                        }
+                    )
                 }
             )
-        }else{
+        } else {
             rsx!(
                 MessageInput{
                     message: "{user_id.get()}",

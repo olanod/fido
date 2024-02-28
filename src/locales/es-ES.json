@@ -261,6 +261,18 @@
                 "dm": "Ha ocurrido un error al crear el DM",
                 "profile": "Perfil no encontrado",
                 "file": "Tipo de archivo no válido"
+            },
+            "status": {
+                "creating": "El chat se está creando. Espera un momento",
+                "created": "El chat ha sido creado, pronto te vamos a redirigir",
+                "error": {
+                    "title": "Oops...",
+                    "description": "No se ha podido crear el chat. ¿Quieres volver a intentarlo?",
+                    "cta": {
+                        "back": "Volver",
+                        "try": "Intentar de nuevo"
+                    }
+                }
             }
         },
         "group": {
@@ -289,6 +301,18 @@
             },
             "success": {
                 "description": "El grupo ha sido creado"
+            },
+            "status": {
+                "creating": "El grupo se está creando. Espera un momento",
+                "created": "El grupo ha sido creado, pronto te vamos a redirigir",
+                "error": {
+                    "title": "Oops...",
+                    "description": "No se ha podido crear el grupo. ¿Quieres volver a intentarlo?",
+                    "cta": {
+                        "back": "Volver",
+                        "try": "Intentar de nuevo"
+                    }
+                }
             }
         },
         "verify": {
