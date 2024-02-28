@@ -36,7 +36,7 @@ ul {
 
 .button--tertiary {
   border: none;
-  color: var(--text-loud);
+  color: var(--text-1);
   border-radius: 0;
   padding: 0 8px;
 }
@@ -150,7 +150,7 @@ ul {
 }
 
 .notification {
-  background: white;
+  background: var(--background-modal);
   color: var(--text-1);
   border: 1px solid transparent;
   width: 100%;
