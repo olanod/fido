@@ -137,6 +137,14 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
         }
     });
 
+    use_effect(cx, &(room.get().id), |id| {
+        to_owned![task_timeline, from];
+        async move {
+            from.set(None);
+            task_timeline.send(true);
+        }
+    });
+
     cx.use_hook(move || UseChatState {
         inner: ChatState {
             messages: messages.get().clone(),

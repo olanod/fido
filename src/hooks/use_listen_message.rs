@@ -92,19 +92,10 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                             TimelineRelation::CustomThread(TimelineThread {
                                                 event_id: timeline_thread.event_id.clone(),
                                                 thread: timeline_thread.thread.clone(),
-                                                latest_event: match timeline_thread.thread
+                                                latest_event: timeline_thread.thread
                                                     [timeline_thread.thread.len() - 1]
                                                     .clone()
-                                                    .event_id
-                                                {
-                                                    Some(id) => id,
-                                                    None => {
-                                                        notification.handle_error(
-                                                            &key_common_error_thread_id,
-                                                        );
-                                                        return;
-                                                    }
-                                                },
+                                                    .event_id,
                                                 count: timeline_thread.thread.len(),
                                             });
 
@@ -123,12 +114,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                         return false;
                                     };
 
-                                    let Some(ref id) = timeline_message.event_id else {
-                                        notification.handle_error(&key_common_error_event_id);
-                                        return false;
-                                    };
-
-                                    t.event_id.eq(id)
+                                    t.event_id.eq(&timeline_message.event_id)
                                 });
 
                                 match position {
@@ -138,13 +124,11 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                     }
                                     None => {
                                         if is_in_current_room {
-                                            let Some(position) = message_position_local else {
+                                            if let Some(position) = message_position_local {
+                                                msgs[position] = message.clone()
+                                            } else {
                                                 msgs.push(message.clone());
-
-                                                return;
-                                            };
-
-                                            msgs[position] = message.clone()
+                                            }
                                         } else {
                                             plain_message = Some(message_to_plain_content(
                                                 &timeline_message.body,
@@ -159,13 +143,11 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                             }
                             TimelineRelation::Reply(timeline_message) => {
                                 if is_in_current_room {
-                                    let Some(position) = message_position_local else {
+                                    if let Some(position) = message_position_local {
+                                        msgs[position] = message.clone();
+                                    } else {
                                         msgs.push(message.clone());
-
-                                        return;
                                     };
-
-                                    msgs[position] = message.clone()
                                 } else {
                                     plain_message = Some(message_to_plain_content(
                                         &timeline_message.event.body,
@@ -200,20 +182,18 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                         }));
                                     }
                                 } else if let TimelineRelation::None(t) = m {
-                                    if let Some(event_id) = &t.event_id {
-                                        if event_id.eq(&thread.event_id) {
-                                            let mut new_thread = thread.clone();
+                                    if t.event_id.eq(&thread.event_id) {
+                                        let mut new_thread = thread.clone();
 
-                                            new_thread.thread.push(t.clone());
+                                        new_thread.thread.push(t.clone());
 
-                                            threading_to.set(Some(TimelineThread {
-                                                event_id: event_id.clone(),
-                                                thread: new_thread.thread.clone(),
-                                                count: new_thread.count.clone(),
-                                                latest_event: new_thread.latest_event.clone(),
-                                            }));
-                                        }
-                                    };
+                                        threading_to.set(Some(TimelineThread {
+                                            event_id: t.event_id.clone(),
+                                            thread: new_thread.thread.clone(),
+                                            count: new_thread.count.clone(),
+                                            latest_event: new_thread.latest_event.clone(),
+                                        }));
+                                    }
                                 }
                             });
                         }
@@ -324,20 +304,16 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
 
                             if let Some((uuid, event_id)) = to_find {
                                 position = back_messages.iter().position(|m| match m {
-                                    TimelineRelation::None(relation) => {
-                                        relation.event_id.as_ref() == Some(&uuid)
-                                    }
+                                    TimelineRelation::None(relation) => relation.event_id == uuid,
                                     TimelineRelation::Reply(relation) => {
-                                        relation.event.event_id.as_ref() == Some(&uuid)
+                                        relation.event.event_id == uuid
                                     }
-                                    TimelineRelation::CustomThread(relation) => relation
-                                        .thread
-                                        .iter()
-                                        .any(|rm| rm.event_id.as_ref() == Some(&uuid)),
-                                    TimelineRelation::Thread(relation) => relation
-                                        .thread
-                                        .iter()
-                                        .any(|rm| rm.event_id.as_ref() == Some(&uuid)),
+                                    TimelineRelation::CustomThread(relation) => {
+                                        relation.thread.iter().any(|rm| rm.event_id == uuid)
+                                    }
+                                    TimelineRelation::Thread(relation) => {
+                                        relation.thread.iter().any(|rm| rm.event_id == uuid)
+                                    }
                                 });
 
                                 info!("position {:?}", position);

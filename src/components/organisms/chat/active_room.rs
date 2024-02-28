@@ -112,6 +112,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                     messages: messages.clone(),
                     thread: None,
                     is_loading: is_loading,
+                    show_load_button: true,
                     on_scroll: move |_| {
                         use_m.loadmore("{room.get().id}");
                     }

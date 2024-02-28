@@ -28,6 +28,8 @@ pub struct ListProps<'a> {
     thread: Option<Vec<TimelineMessage>>,
     is_loading: bool,
     on_scroll: EventHandler<'a, ListEvent>,
+    #[props(default = false)]
+    show_load_button: bool
 }
 
 pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
@@ -102,10 +104,9 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                 TimelineRelation::None(message) => {
                                     let message = message.clone();
                                     let event_id = message.event_id.clone();
-
                                     cx.render(rsx!(
                                         MessageView {
-                                            key: "{i}",
+                                            key: "{event_id}",
                                             message: Message {
                                                 id: i as i64,
                                                 event_id: message.event_id,
@@ -124,17 +125,15 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                                         info!("TODO: handle download")
                                                     }
                                                     MenuOption::Reply => {
-                                                        if let Some(eid) = &event_id {
-                                                            let replying = ReplyingTo { 
-                                                                event_id: eid.clone(), 
-                                                                content: message.body.clone(), 
-                                                                display_name: message.sender.name.clone(), 
-                                                                avatar_uri: message.sender.avatar_uri.clone(),
-                                                                origin: message.origin.clone()
-                                                            };
-                                                            
-                                                            replying_to.set(Some(replying));
-                                                        }
+                                                        let replying = ReplyingTo { 
+                                                            event_id: event_id.clone(), 
+                                                            content: message.body.clone(), 
+                                                            display_name: message.sender.name.clone(), 
+                                                            avatar_uri: message.sender.avatar_uri.clone(),
+                                                            origin: message.origin.clone()
+                                                        };
+                                                        
+                                                        replying_to.set(Some(replying));
                                                     }
                                                     MenuOption::Close => {
                                                         info!("close");
@@ -145,9 +144,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                                     MenuOption::CreateThread => {
                                                         info!("create thread");
                                                         let thread = vec![TimelineMessage { event_id: event_id.clone(), sender: message.sender.clone(), body: message.body.clone(), origin: message.origin.clone(), time: message.time.clone() }];
-                                                        if let Some(e) = &event_id {
-                                                            threading_to.set(Some(TimelineThread { event_id: e.clone(), thread, count: 0, latest_event: e.clone() }));
-                                                        }
+                                                        threading_to.set(Some(TimelineThread { event_id: event_id.clone(), thread, count: 0, latest_event: event_id.clone() }));
                                                     }
 
                                                 }
@@ -176,7 +173,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
 
                                     cx.render(rsx!(
                                         MessageView {
-                                            key: "{i}",
+                                            key: "{event_id}",
                                             message: Message {
                                                 id: i as i64,
                                                 event_id: message.event_id,
@@ -197,17 +194,15 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                                         info!("TODO: handle download")
                                                     }
                                                     MenuOption::Reply => {
-                                                        if let Some(eid) = &event_id {
-                                                            let replying = ReplyingTo { 
-                                                                event_id: eid.clone(), 
-                                                                content: message.body.clone(), 
-                                                                display_name: message.sender.name.clone(), 
-                                                                avatar_uri: message.sender.avatar_uri.clone(),
-                                                                origin: message.origin.clone()
-                                                            };
-                                                            
-                                                            replying_to.set(Some(replying));
-                                                        }
+                                                        let replying = ReplyingTo { 
+                                                            event_id: event_id.clone(), 
+                                                            content: message.body.clone(), 
+                                                            display_name: message.sender.name.clone(), 
+                                                            avatar_uri: message.sender.avatar_uri.clone(),
+                                                            origin: message.origin.clone()
+                                                        };
+                                                        
+                                                        replying_to.set(Some(replying));
                                                     }
                                                     MenuOption::Close => {
                                                         info!("close");
@@ -252,10 +247,9 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                         thread_avatars.push(Sender{avatar_uri: t.sender.avatar_uri.clone(), display_name: t.sender.name.clone()})
                                     }
 
-
                                     cx.render(rsx!(
                                         MessageView {
-                                            key: "{i}",
+                                            key: "{event_id}",
                                             message: Message {
                                                 id: i as i64,
                                                 event_id: head_message.event_id.clone(),
@@ -311,10 +305,9 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                 messages.iter().enumerate().map(|(i, m)| {
                                     let message = m.clone();
                                     let event_id = message.event_id.clone();
-
                                     cx.render(rsx!(
                                         MessageView {
-                                            key: "{i}",
+                                            key: "{event_id}",
                                             message: Message {
                                                 id: i as i64,
                                                 event_id: message.event_id,
@@ -335,17 +328,15 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                                         info!("TODO: handle download")
                                                     }
                                                     MenuOption::Reply => {
-                                                        if let Some(eid) = &event_id {
-                                                            let replying = ReplyingTo { 
-                                                                event_id: eid.clone(), 
-                                                                content: message.body.clone(), 
-                                                                display_name: message.sender.name.clone(), 
-                                                                avatar_uri: message.sender.avatar_uri.clone(),
-                                                                origin: message.origin.clone()
-                                                            };
-                                                            
-                                                            replying_to.set(Some(replying));
-                                                        }
+                                                        let replying = ReplyingTo { 
+                                                            event_id: event_id.clone(), 
+                                                            content: message.body.clone(), 
+                                                            display_name: message.sender.name.clone(), 
+                                                            avatar_uri: message.sender.avatar_uri.clone(),
+                                                            origin: message.origin.clone()
+                                                        };
+                                                        
+                                                        replying_to.set(Some(replying));
                                                     }
                                                     MenuOption::Close => {
                                                         info!("close");
@@ -357,7 +348,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                                         info!("thread");
                                                     }
                                                 }
-                                                
+                                                 
                                             }
                                         }
                                     ))
@@ -367,6 +358,20 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                     )
                 }
             )
+            if cx.props.show_load_button && !cx.props.is_loading {
+                rsx!(
+                    div {
+                        class: "list__cta",
+                        button {
+                            class: "button button--secondary button--small",
+                            onclick: move |_| {
+                                cx.props.on_scroll.call(ListEvent {  });
+                            },
+                            translate!(i18, "chat.message_list.see_more")
+                        }
+                    }
+                )
+            } 
         }
     })
 }
