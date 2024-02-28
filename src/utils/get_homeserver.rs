@@ -8,6 +8,14 @@ pub struct Homeserver {
     base_url: String,
 }
 
+impl Default for Homeserver {
+    fn default() -> Self {
+        Self {
+            base_url: "https://matrix.org".to_string(),
+        }
+    }
+}
+
 pub enum HomeserverError {
     InvalidUrl,
 }

@@ -108,7 +108,7 @@ pub struct UseAuthState {
     login_cache: UseSharedState<Option<CacheLogin>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UseAuth {
     pub data: LoginInfoBuilder,
     pub error: Option<AuthError>,
@@ -172,12 +172,18 @@ impl UseAuthState {
                 username_parse = format!("@{}", username_parse);
             }
 
-            if let Some(server) = &self.data.read().server {
-                if let Some(domain) = server.domain() {
-                    let domain_name = extract_domain_name(domain);
-                    if !username_parse.ends_with(domain_name.as_str()) {
-                        username_parse = format!("{}:{}", username_parse, domain_name);
-                    }
+            if !username_parse.contains(':') {
+                let Some(server) = &self.data.read().server else {
+                    return;
+                };
+
+                let Some(domain) = server.domain() else {
+                    return;
+                };
+                
+                let domain_name = extract_domain_name(domain);
+                if !username_parse.ends_with(domain_name.as_str()) {
+                    username_parse = format!("{}:{}", username_parse, domain_name);
                 }
             }
         }

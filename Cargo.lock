@@ -362,7 +362,6 @@ dependencies = [
  "anyhow",
  "chrono",
  "dioxus",
- "dioxus-logger",
  "dioxus-router",
  "dioxus-std",
  "dioxus-web",
@@ -385,6 +384,7 @@ dependencies = [
  "url",
  "uuid 0.8.2",
  "wasm-bindgen",
+ "wasm-logger",
  "web-sys",
 ]
 
@@ -811,16 +811,6 @@ dependencies = [
  "sledgehammer_bindgen",
  "sledgehammer_utils",
  "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
-name = "dioxus-logger"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d7cbab0b5519060fe9e14b3c21e3f2329b8386cd905618f78c7b929cd00cf54"
-dependencies = [
- "log",
  "web-sys",
 ]
 
@@ -3531,6 +3521,17 @@ name = "wasm-bindgen-shared"
 version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca6ad05a4870b2bf5fe995117d3728437bd27d7cd5f06f13c17443ef369775a1"
+
+[[package]]
+name = "wasm-logger"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "074649a66bb306c8f2068c9016395fa65d8e08d2affcbf95acf3c24c3ab19718"
+dependencies = [
+ "log",
+ "wasm-bindgen",
+ "web-sys",
+]
 
 [[package]]
 name = "wasm-timer"
