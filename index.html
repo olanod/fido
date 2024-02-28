@@ -289,18 +289,6 @@
     function onRecaptchaSuccess(token) {
       localStorage.setItem("recaptcha", `"${token}"`)
     }
-
-    function deleteIndexedDB(databaseName) {
-      let DBDeleteRequest = indexedDB.deleteDatabase(databaseName);
-
-      DBDeleteRequest.onerror = function (event) {
-        console.log('Error deleting database.');
-      };
-
-      DBDeleteRequest.onsuccess = function (event) {
-        console.log('Database deleted successfully');
-      };
-    }
   </script>
   {script_include}
 </body>

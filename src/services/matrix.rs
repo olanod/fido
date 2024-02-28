@@ -1154,7 +1154,7 @@ pub mod matrix {
         let uiaa_dummy = uiaa::Dummy::new();
         request.auth = Some(uiaa::AuthData::Dummy(uiaa_dummy));
 
-        let result = build_client(homeserver).await;
+        let result = build_client(homeserver, username).await;
         let (client, client_session) = match result {
             Ok((client, client_session)) => (client, client_session),
             Err(_) => panic!("Can't create client"),
@@ -1185,7 +1185,7 @@ pub mod matrix {
             request.auth = Some(uiaa::AuthData::ReCaptcha(uiaa_recaptcha));
         }
 
-        let result = build_client(homeserver).await;
+        let result = build_client(homeserver, username).await;
         let (client, client_session) = match result {
             Ok((client, client_session)) => (client, client_session),
             Err(_) => panic!("Can't create client"),
@@ -1210,7 +1210,7 @@ pub mod matrix {
     ) -> anyhow::Result<(Client, String)> {
         info!("No previous session found, logging in…");
 
-        let (client, client_session) = build_client(homeserver).await?;
+        let (client, client_session) = build_client(homeserver, username).await?;
 
         match client
             .login_username(&username, &password)
@@ -1260,7 +1260,7 @@ pub mod matrix {
 
         let client = Client::builder()
             .homeserver_url(client_session.homeserver.clone())
-            .indexeddb_store("b", None)
+            .indexeddb_store(&user_session.user_id.to_string(), None)
             .await?;
 
         let client = client.build().await?;
@@ -1272,11 +1272,14 @@ pub mod matrix {
         Ok((client, sync_token))
     }
 
-    pub async fn build_client(homeserver: &str) -> anyhow::Result<(Client, ClientSession)> {
+    pub async fn build_client(
+        homeserver: &str,
+        username: &str,
+    ) -> anyhow::Result<(Client, ClientSession)> {
         loop {
             match Client::builder()
                 .homeserver_url(&homeserver)
-                .indexeddb_store("b", None)
+                .indexeddb_store(username, None)
                 .await
             {
                 Ok(builder) => match builder.build().await {

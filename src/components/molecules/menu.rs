@@ -31,22 +31,12 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
     let key_logout_error_server = translate!(i18, "logout.error.server");
     let key_chat_common_error_default_server = translate!(i18, "logout.chat.common.error.default_server");
 
-    #[wasm_bindgen]
-    extern "C" {
-        #[wasm_bindgen(js_namespace = window)]
-        fn deleteIndexedDB(databaseName: &str);
-    }
-
     let log_out = move || {
         cx.spawn({
             to_owned![client, auth, notification, key_logout_error_server, key_chat_common_error_default_server];
 
             async move {
                 let response = client.get().logout().await;
-
-                deleteIndexedDB("b");
-                deleteIndexedDB("b::matrix-sdk-crypto");
-                deleteIndexedDB("b::matrix-sdk-state");
 
                 let Ok(_) = response else {
                     return notification.handle_error(&key_logout_error_server)
