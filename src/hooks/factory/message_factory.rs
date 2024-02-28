@@ -54,7 +54,7 @@ impl MessageFactory for TextMessageFactory {
     ) -> TimelineRelation {
         TimelineRelation::None(TimelineMessage {
             body: content.clone(),
-            event_id: Some(uuid.to_string()),
+            event_id: uuid.to_string(),
             sender: RoomMember {
                 id: session.user_id.clone(),
                 name: String::from("x"),
@@ -81,7 +81,7 @@ impl MessageFactory for ReplyMessageFactory {
         TimelineRelation::Reply(TimelineMessageReply {
             event: TimelineMessage {
                 body: content.clone(),
-                event_id: Some(uuid.to_string()),
+                event_id: uuid.to_string(),
                 sender: RoomMember {
                     id: session.user_id.clone(),
                     name: String::from("x"),
@@ -91,7 +91,7 @@ impl MessageFactory for ReplyMessageFactory {
                 time: time.to_string(),
             },
             reply: Some(TimelineMessage {
-                event_id: Some(self.relation.event_id.clone()),
+                event_id: self.relation.event_id.clone(),
                 sender: RoomMember {
                     id: String::from(""),
                     name: self.relation.display_name.clone(),
@@ -121,7 +121,7 @@ impl MessageFactory for CustomThreadMessageFactory {
 
         t.thread.push(TimelineMessage {
             body: content.clone(),
-            event_id: Some(uuid.to_string()),
+            event_id: uuid.to_string(),
             sender: RoomMember {
                 id: session.user_id.clone(),
                 name: String::from("x"),
