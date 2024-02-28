@@ -37,6 +37,7 @@ pub mod utils {
     pub mod i18n_get_key_value;
     pub mod matrix;
     pub mod nice_bytes;
+    pub mod sync_room;
     pub mod vec_to_url;
 }
 

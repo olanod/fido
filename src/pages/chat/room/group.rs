@@ -3,15 +3,7 @@ use std::{collections::HashMap, ops::Deref};
 use dioxus::{html::input_data::keyboard_types, prelude::*};
 use dioxus_router::prelude::use_navigator;
 use dioxus_std::{i18n::use_i18, translate};
-use matrix_sdk::{
-    config::SyncSettings,
-    ruma::{OwnedUserId, UserId},
-};
-use ruma::api::client::{
-    filter::{FilterDefinition, RoomEventFilter},
-    sync::sync_events,
-};
-use std::time::Duration;
+use matrix_sdk::ruma::{OwnedUserId, UserId};
 
 use crate::{
     components::{
@@ -32,6 +24,7 @@ use crate::{
     utils::{
         i18n_get_key_value::i18n_get_key_value,
         matrix::{mxc_to_thumbnail_uri, ImageMethod, ImageSize},
+        sync_room::sync_created_room,
     },
 };
 use futures_util::{StreamExt, TryFutureExt};
@@ -197,28 +190,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
 
                 status.set(CreationStatus::Ok);
 
-                for i in 0..3 {
-                    let room_id_list = vec![room_meta.room_id.clone()];
-
-                    let mut room_event_filter = RoomEventFilter::default();
-                    room_event_filter.rooms = Some(&room_id_list);
-
-                    let mut filter = FilterDefinition::default();
-                    filter.room.timeline = room_event_filter;
-
-                    let sync_settings = SyncSettings::new()
-                        .filter(sync_events::v3::Filter::FilterDefinition(filter))
-                        .timeout(Duration::from_secs(30));
-
-                    match client.get().sync_once(sync_settings.clone()).await {
-                        Ok(response) => {
-                            break;
-                        }
-                        Err(err) => {
-                            log::info!("An error occurred during sync: {err}");
-                        }
-                    }
-                }
+                sync_created_room(&room_meta.room_id, &client.get()).await;
 
                 let room_info = client
                     .get()
