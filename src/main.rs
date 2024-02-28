@@ -39,8 +39,28 @@ static EN_US: &str = include_str!("./locales/en-US.json");
 static ES_ES: &str = include_str!("./locales/es-ES.json");
 
 fn App(cx: Scope) -> Element {
-    let selected_language: LanguageIdentifier =
-        "es-ES".parse().expect("can't parse es-ES language");
+    if let Some(static_login_form) = window()?.document()?.get_element_by_id("static-login-form") {
+        if let Some(parent) = static_login_form.parent_node() {
+            parent.remove_child(&static_login_form);
+        };
+    };
+    
+    let navigator_language = window()
+        .expect("window")
+        .navigator()
+        .language()
+        .unwrap_or("en-US".to_string());
+
+    let default_language = if navigator_language.starts_with("es") {
+        "es-ES"
+    } else {
+        "en-US"
+    };
+
+    let selected_language: LanguageIdentifier = default_language
+        .parse()
+        .expect("can't parse es-ES language");
+
     let fallback_language: LanguageIdentifier = selected_language.clone();
 
     use_init_i18n(cx, selected_language, fallback_language, || {
@@ -48,12 +68,6 @@ fn App(cx: Scope) -> Element {
         let es_es = Language::from_str(ES_ES).expect("can't get ES_ES language");
         vec![en_us, es_es]
     });
-
-    if let Some(static_login_form) = window()?.document()?.get_element_by_id("static-login-form") {
-        if let Some(parent) = static_login_form.parent_node() {
-            parent.remove_child(&static_login_form);
-        };
-    };
 
     use_init_app(cx);
 
