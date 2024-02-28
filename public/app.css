@@ -276,6 +276,11 @@ ul {
   padding: 0;
 }
 
+.list__cta {
+  margin: 0 auto;
+  padding: 10px 0;
+}
+
 .messages-list {
   gap: var(--size-0);
   padding: 0;
@@ -1343,4 +1348,27 @@ ul {
 
 .room-new__items {
   margin-top: 10px;
+}
+
+.room-new__status-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 40px;
+  text-align: center;
+}
+
+.room-new__status__title {
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.room-new__status__description {
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.room-new__status-cta {
+  width: 80%;
 }
