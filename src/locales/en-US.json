@@ -261,6 +261,18 @@
                 "dm": "Error occurred creating the DM",
                 "profile": "Profile not found",
                 "file": "Invalid file type"
+            },
+            "status": {
+                "creating": "The chat is being created. Hang on a minute",
+                "created": "The chat has been created, we will redirect you soon",
+                "error": {
+                    "title": "Oops...",
+                    "description": "The chat could not be created. Do you want to try again?",
+                    "cta": {
+                        "back": "Go back",
+                        "try": "Try again"
+                    }
+                }
             }
         },
         "group": {
@@ -289,6 +301,18 @@
             },
             "success": {
                 "description": "The group has been created"
+            },
+            "status": {
+                "creating": "The room is being created. Hang on a minute",
+                "created": "The room has been created, we will redirect you soon",
+                "error": {
+                    "title": "Oops...",
+                    "description": "The room could not be created. Do you want to try again?",
+                    "cta": {
+                        "back": "Go back",
+                        "try": "Try again"
+                    }
+                }
             }
         },
         "verify": {

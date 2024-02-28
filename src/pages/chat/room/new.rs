@@ -3,19 +3,34 @@ use std::collections::HashMap;
 use dioxus::{html::input_data::keyboard_types, prelude::*};
 use dioxus_router::prelude::use_navigator;
 use dioxus_std::{i18n::use_i18, translate};
-use matrix_sdk::ruma::UserId;
+use matrix_sdk::{config::SyncSettings, ruma::UserId};
+use ruma::api::client::{
+    filter::{FilterDefinition, RoomEventFilter},
+    sync::sync_events,
+};
+use std::time::Duration;
 
 use crate::{
     components::{
-        atoms::{Header, MessageInput, RoomView},
+        atoms::{button::Variant, Button, Header, MessageInput, RoomView},
         molecules::rooms::CurrentRoom,
     },
-    hooks::{use_client::use_client, use_notification::use_notification, use_room::use_room},
+    hooks::{
+        use_client::use_client, use_notification::use_notification, use_room::use_room,
+        use_session::use_session,
+    },
     pages::chat::room::group::{self, CreateRoomError, Profile},
     services::matrix::matrix::create_room,
     utils::i18n_get_key_value::i18n_get_key_value,
 };
 use futures_util::{StreamExt, TryFutureExt};
+
+pub enum CreationStatus {
+    Start,
+    Creating,
+    Ok,
+    Error(CreateRoomError),
+}
 
 pub fn RoomNew(cx: Scope) -> Element {
     let i18 = use_i18(cx);
@@ -48,11 +63,13 @@ pub fn RoomNew(cx: Scope) -> Element {
     let client = use_client(cx);
     let notification = use_notification(cx);
     let room = use_room(cx);
+    let session = use_session(cx);
 
     let user_id = use_state::<String>(cx, || String::from(""));
     let user = use_state::<Option<Profile>>(cx, || None);
     let error_field = use_state::<Option<String>>(cx, || None);
     let error_creation = use_state::<Option<String>>(cx, || None);
+    let status = use_state::<CreationStatus>(cx, || CreationStatus::Start);
 
     let task_search_user = use_coroutine(cx, |mut rx: UnboundedReceiver<String>| {
         to_owned![client, user, notification, key_dm_error_not_found];
@@ -82,10 +99,15 @@ pub fn RoomNew(cx: Scope) -> Element {
                 key_dm_error_profile,
                 key_dm_error_not_found,
                 key_common_error_server,
-                notification
+                notification,
+                session,
+                status
             ];
 
+            let status_error = status.clone();
+
             async move {
+                status.set(CreationStatus::Creating);
                 let u =
                     UserId::parse(&user_id.get()).map_err(|_| CreateRoomError::InvalidUserId)?;
 
@@ -97,11 +119,38 @@ pub fn RoomNew(cx: Scope) -> Element {
 
                 let profile = user.get().clone().ok_or(CreateRoomError::InvalidUserId)?;
 
+                status.set(CreationStatus::Ok);
+
+                for i in 0..3 {
+                    let room_id_list = vec![room_meta.room_id.clone()];
+
+                    let mut room_event_filter = RoomEventFilter::default();
+                    room_event_filter.rooms = Some(&room_id_list);
+
+                    let mut filter = FilterDefinition::default();
+                    filter.room.timeline = room_event_filter;
+
+                    let sync_settings = SyncSettings::new()
+                        .filter(sync_events::v3::Filter::FilterDefinition(filter))
+                        .timeout(Duration::from_secs(30));
+
+                    match client.get().sync_once(sync_settings.clone()).await {
+                        Ok(response) => {
+                            break;
+                        }
+                        Err(err) => {
+                            log::info!("An error occurred during sync: {err}");
+                        }
+                    }
+                }
+
                 room.set(CurrentRoom {
                     id: room_id.clone(),
                     name: profile.displayname,
                     avatar_uri: profile.avatar_uri,
                 });
+
+                navigation.go_back();
 
                 Ok::<(), CreateRoomError>(())
             }
@@ -113,6 +162,7 @@ pub fn RoomNew(cx: Scope) -> Element {
                     CreateRoomError::ServerError => &key_common_error_server,
                 };
 
+                status_error.set(CreationStatus::Error(e.clone()));
                 notification.handle_error(&message_error);
             })
         })
@@ -146,6 +196,7 @@ pub fn RoomNew(cx: Scope) -> Element {
                 },
             }
             if let Some(user) = user.get() {
+                let on_handle_create = on_handle_create.clone();
                 rsx!(
                     div {
                         class: "room-new__items",
@@ -157,6 +208,64 @@ pub fn RoomNew(cx: Scope) -> Element {
                         }
                     }
                 )
+            }
+            match status.get() {
+                CreationStatus::Creating => {
+                    render!(rsx! {
+                        div {
+                            class: "room-new__status-container",
+                            p {
+                                class: "room-new__status__description",
+                                translate!(i18, "dm.status.creating")
+                            }
+                        }
+                    })
+                },
+                CreationStatus::Ok => {
+                    render!(rsx! {
+                        div {
+                            class: "room-new__status-container",
+                            p {
+                                class: "room-new__status__description",
+                                translate!(i18, "dm.status.created")
+                            }
+                        }
+                    })
+                },
+                CreationStatus::Error(CreateRoomError::ServerError) => {
+                    let cta_back = translate!(i18, "dm.status.error.cta.back");
+                    let cta_try = translate!(i18, "dm.status.error.cta.try");
+                    render!(rsx! {
+                        div {
+                            class: "room-new__status-container",
+                            h3 {
+                                class: "room-new__status__title",
+                                translate!(i18, "dm.status.error.title")
+                            }
+                            p {
+                                class: "room-new__status__description",
+                                translate!(i18, "dm.status.error.description")
+                            }
+                            div {
+                                class: "row room-new__status-cta",
+                                Button{
+                                    text: "{cta_back}",
+                                    variant: &Variant::Secondary,
+                                    on_click: move |_| {
+                                        navigation.go_back()
+                                    },
+                                    status: None
+                                }
+                                Button{
+                                    text: "{cta_try}",
+                                    on_click: on_handle_create,
+                                    status: None
+                                }
+                            }
+                        }
+                    })
+                },
+                _ => None
             }
         )
     }
