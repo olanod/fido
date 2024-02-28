@@ -163,9 +163,10 @@ pub fn Login(cx: Scope) -> Element {
                         is_loading_loggedin.set(LoggedInStatus::Start);
                         return;
                     };
+                }else {
+                    auth.set_server(homeserver.get()).await;
                 }
 
-                auth.set_server(homeserver.get()).await;
                 auth.set_username(username.get(), true);
                 auth.set_password(password.get());
                 
