@@ -84,8 +84,9 @@ fn App(cx: Scope) -> Element {
                 HomeserverError::InvalidUrl => key_main_error_homeserver_invalid_url,
             })?;
 
-            let c = create_client(&homeserver.get_base_url()).await.unwrap_or(
-                create_client(&Homeserver::default().get_base_url())
+            let c = match create_client(&homeserver.get_base_url()).await {
+                Ok(c) => c,
+                Err(_) => create_client(&Homeserver::default().get_base_url())
                     .await
                     .map_err(|_| {
                         format!(
@@ -94,11 +95,9 @@ fn App(cx: Scope) -> Element {
                             homeserver.get_base_url()
                         )
                     })?,
-            );
+            };
 
-            client.set(MatrixClientState {
-                client: Some(c.clone()),
-            });
+            client.set(MatrixClientState { client: Some(c) });
 
             let serialized_session: Result<String, StorageError> =
                 <LocalStorage as gloo::storage::Storage>::get("session_file");
