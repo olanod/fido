@@ -138,13 +138,11 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                     }
                                     None => {
                                         if is_in_current_room {
-                                            let Some(position) = message_position_local else {
+                                            if let Some(position) = message_position_local {
+                                                msgs[position] = message.clone()
+                                            } else {
                                                 msgs.push(message.clone());
-
-                                                return;
-                                            };
-
-                                            msgs[position] = message.clone()
+                                            }
                                         } else {
                                             plain_message = Some(message_to_plain_content(
                                                 &timeline_message.body,
@@ -159,13 +157,11 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                             }
                             TimelineRelation::Reply(timeline_message) => {
                                 if is_in_current_room {
-                                    let Some(position) = message_position_local else {
+                                    if let Some(position) = message_position_local {
+                                        msgs[position] = message.clone();
+                                    } else {
                                         msgs.push(message.clone());
-
-                                        return;
                                     };
-
-                                    msgs[position] = message.clone()
                                 } else {
                                     plain_message = Some(message_to_plain_content(
                                         &timeline_message.event.body,
