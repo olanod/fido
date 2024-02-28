@@ -28,7 +28,7 @@ pub struct ThreadPreview {
 #[derive(PartialEq, Props, Debug, Clone)]
 pub struct Message {
     pub id: i64,
-    pub event_id: Option<String>,
+    pub event_id: String,
     pub content: TimelineMessageType,
     pub display_name: String,
     pub avatar_uri: Option<String>,

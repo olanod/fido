@@ -452,7 +452,7 @@ pub mod matrix {
 
     #[derive(PartialEq, Debug, Clone)]
     pub struct TimelineMessage {
-        pub event_id: Option<String>,
+        pub event_id: String,
         pub sender: RoomMember,
         pub body: TimelineMessageType,
         pub origin: EventOrigin,
@@ -567,8 +567,7 @@ pub mod matrix {
                                 thread: thread.thread.clone(),
                                 latest_event: thread.thread[thread.thread.len() - 1]
                                     .clone()
-                                    .event_id
-                                    .expect("can't get eventid from thread: timeline"),
+                                    .event_id,
                                 count: thread.thread.len(),
                             });
 
@@ -583,10 +582,7 @@ pub mod matrix {
                                 return false;
                             };
 
-                            thread.event_id.eq(message
-                                .event_id
-                                .as_ref()
-                                .expect("can't compare event id: timeline"))
+                            thread.event_id.eq(&message.event_id)
                         });
 
                         let Some(p) = position else {
@@ -785,7 +781,7 @@ pub mod matrix {
 
                     if let Some(uri) = https_uri {
                         message_result = Some(TimelineMessage {
-                            event_id: Some(String::from(event.as_str())),
+                            event_id: event.to_string(),
                             sender: member.clone(),
                             body: TimelineMessageType::Image(FileContent {
                                 size,
@@ -829,7 +825,7 @@ pub mod matrix {
 
                     if let Ok(content) = media_content {
                         message_result = Some(TimelineMessage {
-                            event_id: Some(String::from(event.as_str())),
+                            event_id: event.to_string(),
                             sender: member.clone(),
                             body: TimelineMessageType::Image(FileContent {
                                 size,
@@ -848,7 +844,7 @@ pub mod matrix {
             },
             MessageType::Text(content) => {
                 message_result = Some(TimelineMessage {
-                    event_id: Some(String::from(event.as_str())),
+                    event_id: event.to_string(),
                     sender: member.clone(),
                     body: TimelineMessageType::Text(content.body.clone()),
                     origin: if member.id.eq(logged_user_id) {
@@ -886,7 +882,7 @@ pub mod matrix {
                         .flatten();
 
                     message_result = Some(TimelineMessage {
-                        event_id: Some(String::from(event.as_str())),
+                        event_id: event.to_string(),
                         sender: member.clone(),
                         body: TimelineMessageType::File(FileContent {
                             size,
@@ -916,7 +912,7 @@ pub mod matrix {
                         .flatten();
 
                     message_result = Some(TimelineMessage {
-                        event_id: Some(String::from(event.as_str())),
+                        event_id: event.to_string(),
                         sender: member.clone(),
                         body: TimelineMessageType::File(FileContent {
                             size,
@@ -948,7 +944,7 @@ pub mod matrix {
                         .flatten();
 
                     message_result = Some(TimelineMessage {
-                        event_id: Some(String::from(event.as_str())),
+                        event_id: event.to_string(),
                         sender: member.clone(),
                         body: TimelineMessageType::Video(FileContent {
                             size,
@@ -987,7 +983,7 @@ pub mod matrix {
 
                     if let Ok(content) = message_content {
                         message_result = Some(TimelineMessage {
-                            event_id: Some(String::from(event.as_str())),
+                            event_id: event.to_string(),
                             sender: member.clone(),
                             body: TimelineMessageType::Video(FileContent {
                                 size,
@@ -1057,9 +1053,9 @@ pub mod matrix {
                                 let n = uncleared_content.replace(&to_remove, "").clone();
 
                                 let content_body = TimelineMessageType::Text(n);
-
+                                let event = event.event.deserialize().ok()?.event_id().to_string();
                                 final_message.event = TimelineMessage {
-                                    event_id: None,
+                                    event_id: event,
                                     sender: member.clone(),
                                     body: content_body,
                                     origin: if member.id.eq(logged_user_id) {
@@ -1080,9 +1076,9 @@ pub mod matrix {
                                 let n = uncleared_content.replace(&to_remove, "").clone();
 
                                 let content_body = TimelineMessageType::Text(n);
-
+                                let event = event.event.deserialize().ok()?.event_id().to_string();
                                 final_message.event = TimelineMessage {
-                                    event_id: None,
+                                    event_id: event,
                                     sender: member.clone(),
                                     body: content_body,
                                     origin: if member.id.eq(logged_user_id) {

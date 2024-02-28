@@ -147,7 +147,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                     message: Message {
                         id: 1,
                         display_name: replying.display_name.clone(),
-                        event_id: None,
+                        event_id: String::from(""),
                         avatar_uri: replying.avatar_uri.clone(),
                         content: replying.content.clone(),
                         reply: None,
