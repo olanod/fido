@@ -64,6 +64,11 @@ ul {
   margin: 0 1px;
 }
 
+.button--small {
+  width: fit-content;
+  padding: 4px 10px;
+}
+
 .input {
   width: 100%;
   border: 1px solid transparent;
@@ -275,6 +280,11 @@ ul {
 .list {
   padding: 0;
 }
+
+.list__cta {
+  margin: 0 auto;
+  padding: 10px 0;
+} 
 
 .messages-list {
   gap: var(--size-0);
@@ -1044,9 +1054,9 @@ ul {
 .modal__cta--close {
   cursor: pointer;
   background: transparent;
-  -webkit-box-shadow: 0px 0px 30px 0px rgba(0, 0, 0, 0.54);
-  -moz-box-shadow: 0px 0px 30px 0px rgba(0, 0, 0, 0.54);
-  box-shadow: 0px 0px 30px 0px rgba(0, 0, 0, 0.54);
+  -webkit-box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.18);
+  -moz-box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.18);
+  box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.18);
   border: 1px solid transparent;
   border-radius: 100%;
   padding: 0;
