@@ -37,7 +37,6 @@ impl LoggedInStatus {
             LoggedInStatus::Done |
             LoggedInStatus::Persisting |
             LoggedInStatus::LoggedAs(_) => true,
-            _ => false
         }
     } 
 
@@ -60,7 +59,6 @@ enum LoginFrom {
 pub fn Login(cx: Scope) -> Element {
     let i18 = use_i18(cx);
 
-    let key_chat_errors_not_found = translate!(i18, "login.chat_errors.not_found");
     let key_login_chat_errors_invalid_server = translate!(i18, "login.chat_errors.invalid_server");
     let key_login_unlock_title = translate!(i18, "login.unlock.title");
     let key_login_unlock_description = translate!(i18, "login.unlock.description");
@@ -164,7 +162,7 @@ pub fn Login(cx: Scope) -> Element {
                         return;
                     };
                 }else {
-                    auth.set_server(homeserver.get()).await;
+                    let _ = auth.set_server(homeserver.get()).await;
                 }
 
                 auth.set_username(username.get(), true);
@@ -191,14 +189,14 @@ pub fn Login(cx: Scope) -> Element {
 
                         let display_name = c.account().get_display_name().await.ok().flatten();
 
-                        <LocalStorage as gloo::storage::Storage>::set(
+                        let _ = <LocalStorage as gloo::storage::Storage>::set(
                             "session_file",
                             serialized_session,
                         );
 
                         is_loading_loggedin.set(LoggedInStatus::Persisting);
         
-                        session.sync(c.clone(), None).await;
+                        let _ = session.sync(c.clone(), None).await;
 
                         client.set(crate::MatrixClientState { client: Some(c.clone()) });
                         
@@ -210,7 +208,7 @@ pub fn Login(cx: Scope) -> Element {
 
                         auth.set_logged_in(true);
 
-                        auth.persist_data(CacheLogin {
+                        let _ = auth.persist_data(CacheLogin {
                             server: homeserver.get().to_string(),
                             username: username.get().to_string(),
                             display_name
@@ -261,7 +259,7 @@ pub fn Login(cx: Scope) -> Element {
                 homeserver.set(data.server.clone());
                 username.set(data.username.clone());
                 
-                auth.set_server(&data.server).await;
+                let _ = auth.set_server(&data.server).await;
                 auth.set_username(&data.username, true);
             }
         }

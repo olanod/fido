@@ -37,8 +37,6 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
 
     let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
     let key_chat_session_error_not_found = translate!(i18, "chat.session.error.not_found");
-    let key_chat_message_list_errors_thread_not_found =
-        translate!(i18, "chat.message_list.errors.thread_not_found");
     let key_chat_message_list_errors_room_not_found =
         translate!(i18, "chat.message_list.errors.room_not_found");
     let key_chat_message_list_errors_timeline_invalid_limit =
@@ -74,7 +72,7 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
                     .unwrap_or(&15)
                     .clone();
 
-                process(
+                let _ = process(
                     current_events,
                     &session,
                     &messages,
@@ -137,7 +135,7 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
         }
     });
 
-    use_effect(cx, &(room.get().id), |id| {
+    use_effect(cx, &(room.get().id), |_,| {
         to_owned![task_timeline, from];
         async move {
             from.set(None);
@@ -192,9 +190,8 @@ impl UseChatState {
         self.inner.clone()
     }
 
-    pub fn set(&self, state: ChatState) {
-        let mut inner = &self.inner;
-        inner = &state;
+    pub fn set(&mut self, state: ChatState) {
+        self.inner = state;
     }
 
     pub fn loadmore(&self, current_room_id: &str) {

@@ -141,7 +141,7 @@ pub fn Signup(cx: Scope) -> Element {
             to_owned![homeserver, auth];
 
             async move {
-                auth.set_server(homeserver.get()).await;
+                let _ = auth.set_server(homeserver.get()).await;
             }
         })
     };
@@ -167,7 +167,6 @@ pub fn Signup(cx: Scope) -> Element {
                 auth,
                 username,
                 password,
-                client,
                 error,
                 flows,
                 session_ref,
@@ -210,7 +209,6 @@ pub fn Signup(cx: Scope) -> Element {
             to_owned![
                 auth,
                 client,
-                error,
                 session_ref,
                 is_loading_loggedin,
                 before_session,
@@ -233,7 +231,7 @@ pub fn Signup(cx: Scope) -> Element {
                     return;
                 };
 
-                let response = register(
+                let _ = register(
                     &info.server.to_string(),
                     &info.username,
                     &info.password,
@@ -253,11 +251,11 @@ pub fn Signup(cx: Scope) -> Element {
 
                 is_loading_loggedin.set(LoggedInStatus::Done);
 
-                <LocalStorage as gloo::storage::Storage>::set("session_file", serialized_session);
+                let _ = <LocalStorage as gloo::storage::Storage>::set("session_file", serialized_session);
 
                 is_loading_loggedin.set(LoggedInStatus::Persisting);
 
-                session.sync(c.clone(), None).await;
+                let _ = session.sync(c.clone(), None).await;
 
                 client.set(crate::MatrixClientState {
                     client: Some(c.clone()),
@@ -482,7 +480,7 @@ fn set_site_key(uiaa_response: Result<HashMap<&str, Value>, serde_json::Error>) 
 
             if let Some(Value::Object(ref recaptcha)) = m {
                 if let Some(Value::String(public_key)) = recaptcha.get("public_key") {
-                    gloo::storage::LocalStorage::set("sitekey", public_key.clone());
+                    let _ = gloo::storage::LocalStorage::set("sitekey", public_key.clone());
                 }
             }
         }

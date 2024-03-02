@@ -5,7 +5,6 @@ use crate::hooks::use_client::use_client;
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
 use gloo::storage::LocalStorage;
-use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::components::atoms::{ChatConversation, Icon, LogOut, MenuItem, UserCircle};
 

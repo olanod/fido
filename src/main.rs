@@ -1,34 +1,29 @@
 #![allow(non_snake_case)]
-use chat::components::atoms::{notification, LoadingStatus, Notification, Spinner};
+use dioxus::prelude::*;
+use dioxus_router::prelude::Router;
+use gloo::storage::errors::StorageError;
+use gloo::storage::LocalStorage;
+use dioxus_std::{i18n::*, translate};
+use futures_util::TryFutureExt;
+
+use std::str::FromStr;
+use unic_langid::LanguageIdentifier;
+use web_sys::window;
+
+use chat::components::atoms::{LoadingStatus, Notification, Spinner};
 use chat::hooks::use_auth::use_auth;
 use chat::hooks::use_client::use_client;
 use chat::hooks::use_init_app::{use_init_app, BeforeSession};
 use chat::hooks::use_notification::{use_notification, NotificationType};
 use chat::hooks::use_session::use_session;
-use chat::pages::login::{LoggedIn, Login};
+use chat::pages::login::Login;
 use chat::pages::route::Route;
 use chat::pages::signup::Signup;
 use chat::utils::get_homeserver::{Homeserver, HomeserverError};
-use chat::utils::{get_element, get_homeserver};
 use chat::MatrixClientState;
-use dioxus::prelude::*;
-use dioxus_router::prelude::Router;
-use gloo::storage::errors::StorageError;
-use gloo::storage::LocalStorage;
-use log::LevelFilter;
-
 use chat::services::matrix::matrix::*;
-use dioxus_std::{i18n::*, translate};
-use futures_util::TryFutureExt;
-use matrix_sdk::config::SyncSettings;
-use matrix_sdk::ruma::exports::serde_json;
-use matrix_sdk::Client;
-use ruma::api::client::filter::{Filter, FilterDefinition, RoomEventFilter, RoomFilter};
-use ruma::api::client::sync::sync_events;
-use ruma::events::EventType;
-use std::str::FromStr;
-use unic_langid::LanguageIdentifier;
-use web_sys::window;
+
+
 
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());
@@ -41,7 +36,7 @@ static ES_ES: &str = include_str!("./locales/es-ES.json");
 fn App(cx: Scope) -> Element {
     if let Some(static_login_form) = window()?.document()?.get_element_by_id("static-login-form") {
         if let Some(parent) = static_login_form.parent_node() {
-            parent.remove_child(&static_login_form);
+            let _ = parent.remove_child(&static_login_form);
         };
     };
     
@@ -156,10 +151,9 @@ fn App(cx: Scope) -> Element {
                             NotificationType::Click => {
 
                             },
-                            NotificationType::AcceptSas(sas, redirect) => {
+                            NotificationType::AcceptSas(_, _) => {
                                 cx.spawn({
                                     async move {
-                                        let x = sas.accept().await;
                                         todo!()
                                     }
                                 });

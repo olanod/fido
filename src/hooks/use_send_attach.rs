@@ -51,7 +51,6 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
     let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
     let key_common_error_file_type = translate!(i18, "chat.common.error.file_type");
 
-    let key_attach_error_upload_file = translate!(i18, "chat.attach.error.upload_file");
     let key_attach_error_send_message = translate!(i18, "chat.attach.error.send_message");
 
     let send_attach_status =
@@ -88,7 +87,7 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                     // build message relation
                     let content_type = file.content_type.type_();
 
-                    let source = match content_type {
+                    match content_type {
                         mime::IMAGE => {
                             crate::services::matrix::matrix::ImageType::Media(file.data.clone())
                         }
@@ -126,7 +125,7 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                             &timestamp,
                             &session.get().unwrap(),
                         )
-                    } else if let Some(mut thread) = thread_to.to_owned() {
+                    } else if let Some(thread) = thread_to.to_owned() {
                         message_factory.thread(thread).create_message(
                             &attach_type,
                             &uuid.to_string(),

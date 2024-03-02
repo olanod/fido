@@ -46,8 +46,18 @@ pub fn Verify(cx: Scope, id: String) -> Element {
     })
     .clone();
 
-    use_coroutine(cx, |mut rx: UnboundedReceiver<bool>| {
-        to_owned![task_wait_confirmation, client, is_verified];
+    let task_verify = use_coroutine(cx, |mut rx: UnboundedReceiver<bool>| {
+        to_owned![is_verified];
+
+        async move {
+            while let Some(verify) = rx.next().await {
+                is_verified.set(verify);
+            }
+        }
+    });
+
+    use_coroutine(cx, |mut _rx: UnboundedReceiver<bool>| {
+        to_owned![task_wait_confirmation, client, task_verify];
 
         async move {
             client.add_event_handler(
@@ -79,14 +89,12 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                             &sas.other_device().device_id()
                         );
                         // print_devices(&ev.sender, &client).await;
-                        sas.accept().await;
+                        let _ = sas.accept().await;
                     }
                 },
             );
 
             client.add_event_handler(move |ev: ToDeviceKeyVerificationKeyEvent, client: Client| {
-                // let task_wait_confirmation = task_wait_confirmation.clone();
-
                 to_owned![task_wait_confirmation];
 
                 async move {
@@ -101,11 +109,10 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                 }
             });
 
-            let x = is_verified.clone();
+            let task_verify_to_device = task_verify.clone();
             client.add_event_handler(
                 move |ev: ToDeviceKeyVerificationDoneEvent, client: Client| {
-                    to_owned![x];
-
+                    let task_verify = task_verify_to_device.clone();
                     async move {
                         if let Some(Verification::SasV1(sas)) = client
                             .encryption()
@@ -113,7 +120,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                             .await
                         {
                             if sas.is_done() {
-                                x.set(true);
+                                task_verify.send(true);
                                 // print_devices(&ev.sender, &client).await;
                             }
                         }
@@ -153,14 +160,14 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                                 &sas.other_device().device_id()
                             );
                             // print_devices(&ev.sender, &client).await;
-                            sas.accept().await;
+                            let _ = sas.accept().await;
                         }
                     },
                 );
 
             client.add_event_handler(
                     |ev: OriginalSyncKeyVerificationKeyEvent, client: Client| async move {
-                        if let Some(Verification::SasV1(sas)) = client
+                        if let Some(Verification::SasV1(_)) = client
                             .encryption()
                             .get_verification(&ev.sender, ev.content.relates_to.event_id.as_str())
                             .await
@@ -173,8 +180,8 @@ pub fn Verify(cx: Scope, id: String) -> Element {
 
             client.add_event_handler(
                 move |ev: OriginalSyncKeyVerificationDoneEvent, client: Client| {
-                    to_owned![is_verified];
-
+                    // to_owned![is_verified];
+                    let task_verify = task_verify.clone();
                     async move {
                         if let Some(Verification::SasV1(sas)) = client
                             .encryption()
@@ -182,7 +189,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                             .await
                         {
                             if sas.is_done() {
-                                is_verified.set(true);
+                                task_verify.send(true);
                                 // print_devices(&ev.sender, &client).await;
                             }
                         }
@@ -190,7 +197,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                 },
             );
 
-            client.sync(SyncSettings::new()).await;
+            let _ = client.sync(SyncSettings::new()).await;
         }
         // }
     });
@@ -200,11 +207,10 @@ pub fn Verify(cx: Scope, id: String) -> Element {
 
         cx.spawn({
             let sas = sas.clone();
-            let client = client.clone();
             let is_verified = is_verified.clone();
 
             async move {
-                sas.confirm().await;
+                let _ = sas.confirm().await;
 
                 if sas.is_done() {
                     is_verified.set(true);
@@ -222,7 +228,7 @@ pub fn Verify(cx: Scope, id: String) -> Element {
             let sas = sas.clone();
 
             async move {
-                sas.cancel().await;
+                let _ = sas.cancel().await;
 
                 if sas.is_cancelled() {
                     is_verified.set(false);

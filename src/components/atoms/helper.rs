@@ -9,7 +9,7 @@ pub struct HelperData {
 #[derive(Props)]
 pub struct HelperProps<'a> {
     helper: HelperData,
-    on_click: EventHandler<'a, MouseEvent>,
+    _on_click: EventHandler<'a, MouseEvent>,
 }
 
 pub fn Helper<'a>(cx: Scope<'a, HelperProps<'a>>) -> Element<'a> {

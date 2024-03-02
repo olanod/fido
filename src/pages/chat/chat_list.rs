@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use dioxus::prelude::*;
-use dioxus_router::prelude::use_navigator;
 use dioxus_std::{i18n::use_i18, translate};
 
 use crate::{
@@ -19,9 +18,7 @@ use crate::{
     hooks::{
         use_client::use_client,
         use_messages::use_messages,
-        use_notification::{
-            use_notification, NotificationHandle, NotificationItem, NotificationType,
-        },
+        use_notification::use_notification,
         use_room::use_room,
         use_session::use_session,
     },
@@ -31,7 +28,6 @@ use crate::{
 #[inline_props]
 pub fn ChatList(cx: Scope) -> Element {
     let i18 = use_i18(cx);
-    let nav = use_navigator(cx);
     let client = use_client(cx).get();
     let session = use_session(cx);
     let notification = use_notification(cx);
@@ -190,7 +186,6 @@ pub fn ChatList(cx: Scope) -> Element {
             }
 
             if !room.get().name.is_empty() {
-                let room_tabs = room_tabs.read().clone();
                 rsx!(
                     section {
                         class: "chat-list__active-room",

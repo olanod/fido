@@ -511,7 +511,7 @@ pub mod matrix {
             lazy_load_options: LazyLoadOptions::Enabled { include_redundant_members: false },
         });
         let options = assign!(MessagesOptions::backward(), {
-            limit: UInt::new(20).ok_or(TimelineError::InvalidLimit)?,
+            limit: UInt::new(limit).ok_or(TimelineError::InvalidLimit)?,
             filter,
             from: from.as_deref()
         });
@@ -1151,7 +1151,7 @@ pub mod matrix {
         request.auth = Some(uiaa::AuthData::Dummy(uiaa_dummy));
 
         let result = build_client(homeserver, username).await;
-        let (client, client_session) = match result {
+        let (client, _) = match result {
             Ok((client, client_session)) => (client, client_session),
             Err(_) => panic!("Can't create client"),
         };
@@ -1182,7 +1182,7 @@ pub mod matrix {
         }
 
         let result = build_client(homeserver, username).await;
-        let (client, client_session) = match result {
+        let (client, _) = match result {
             Ok((client, client_session)) => (client, client_session),
             Err(_) => panic!("Can't create client"),
         };
@@ -1191,7 +1191,7 @@ pub mod matrix {
             Ok(info) => {
                 info!("signup result {:?}", info);
 
-                client.logout();
+                let _ = client.logout().await;
 
                 Ok((client, "registered".to_string()))
             }

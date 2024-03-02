@@ -51,9 +51,6 @@ pub enum ProfileError {
 pub fn Profile(cx: Scope) -> Element {
     let i18 = use_i18(cx);
 
-    let key_common_error_thread_id = translate!(i18, "chat.common.error.thread_id");
-    let key_common_error_event_id = translate!(i18, "chat.common.error.event_id");
-    let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
     let key_common_error_user_id = translate!(i18, "chat.common.error.user_id");
     let key_common_error_device_id = translate!(i18, "chat.common.error.device_id");
     let key_common_error_server = translate!(i18, "chat.common.error.server");
@@ -62,7 +59,6 @@ pub fn Profile(cx: Scope) -> Element {
 
     let key_profile_error_not_found = translate!(i18, "profile.error.not_found");
     let key_profile_error_profile = translate!(i18, "profile.error.profile");
-    let key_profile_error_file = translate!(i18, "profile.error.file");
 
     let key_input_message_unknown_content = translate!(i18, "chat.input_message.unknown_content");
     let key_input_message_file_type = translate!(i18, "chat.input_message.file_type");
@@ -221,7 +217,7 @@ pub fn Profile(cx: Scope) -> Element {
                 let infered_type = infer::get(content.deref()).ok_or(AttachError::UncoverType)?;
 
                 let content_type: Result<mime::Mime, _> = infered_type.mime_type().parse();
-                let content_type = content_type.map_err(|e| AttachError::UnknownContent)?;
+                let content_type = content_type.map_err(|_| AttachError::UnknownContent)?;
 
                 let blob = match content_type.type_() {
                     mime::IMAGE => gloo::file::Blob::new(content.deref()),

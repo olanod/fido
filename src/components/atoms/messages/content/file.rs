@@ -13,12 +13,6 @@ pub struct FileProps {
 }
 
 pub fn File<'a>(cx: Scope<'a, FileProps>) -> Element<'a> {
-    let message_reply = if cx.props.is_reply {
-        "message-reply__content--file"
-    } else {
-        ""
-    };
-
     cx.render(rsx!(
         section {
             class: "file",
