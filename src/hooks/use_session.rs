@@ -6,7 +6,7 @@ use matrix_sdk::{config::SyncSettings, Client, Error};
 
 use ruma::api::client::filter::{FilterDefinition, RoomEventFilter};
 use ruma::api::client::sync::sync_events;
-use ruma::events::EventType;
+use ruma::events::RoomEventType;
 use std::time::Duration;
 
 use crate::services::matrix::matrix::FullSession;
@@ -57,7 +57,7 @@ impl UseSessionState {
         let mut room_event_filter = RoomEventFilter::empty();
         room_event_filter.rooms = Some(&[]);
 
-        let filter_event_type = vec![EventType::RoomMessage.to_string()];
+        let filter_event_type = vec![RoomEventType::RoomMessage.to_string()];
         room_event_filter.types = Some(&filter_event_type);
 
         let mut filter = FilterDefinition::empty();

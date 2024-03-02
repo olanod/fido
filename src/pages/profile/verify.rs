@@ -24,6 +24,7 @@ use matrix_sdk::{
 
 #[inline_props]
 pub fn Verify(cx: Scope, id: String) -> Element {
+    let _ = &id;
     let i18 = use_i18(cx);
 
     let key_verify_unverified_cta_match = translate!(i18, "verify.unverified.cta_match");
