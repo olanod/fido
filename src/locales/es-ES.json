@@ -94,6 +94,15 @@
                     "description": "Completa el captcha a continuación",
                     "cta": "Completado"
                 }
+            },
+            "errors": {
+                "unknown": "Error desconocido",
+                "unsupported_flow": "Flujo no soportado",
+                "key_recaptcha": "Llave de Captcha no encontrada",
+                "server": "Error en el servidor",
+                "flow_not_found": "Flujo de verificación no encontrado",
+                "register_failed": "Registro no realizado, intenta de nuevo o contacta con soporte",
+                "login_failed": "No hemos podido redirigirte, ve a Iniciar sesión"
             }
         },
         "onboard": {

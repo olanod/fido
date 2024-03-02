@@ -94,6 +94,15 @@
                     "description": "Complete the captcha below",
                     "cta": "Completed"
                 }
+            },
+            "errors": {
+                "unknown": "Unknown error",
+                "unsupported_flow": "Unsupported flow",
+                "key_recaptcha": "ReCaptcha key not found",
+                "server": "Internal server error",
+                "flow_not_found": "Verification flow not found",
+                "register_failed": "Registration not completed, try again or contact support",
+                "login_failed": "We couldn't redirect you, go to Sign in"
             }
         },
         "onboard": {

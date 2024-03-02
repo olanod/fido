@@ -23,8 +23,6 @@ use chat::utils::get_homeserver::{Homeserver, HomeserverError};
 use chat::MatrixClientState;
 use chat::services::matrix::matrix::*;
 
-
-
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());
     dioxus_web::launch(App);
