@@ -72,7 +72,7 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
                     .unwrap_or(&15)
                     .clone();
 
-                let _ = process(
+                if let Err(e) = process(
                     current_events,
                     &session,
                     &messages,
@@ -80,8 +80,7 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
                     &from,
                     &current_room_id,
                 )
-                .await
-                .map_err(|e: ChatError| {
+                .await {
                     let message = match e {
                         ChatError::InvalidSession => &key_chat_session_error_not_found,
                         ChatError::InvalidRoom => &key_common_error_room_id,
@@ -99,8 +98,7 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
                     messages_loading.set(false);
                     notification.handle_error(&message);
 
-                    return;
-                });
+                };
 
                 if let Some(thread) = threading_to.get() {
                     messages.get().iter().find_map(|m| {
