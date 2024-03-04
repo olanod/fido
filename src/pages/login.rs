@@ -156,8 +156,9 @@ pub fn Login(cx: Scope) -> Element {
                         return;
                     };
                 } else {
-                    let result = auth.set_server(homeserver.get()).await;
-                    log::info!("Failed to set server: {result:?}")
+                    if let Err(e) = auth.set_server(homeserver.get()).await {
+                        log::warn!("Failed to set server: {e:?}");
+                    } 
                 }
 
                 auth.set_username(username.get(), true);
@@ -249,8 +250,9 @@ pub fn Login(cx: Scope) -> Element {
                 homeserver.set(data.server.clone());
                 username.set(data.username.clone());
                 
-                let result = auth.set_server(&data.server).await;
-                log::info!("Failed to set server: {result:?}");
+                if let Err(e) = auth.set_server(homeserver.get()).await {
+                    log::warn!("Failed to set server: {e:?}");
+                } 
                 auth.set_username(&data.username, true);
             }
         }
