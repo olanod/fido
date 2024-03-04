@@ -16,11 +16,8 @@ use crate::{
         organisms::{chat::ActiveRoom, main::TitleHeaderMain},
     },
     hooks::{
-        use_client::use_client,
-        use_messages::use_messages,
-        use_notification::use_notification,
-        use_room::use_room,
-        use_session::use_session,
+        use_client::use_client, use_messages::use_messages, use_notification::use_notification,
+        use_room::use_room, use_session::use_session,
     },
     services::matrix::matrix::{list_rooms_and_spaces, Conversations},
 };

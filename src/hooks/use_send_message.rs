@@ -83,8 +83,6 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
             replying_to,
             threading_to,
             notification,
-      
-      
             messages,
             session,
             message_dispatch_id,

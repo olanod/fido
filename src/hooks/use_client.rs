@@ -3,7 +3,9 @@ use dioxus::prelude::*;
 use matrix_sdk::Client;
 use std::ops::Deref;
 
-use crate::{services::matrix::matrix::create_client, utils::get_homeserver::Homeserver, MatrixClientState};
+use crate::{
+    services::matrix::matrix::create_client, utils::get_homeserver::Homeserver, MatrixClientState,
+};
 
 #[allow(clippy::needless_return)]
 pub fn use_client(cx: &ScopeState) -> &UseClientState {
@@ -34,8 +36,8 @@ impl UseClientState {
         *inner = client;
     }
 
-    pub async fn default(&self) -> Result<(), ClientError>{
-        let homeserver = Homeserver::new().map_err(|_|ClientError::InvalidUrl)?;
+    pub async fn default(&self) -> Result<(), ClientError> {
+        let homeserver = Homeserver::new().map_err(|_| ClientError::InvalidUrl)?;
 
         let c = match create_client(&homeserver.get_base_url()).await {
             Ok(c) => c,
@@ -52,5 +54,5 @@ impl UseClientState {
 
 pub enum ClientError {
     InvalidUrl,
-    DefaultServer
+    DefaultServer,
 }

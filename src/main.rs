@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 use dioxus::prelude::*;
 use dioxus_router::prelude::Router;
-use gloo::storage::errors::StorageError;
-use gloo::storage::LocalStorage;
 use dioxus_std::{i18n::*, translate};
 use futures_util::TryFutureExt;
+use gloo::storage::errors::StorageError;
+use gloo::storage::LocalStorage;
 
 use std::str::FromStr;
 use unic_langid::LanguageIdentifier;
@@ -19,8 +19,8 @@ use chat::hooks::use_session::use_session;
 use chat::pages::login::Login;
 use chat::pages::route::Route;
 use chat::pages::signup::Signup;
-use chat::MatrixClientState;
 use chat::services::matrix::matrix::*;
+use chat::MatrixClientState;
 
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());
@@ -34,7 +34,6 @@ pub enum MainError {
     DefaultServer,
     RestoreFailed,
     SyncFailed,
-
 }
 
 fn App(cx: Scope) -> Element {
@@ -43,7 +42,7 @@ fn App(cx: Scope) -> Element {
             let _ = parent.remove_child(&static_login_form);
         };
     };
-    
+
     let navigator_language = window()
         .expect("window")
         .navigator()
@@ -91,15 +90,14 @@ fn App(cx: Scope) -> Element {
         to_owned![client, auth, restoring_session, session, notification];
 
         async move {
-            
             let serialized_session: Result<String, StorageError> =
-            <LocalStorage as gloo::storage::Storage>::get("session_file");
-            
+                <LocalStorage as gloo::storage::Storage>::get("session_file");
+
             match serialized_session {
                 Ok(s) => {
                     let (c, sync_token) = restore_session(&s)
-                    .await
-                    .map_err(|_| MainError::RestoreFailed)?;
+                        .await
+                        .map_err(|_| MainError::RestoreFailed)?;
 
                     client.set(MatrixClientState {
                         client: Some(c.clone()),
@@ -111,14 +109,15 @@ fn App(cx: Scope) -> Element {
                         .map_err(|_| MainError::SyncFailed)?;
 
                     auth.set_logged_in(true);
-                },
+                }
                 Err(_) => {
-                    client.default().await.map_err(|_| MainError::DefaultServer)?;
-                },
+                    client
+                        .default()
+                        .await
+                        .map_err(|_| MainError::DefaultServer)?;
+                }
             }
             restoring_session.set(false);
-
-            
 
             restoring_session.set(false);
 
@@ -128,8 +127,7 @@ fn App(cx: Scope) -> Element {
             let message = match e {
                 MainError::DefaultServer => &key_chat_common_error_default_server,
                 MainError::RestoreFailed => &key_main_error_restore,
-                MainError::SyncFailed => &key_chat_common_error_sync, 
-                 
+                MainError::SyncFailed => &key_chat_common_error_sync,
             };
             notification.handle_error(&message);
         })

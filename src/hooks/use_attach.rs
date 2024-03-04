@@ -13,12 +13,11 @@ pub struct AttachFile {
     pub size: u64,
 }
 
-#[derive(Clone)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum AttachError {
-    NotFound, 
+    NotFound,
     UncoverType,
-    UnknownContent
+    UnknownContent,
 }
 
 #[allow(clippy::needless_return)]

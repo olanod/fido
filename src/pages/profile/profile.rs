@@ -153,7 +153,6 @@ pub fn Profile(cx: Scope) -> Element {
 
             current_profile.set(original_profile.read().deref().clone());
 
-
             let homeserver = client.homeserver().await;
             let user_id = client.user_id().ok_or(ProfileError::InvalidUserId)?;
             let device_id = client

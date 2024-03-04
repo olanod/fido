@@ -114,9 +114,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                             });
 
                             match position {
-                                Some(p) => {
-                                    if let TimelineRelation::CustomThread(_) = msgs[p] {}
-                                }
+                                Some(p) => if let TimelineRelation::CustomThread(_) = msgs[p] {},
                                 None => {
                                     if is_in_current_room {
                                         if let Some(position) = message_position_local {
@@ -295,7 +293,10 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
         ];
 
         async move {
-            client.sync_once(SyncSettings::default()).await.map_err(|_| ListenMessageError::FailedSync)?;
+            client
+                .sync_once(SyncSettings::default())
+                .await
+                .map_err(|_| ListenMessageError::FailedSync)?;
 
             let me = session.get().ok_or(ListenMessageError::SessionNotFound)?;
 
@@ -371,16 +372,20 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                 handler_added.set(true);
             }
 
-            client.sync(SyncSettings::default()).await.map_err(|_| ListenMessageError::FailedSync)?;
-            
+            client
+                .sync(SyncSettings::default())
+                .await
+                .map_err(|_| ListenMessageError::FailedSync)?;
+
             Ok::<(), ListenMessageError>(())
-        }.unwrap_or_else(move |e: ListenMessageError|{
+        }
+        .unwrap_or_else(move |e: ListenMessageError| {
             let message = match e {
                 ListenMessageError::FailedSync => key_common_error_sync,
                 ListenMessageError::SessionNotFound => key_common_error_user_id,
             };
             notification.handle_error(&message);
-        }) 
+        })
     });
 
     cx.use_hook(move || UseListenMessagesState {})
@@ -388,7 +393,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
 
 pub enum ListenMessageError {
     FailedSync,
-    SessionNotFound
+    SessionNotFound,
 }
 
 #[derive(Clone)]

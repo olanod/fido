@@ -80,7 +80,8 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
                     &from,
                     &current_room_id,
                 )
-                .await {
+                .await
+                {
                     let message = match e {
                         ChatError::InvalidSession => &key_chat_session_error_not_found,
                         ChatError::InvalidRoom => &key_common_error_room_id,
@@ -97,7 +98,6 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
 
                     messages_loading.set(false);
                     notification.handle_error(&message);
-
                 };
 
                 if let Some(thread) = threading_to.get() {
@@ -133,7 +133,7 @@ pub fn use_chat(cx: &ScopeState) -> &UseChatState {
         }
     });
 
-    use_effect(cx, &(room.get().id), |_,| {
+    use_effect(cx, &(room.get().id), |_| {
         to_owned![task_timeline, from];
         async move {
             from.set(None);
