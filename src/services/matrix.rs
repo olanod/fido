@@ -1189,7 +1189,7 @@ pub mod matrix {
             Ok(info) => {
                 info!("signup result {:?}", info);
 
-                let _ = client.logout().await;
+                client.logout().await?;
 
                 Ok((client, "registered".to_string()))
             }

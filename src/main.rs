@@ -19,7 +19,6 @@ use chat::hooks::use_session::use_session;
 use chat::pages::login::Login;
 use chat::pages::route::Route;
 use chat::pages::signup::Signup;
-use chat::utils::get_homeserver::{Homeserver, HomeserverError};
 use chat::MatrixClientState;
 use chat::services::matrix::matrix::*;
 
@@ -30,6 +29,13 @@ fn main() {
 
 static EN_US: &str = include_str!("./locales/en-US.json");
 static ES_ES: &str = include_str!("./locales/es-ES.json");
+
+pub enum MainError {
+    DefaultServer,
+    RestoreFailed,
+    SyncFailed,
+
+}
 
 fn App(cx: Scope) -> Element {
     if let Some(static_login_form) = window()?.document()?.get_element_by_id("static-login-form") {
@@ -77,8 +83,6 @@ fn App(cx: Scope) -> Element {
 
     let key_chat_common_error_sync = translate!(i18, "chat.common.error.sync");
     let key_chat_common_error_default_server = translate!(i18, "chat.common.error.default_server");
-    let key_main_error_homeserver_invalid_url =
-        translate!(i18, "main.errors.homeserver.invalid_url");
     let key_main_error_restore = translate!(i18, "main.errors.restore");
 
     let restoring_session = use_ref::<bool>(cx, || true);
@@ -87,54 +91,47 @@ fn App(cx: Scope) -> Element {
         to_owned![client, auth, restoring_session, session, notification];
 
         async move {
-            let homeserver = Homeserver::new().map_err(|e| match e {
-                HomeserverError::InvalidUrl => key_main_error_homeserver_invalid_url,
-            })?;
-
-            let c = match create_client(&homeserver.get_base_url()).await {
-                Ok(c) => c,
-                Err(_) => create_client(&Homeserver::default().get_base_url())
-                    .await
-                    .map_err(|_| {
-                        format!(
-                            "{} {}",
-                            key_chat_common_error_default_server,
-                            homeserver.get_base_url()
-                        )
-                    })?,
-            };
-
-            client.set(MatrixClientState { client: Some(c) });
-
+            
             let serialized_session: Result<String, StorageError> =
-                <LocalStorage as gloo::storage::Storage>::get("session_file");
+            <LocalStorage as gloo::storage::Storage>::get("session_file");
+            
+            match serialized_session {
+                Ok(s) => {
+                    let (c, sync_token) = restore_session(&s)
+                    .await
+                    .map_err(|_| MainError::RestoreFailed)?;
 
-            let Ok(s) = serialized_session else {
-                restoring_session.set(false);
-                return Ok(());
-            };
+                    client.set(MatrixClientState {
+                        client: Some(c.clone()),
+                    });
 
-            let (c, sync_token) = restore_session(&s)
-                .await
-                .map_err(|_| key_main_error_restore)?;
+                    session
+                        .sync(c.clone(), sync_token)
+                        .await
+                        .map_err(|_| MainError::SyncFailed)?;
 
-            client.set(MatrixClientState {
-                client: Some(c.clone()),
-            });
+                    auth.set_logged_in(true);
+                },
+                Err(_) => {
+                    client.default().await.map_err(|_| MainError::DefaultServer)?;
+                },
+            }
+            restoring_session.set(false);
 
-            session
-                .sync(c.clone(), sync_token)
-                .await
-                .map_err(|_| key_chat_common_error_sync)?;
-
-            auth.set_logged_in(true);
+            
 
             restoring_session.set(false);
 
-            Ok::<(), String>(())
+            Ok::<(), MainError>(())
         }
-        .unwrap_or_else(move |e: String| {
-            notification.handle_error(&e);
+        .unwrap_or_else(move |e: MainError| {
+            let message = match e {
+                MainError::DefaultServer => &key_chat_common_error_default_server,
+                MainError::RestoreFailed => &key_main_error_restore,
+                MainError::SyncFailed => &key_chat_common_error_sync, 
+                 
+            };
+            notification.handle_error(&message);
         })
     });
 

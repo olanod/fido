@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use gloo::storage::{errors::StorageError, LocalStorage};
 use log::info;
 use matrix_sdk::HttpError;
-use matrix_sdk::{config::SyncSettings, Client, Error};
+use matrix_sdk::{config::SyncSettings, Client};
 
 use ruma::api::client::filter::{FilterDefinition, RoomEventFilter};
 use ruma::api::client::sync::sync_events;
@@ -29,6 +29,13 @@ pub struct UserSession {
     pub device_id: Option<String>,
 }
 
+pub enum SessionError {
+    SaveFailed,
+    GetFailed,
+    WhoamiFailed,
+    SyncFailed
+}
+
 impl UseSessionState {
     fn set(&self, data: UserSession) {
         *self.data.write() = Some(data);
@@ -53,7 +60,7 @@ impl UseSessionState {
         &self,
         client: Client,
         initial_sync_token: Option<String>,
-    ) -> anyhow::Result<(), anyhow::Error> {
+    ) -> Result<(), SessionError> {
         let mut room_event_filter = RoomEventFilter::empty();
         room_event_filter.rooms = Some(&[]);
 
@@ -78,8 +85,7 @@ impl UseSessionState {
 
         match client.sync_once(sync_settings.clone()).await {
             Ok(response) => {
-                Self::whoami(&self, client).await?;
-
+                Self::whoami(&self, client).await.map_err(|_| SessionError::WhoamiFailed)?;
                 Self::persist_sync_token(&response.next_batch).await?;
 
                 Ok(())
@@ -88,12 +94,19 @@ impl UseSessionState {
                 info!("An error occurred during initial sync: {err}");
                 info!("Trying again from login…");
 
-                Err(err.into())
+                Err(SessionError::SyncFailed)
             }
         }
     }
 
-    async fn persist_sync_token(sync_token: &str) -> anyhow::Result<(), Error> {
+    pub fn persist_session_file(&self, session_file: &str) -> Result<(), SessionError> {
+        <LocalStorage as gloo::storage::Storage>::set(
+            "session_file",
+            session_file,
+        ).map_err(|_|SessionError::SaveFailed)
+    }
+
+    async fn persist_sync_token(sync_token: &str) -> anyhow::Result<(), SessionError> {
         let serialized_session: Result<String, StorageError> =
             <LocalStorage as gloo::storage::Storage>::get("session_file");
 
@@ -102,11 +115,11 @@ impl UseSessionState {
             Err(e) => e.to_string(),
         };
 
-        let mut full_session: FullSession = serde_json::from_str(&serialized_session)?;
+        let mut full_session: FullSession = serde_json::from_str(&serialized_session).map_err(|_|SessionError::GetFailed)?;
 
         full_session.sync_token = Some(sync_token.to_owned());
-        let serialized_session = serde_json::to_string(&full_session)?;
-        let _ = <LocalStorage as gloo::storage::Storage>::set("session_file", serialized_session);
+        let serialized_session = serde_json::to_string(&full_session).map_err(|_|SessionError::GetFailed)?;
+        <LocalStorage as gloo::storage::Storage>::set("session_file", serialized_session).map_err(|_|SessionError::SaveFailed)?;
 
         Ok(())
     }

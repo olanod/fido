@@ -1,8 +1,7 @@
-use std::{collections::HashMap, rc::Rc};
-
 use dioxus::{html::input_data::keyboard_types, prelude::*};
 use dioxus_std::{translate, i18n::use_i18};
-use gloo::storage::LocalStorage;
+use std::{collections::HashMap, rc::Rc};
+
 use crate::{
     components::{
         atoms::{MessageInput, input::InputType},
@@ -58,7 +57,10 @@ enum LoginFrom {
 
 pub fn Login(cx: Scope) -> Element {
     let i18 = use_i18(cx);
-
+    
+    let key_chat_common_error_sync = translate!(i18, "chat.common.error.sync");
+    let key_chat_common_error_persist = translate!(i18, "chat.common.error.persist");
+    
     let key_login_chat_errors_invalid_server = translate!(i18, "login.chat_errors.invalid_server");
     let key_login_unlock_title = translate!(i18, "login.unlock.title");
     let key_login_unlock_description = translate!(i18, "login.unlock.description");
@@ -67,18 +69,13 @@ pub fn Login(cx: Scope) -> Element {
     let key_login_chat_credentials_description = "login-chat-credentials-description";
     let key_login_chat_credentials_title = "login-chat-credentials-title";
 
-    let key_login_chat_credentials_username_message = "login-chat-credentials-username-message";
     let key_login_chat_credentials_username_placeholder = "login-chat-credentials-username-placeholder";
-
-    let key_login_chat_credentials_password_message = "login-chat-credentials-password-message";
     let key_login_chat_credentials_password_placeholder = "login-chat-credentials-password-placeholder";
-
     let key_login_chat_credentials_cta = "login-chat-credentials-cta";
 
     let key_login_chat_messages_validating = "login-chat-messages-validating";
     let key_login_chat_messages_welcome = "login-chat-messages-welcome";
 
-    let key_login_chat_errors_invalid_url = "login-chat-errors-invalid-url";
     let key_login_chat_errors_unknown = "login-chat-errors-unknown";
     let key_login_chat_errors_invalid_username_password = "login-chat-errors-invalid-username-password";
 
@@ -92,17 +89,14 @@ pub fn Login(cx: Scope) -> Element {
         
         (key_login_chat_credentials_description, translate!(i18, "login.chat_steps.credentials.description")),
 
-        (key_login_chat_credentials_username_message, translate!(i18, "login.chat_steps.credentials.username.message")),
         (key_login_chat_credentials_username_placeholder, translate!(i18, "login.chat_steps.credentials.username.placeholder")),
 
-        (key_login_chat_credentials_password_message, translate!(i18, "login.chat_steps.credentials.password.message")),
         (key_login_chat_credentials_password_placeholder, translate!(i18, "login.chat_steps.credentials.password.placeholder")),
         (key_login_chat_credentials_cta, translate!(i18, "login.chat_steps.credentials.cta")),
 
         (key_login_chat_messages_validating, translate!(i18, "login.chat_steps.messages.validating")),
         (key_login_chat_messages_welcome, translate!(i18, "login.chat_steps.messages.welcome")),
 
-        (key_login_chat_errors_invalid_url, translate!(i18, "login.chat_errors.invalid_url")),
         (key_login_chat_errors_unknown, translate!(i18, "login.chat_errors.unknown")),
         (key_login_chat_errors_invalid_username_password, translate!(i18, "login.chat_errors.invalid_username_password")),
     ]);
@@ -149,7 +143,7 @@ pub fn Login(cx: Scope) -> Element {
 
     let on_handle_login = Rc::new(move || {
         cx.spawn({
-            to_owned![auth, session, username, password, is_loading_loggedin, client, error, error_invalid_credentials, error_unknown, homeserver, notification, key_login_chat_errors_invalid_server];
+            to_owned![auth, session, username, password, is_loading_loggedin, client, error, error_invalid_credentials, error_unknown, homeserver, notification, key_login_chat_errors_invalid_server, key_chat_common_error_persist, key_chat_common_error_sync];
             
             async move {
                 is_loading_loggedin.set(LoggedInStatus::Loading);
@@ -162,7 +156,8 @@ pub fn Login(cx: Scope) -> Element {
                         return;
                     };
                 }else {
-                    let _ = auth.set_server(homeserver.get()).await;
+                    let result = auth.set_server(homeserver.get()).await;
+                    log::error!("Failed to set server: {result:?}")
                 }
 
                 auth.set_username(username.get(), true);
@@ -184,36 +179,31 @@ pub fn Login(cx: Scope) -> Element {
                 .await;
 
                 match response {
-                    Ok((c, serialized_session)) => {
+                    Ok((c, serialized_session)) => {                      
                         is_loading_loggedin.set(LoggedInStatus::Done);
 
                         let display_name = c.account().get_display_name().await.ok().flatten();
 
-                        let _ = <LocalStorage as gloo::storage::Storage>::set(
-                            "session_file",
-                            serialized_session,
-                        );
+                        if let Err(_) = session.persist_session_file(&serialized_session) {
+                            notification.handle_error(&key_chat_common_error_persist);
+                        };
 
                         is_loading_loggedin.set(LoggedInStatus::Persisting);
         
-                        let _ = session.sync(c.clone(), None).await;
-
-                        client.set(crate::MatrixClientState { client: Some(c.clone()) });
-                        
-                        let Some(user_id) = c.user_id() else {
-                            return notification.handle_error("{key_chat_errors_not_found}");
+                        if let Err(_) = session.sync(c.clone(), None).await {
+                            notification.handle_error(&key_chat_common_error_sync);
                         };
 
-                        is_loading_loggedin.set(LoggedInStatus::LoggedAs(user_id.to_string()));
+                        client.set(crate::MatrixClientState { client: Some(c.clone()) });
 
-                        auth.set_logged_in(true);
-
-                        let _ = auth.persist_data(CacheLogin {
+                        if let Err(_) = auth.persist_data(CacheLogin {
                             server: homeserver.get().to_string(),
                             username: username.get().to_string(),
                             display_name
-                        });
-
+                        }) {
+                            notification.handle_error(&key_chat_common_error_persist);
+                        };
+                        auth.set_logged_in(true);
                     }
                     Err(err) => {
                         is_loading_loggedin.set(LoggedInStatus::Start);
@@ -229,7 +219,7 @@ pub fn Login(cx: Scope) -> Element {
                         username.set(String::new());
                         password.set(String::new());
                         
-                        auth.reset()
+                        auth.reset();
                     }
                 }
             }
@@ -259,7 +249,8 @@ pub fn Login(cx: Scope) -> Element {
                 homeserver.set(data.server.clone());
                 username.set(data.username.clone());
                 
-                let _ = auth.set_server(&data.server).await;
+                let result = auth.set_server(&data.server).await;
+                log::error!("Failed to set server: {result:?}");
                 auth.set_username(&data.username, true);
             }
         }

@@ -142,7 +142,8 @@ pub fn Signup(cx: Scope) -> Element {
             to_owned![homeserver, auth];
 
             async move {
-                let _ = auth.set_server(homeserver.get()).await;
+                let result = auth.set_server(homeserver.get()).await;
+                log::error!("Failed to set server: {result:?}")
             }
         })
     };
@@ -190,6 +191,9 @@ pub fn Signup(cx: Scope) -> Element {
             let key_presignup_error_register_failed =
                 translate!(i18, "signup.errors.register_failed");
             let key_presignup_error_login_failed = translate!(i18, "signup.errors.login_failed");
+            
+            let key_chat_common_error_persist = translate!(i18, "chat.common.error.persist");
+            let key_chat_common_error_sync = translate!(i18, "chat.common.error.sync");
 
             async move {
                 let info = auth.clone().build().map_err(|_| SignupError::Server)?;
@@ -226,6 +230,9 @@ pub fn Signup(cx: Scope) -> Element {
                     SignupError::FlowNotFound => key_presignup_error_flow_not_found,
                     SignupError::RegisterFailed => key_presignup_error_register_failed,
                     SignupError::LoginFailed => key_presignup_error_login_failed,
+                    SignupError::SyncFailed => key_chat_common_error_sync,
+                    SignupError::SessionFile => key_chat_common_error_persist,
+                    SignupError::SetSiteKey => key_presignup_error_key_recaptcha,
                 };
                 reset_login_info(
                     &auth_error,
@@ -268,6 +275,8 @@ pub fn Signup(cx: Scope) -> Element {
             let key_signup_error_flow_not_found = translate!(i18, "signup.errors.flow_not_found");
             let key_signup_error_register_failed = translate!(i18, "signup.errors.register_failed");
             let key_signup_error_login_failed = translate!(i18, "signup.errors.login_failed");
+            let key_chat_common_error_persist = translate!(i18, "chat.common.error.persist");
+            let key_chat_common_error_sync = translate!(i18, "chat.common.error.sync");
 
             async move {
                 let token = <LocalStorage as gloo::storage::Storage>::get::<String>("recaptcha")
@@ -301,14 +310,14 @@ pub fn Signup(cx: Scope) -> Element {
 
                 is_loading_loggedin.set(LoggedInStatus::Done);
 
-                let _ = <LocalStorage as gloo::storage::Storage>::set(
+                <LocalStorage as gloo::storage::Storage>::set(
                     "session_file",
                     serialized_session,
-                );
+                ).map_err(|_|SignupError::SessionFile)?;
 
                 is_loading_loggedin.set(LoggedInStatus::Persisting);
 
-                let _ = session.sync(c.clone(), None).await;
+                session.sync(c.clone(), None).await.map_err(|_| SignupError::SyncFailed)?;
 
                 client.set(crate::MatrixClientState {
                     client: Some(c.clone()),
@@ -327,6 +336,10 @@ pub fn Signup(cx: Scope) -> Element {
                     SignupError::FlowNotFound => key_signup_error_flow_not_found,
                     SignupError::RegisterFailed => key_signup_error_register_failed,
                     SignupError::LoginFailed => key_signup_error_login_failed,
+                    SignupError::SyncFailed => key_chat_common_error_sync,
+                    SignupError::SessionFile => key_chat_common_error_persist,
+                    SignupError::SetSiteKey => key_signup_error_key_recaptcha,
+                    
                 };
                 reset_login_info(
                     &auth_error,
@@ -336,7 +349,6 @@ pub fn Signup(cx: Scope) -> Element {
                 );
 
                 error.set(Some(message_error));
-                todo!()
             })
         })
     };
@@ -493,6 +505,9 @@ pub enum SignupError {
     FlowNotFound,
     RegisterFailed,
     LoginFailed,
+    SyncFailed,
+    SessionFile,
+    SetSiteKey
 }
 
 fn flow_error(
@@ -524,7 +539,7 @@ fn flow_error(
                         let uiaa_response =
                             serde_json::from_str(params).map_err(|_| SignupError::KeyRecaptcha)?;
 
-                        set_site_key(uiaa_response);
+                        set_site_key(uiaa_response)?;
                         flows.set(flows_to_complete.clone());
 
                         Ok(())
@@ -559,12 +574,15 @@ fn reset_login_info(
     auth.reset();
 }
 
-fn set_site_key(uiaa_response: HashMap<&str, Value>) {
-    let m = uiaa_response.get("m.login.recaptcha");
-
-    if let Some(Value::Object(ref recaptcha)) = m {
-        if let Some(Value::String(public_key)) = recaptcha.get("public_key") {
-            let _ = gloo::storage::LocalStorage::set("sitekey", public_key.clone());
-        }
-    }
+fn set_site_key(uiaa_response: HashMap<&str, Value>)-> Result<(), SignupError> {
+    let value = uiaa_response.get("m.login.recaptcha").ok_or(SignupError::SetSiteKey)?;
+    let Value::Object(ref recaptcha) = value else {
+        return Err(SignupError::SetSiteKey);
+    };
+    
+    let Some(Value::String(public_key)) = recaptcha.get("public_key") else {
+        return Err(SignupError::SetSiteKey);
+    };
+    
+    gloo::storage::LocalStorage::set("sitekey", public_key.clone()).map_err(|_| SignupError::SetSiteKey)
 }

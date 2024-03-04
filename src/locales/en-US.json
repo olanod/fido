@@ -162,8 +162,9 @@
                     "device_id": "Unexpected error: (Device ID)",
                     "file_type": "Check that the file is a multimedia or document type",
                     "server": "Unexpected error: (Server)",
-                    "sync": "Unexpected error: (Sync)",
-                    "default_server": "Could not connect to the default server"
+                    "sync": "Failed to sync, reload browser",
+                    "default_server": "Could not connect to the default server",
+                    "persist": "Failed to persist session"
                 }
             },
             "listen": {
@@ -335,6 +336,12 @@
             "verified": {
                 "title": "Verification completed",
                 "description": "You have verified this device."
+            },
+            "errors": {
+                "flow_not_found": "Verification flow not found",
+                "sas_accept": "Error accepting verification",
+                "sas_confirm": "Error confirming verification",
+                "sas_cancel": "Error canceling verification"
             }
         }
     }

@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
-use futures_util::StreamExt;
+use futures_util::{StreamExt, TryFutureExt};
 use log::info;
 use matrix_sdk::{
     config::SyncSettings, room::Room, ruma::events::room::message::OriginalSyncRoomMessageEvent,
@@ -34,6 +34,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
     let handler_added = use_ref(cx, || false);
 
     let key_common_error_user_id = translate!(i18, "chat.common.error.user_id");
+    let key_common_error_sync = translate!(i18, "chat.common.error.sync");
     let key_listen_message_image = translate!(i18, "chat.listen.message.image");
     let key_listen_message_file = translate!(i18, "chat.listen.message.file");
     let key_listen_message_video = translate!(i18, "chat.listen.message.video");
@@ -294,12 +295,9 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
         ];
 
         async move {
-            let _ = client.sync_once(SyncSettings::default()).await;
+            client.sync_once(SyncSettings::default()).await.map_err(|_| ListenMessageError::FailedSync)?;
 
-            let Some(me) = session.get() else {
-                notification.handle_error(&key_common_error_user_id);
-                return;
-            };
+            let me = session.get().ok_or(ListenMessageError::SessionNotFound)?;
 
             if !*handler_added.read() {
                 client.add_event_handler(
@@ -373,11 +371,24 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                 handler_added.set(true);
             }
 
-            let _ = client.sync(SyncSettings::default()).await;
-        }
+            client.sync(SyncSettings::default()).await.map_err(|_| ListenMessageError::FailedSync)?;
+            
+            Ok::<(), ListenMessageError>(())
+        }.unwrap_or_else(move |e: ListenMessageError|{
+            let message = match e {
+                ListenMessageError::FailedSync => key_common_error_sync,
+                ListenMessageError::SessionNotFound => key_common_error_user_id,
+            };
+            notification.handle_error(&message);
+        }) 
     });
 
     cx.use_hook(move || UseListenMessagesState {})
+}
+
+pub enum ListenMessageError {
+    FailedSync,
+    SessionNotFound
 }
 
 #[derive(Clone)]

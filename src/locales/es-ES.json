@@ -162,8 +162,9 @@
                     "device_id": "Error inesperado: (Id de dispositivo)",
                     "file_type": "Verifica que el archivo sea tipo multimedia o documento",
                     "server": "Error inesperado: (Servidor)",
-                    "sync": "Error inesperado: (Sincronización)",
-                    "default_server": "No se ha podido conectar al servidor por defecto"
+                    "sync": "No se ha podido sincronizar, recarga el navegador",
+                    "default_server": "No se ha podido conectar al servidor por defecto",
+                    "persist": "No se ha podido persistir la sesión"
                 }
             },
             "listen": {
@@ -335,6 +336,12 @@
             "verified": {
                 "title": "Verificación completada",
                 "description": "Haz verificado este dispositivo."
+            },
+            "errors": {
+                "flow_not_found": "Flujo de verificación no encontrado",
+                "sas_accept": "Error al aceptar la verificación",
+                "sas_confirm": "Error al confirmar la verificación",
+                "sas_cancel": "Error al cancelar la verificación"
             }
         }
     }
