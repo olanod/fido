@@ -130,7 +130,6 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                                 &sas.other_device().user_id(),
                                 &sas.other_device().device_id()
                             );
-                            // print_devices(&ev.sender, &client).await;
                             if let Err(_) = sas.accept().await {
                                 task_handle_error_b.send(VerificationError::SasAcceptFailed);
                             };
@@ -149,7 +148,6 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                         .await
                     {
                         task_wait_confirmation.send(sas);
-                        // emoji.set(Some(sas));
                     }
                 }
             });
@@ -165,7 +163,6 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                         {
                             if sas.is_done() {
                                 task_verify.send(true);
-                                // print_devices(&ev.sender, &client).await;
                             }
                         }
                     }
@@ -186,7 +183,6 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                             &sas.other_device().user_id(),
                             &sas.other_device().device_id()
                         );
-                        // print_devices(&ev.sender, &client).await;
                         if let Err(_) = sas.accept().await {
                             task_handle_error_c.send(VerificationError::SasAcceptFailed)
                         };
@@ -223,7 +219,6 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                             .await
                         {
                             info!("here OriginalSyncKeyVerificationKeyEvent this function need task_wait_confirmation");
-                            // task_wait_confirmation.send(sas);
                         }
                     },
                 );
@@ -239,7 +234,6 @@ pub fn Verify(cx: Scope, id: String) -> Element {
                         {
                             if sas.is_done() {
                                 task_verify.send(true);
-                                // print_devices(&ev.sender, &client).await;
                             }
                         }
                     }

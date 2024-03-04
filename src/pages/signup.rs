@@ -143,7 +143,7 @@ pub fn Signup(cx: Scope) -> Element {
 
             async move {
                 let result = auth.set_server(homeserver.get()).await;
-                log::error!("Failed to set server: {result:?}")
+                log::info!("Failed to set server: {result:?}")
             }
         })
     };

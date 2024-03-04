@@ -155,9 +155,9 @@ pub fn Login(cx: Scope) -> Element {
                         is_loading_loggedin.set(LoggedInStatus::Start);
                         return;
                     };
-                }else {
+                } else {
                     let result = auth.set_server(homeserver.get()).await;
-                    log::error!("Failed to set server: {result:?}")
+                    log::info!("Failed to set server: {result:?}")
                 }
 
                 auth.set_username(username.get(), true);
@@ -250,7 +250,7 @@ pub fn Login(cx: Scope) -> Element {
                 username.set(data.username.clone());
                 
                 let result = auth.set_server(&data.server).await;
-                log::error!("Failed to set server: {result:?}");
+                log::info!("Failed to set server: {result:?}");
                 auth.set_username(&data.username, true);
             }
         }
