@@ -1,34 +1,26 @@
 #![allow(non_snake_case)]
-use chat::components::atoms::{notification, LoadingStatus, Notification, Spinner};
+use dioxus::prelude::*;
+use dioxus_router::prelude::Router;
+use dioxus_std::{i18n::*, translate};
+use futures_util::TryFutureExt;
+use gloo::storage::errors::StorageError;
+use gloo::storage::LocalStorage;
+
+use std::str::FromStr;
+use unic_langid::LanguageIdentifier;
+use web_sys::window;
+
+use chat::components::atoms::{LoadingStatus, Notification, Spinner};
 use chat::hooks::use_auth::use_auth;
 use chat::hooks::use_client::use_client;
 use chat::hooks::use_init_app::{use_init_app, BeforeSession};
 use chat::hooks::use_notification::{use_notification, NotificationType};
 use chat::hooks::use_session::use_session;
-use chat::pages::login::{LoggedIn, Login};
+use chat::pages::login::Login;
 use chat::pages::route::Route;
 use chat::pages::signup::Signup;
-use chat::utils::get_homeserver::{Homeserver, HomeserverError};
-use chat::utils::{get_element, get_homeserver};
-use chat::MatrixClientState;
-use dioxus::prelude::*;
-use dioxus_router::prelude::Router;
-use gloo::storage::errors::StorageError;
-use gloo::storage::LocalStorage;
-use log::LevelFilter;
-
 use chat::services::matrix::matrix::*;
-use dioxus_std::{i18n::*, translate};
-use futures_util::TryFutureExt;
-use matrix_sdk::config::SyncSettings;
-use matrix_sdk::ruma::exports::serde_json;
-use matrix_sdk::Client;
-use ruma::api::client::filter::{Filter, FilterDefinition, RoomEventFilter, RoomFilter};
-use ruma::api::client::sync::sync_events;
-use ruma::events::EventType;
-use std::str::FromStr;
-use unic_langid::LanguageIdentifier;
-use web_sys::window;
+use chat::MatrixClientState;
 
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());
@@ -38,13 +30,19 @@ fn main() {
 static EN_US: &str = include_str!("./locales/en-US.json");
 static ES_ES: &str = include_str!("./locales/es-ES.json");
 
+pub enum MainError {
+    DefaultServer,
+    RestoreFailed,
+    SyncFailed,
+}
+
 fn App(cx: Scope) -> Element {
     if let Some(static_login_form) = window()?.document()?.get_element_by_id("static-login-form") {
         if let Some(parent) = static_login_form.parent_node() {
-            parent.remove_child(&static_login_form);
+            let _ = parent.remove_child(&static_login_form);
         };
     };
-    
+
     let navigator_language = window()
         .expect("window")
         .navigator()
@@ -84,8 +82,6 @@ fn App(cx: Scope) -> Element {
 
     let key_chat_common_error_sync = translate!(i18, "chat.common.error.sync");
     let key_chat_common_error_default_server = translate!(i18, "chat.common.error.default_server");
-    let key_main_error_homeserver_invalid_url =
-        translate!(i18, "main.errors.homeserver.invalid_url");
     let key_main_error_restore = translate!(i18, "main.errors.restore");
 
     let restoring_session = use_ref::<bool>(cx, || true);
@@ -94,54 +90,46 @@ fn App(cx: Scope) -> Element {
         to_owned![client, auth, restoring_session, session, notification];
 
         async move {
-            let homeserver = Homeserver::new().map_err(|e| match e {
-                HomeserverError::InvalidUrl => key_main_error_homeserver_invalid_url,
-            })?;
-
-            let c = match create_client(&homeserver.get_base_url()).await {
-                Ok(c) => c,
-                Err(_) => create_client(&Homeserver::default().get_base_url())
-                    .await
-                    .map_err(|_| {
-                        format!(
-                            "{} {}",
-                            key_chat_common_error_default_server,
-                            homeserver.get_base_url()
-                        )
-                    })?,
-            };
-
-            client.set(MatrixClientState { client: Some(c) });
-
             let serialized_session: Result<String, StorageError> =
                 <LocalStorage as gloo::storage::Storage>::get("session_file");
 
-            let Ok(s) = serialized_session else {
-                restoring_session.set(false);
-                return Ok(());
-            };
+            match serialized_session {
+                Ok(s) => {
+                    let (c, sync_token) = restore_session(&s)
+                        .await
+                        .map_err(|_| MainError::RestoreFailed)?;
 
-            let (c, sync_token) = restore_session(&s)
-                .await
-                .map_err(|_| key_main_error_restore)?;
+                    client.set(MatrixClientState {
+                        client: Some(c.clone()),
+                    });
 
-            client.set(MatrixClientState {
-                client: Some(c.clone()),
-            });
+                    session
+                        .sync(c.clone(), sync_token)
+                        .await
+                        .map_err(|_| MainError::SyncFailed)?;
 
-            session
-                .sync(c.clone(), sync_token)
-                .await
-                .map_err(|_| key_chat_common_error_sync)?;
-
-            auth.set_logged_in(true);
+                    auth.set_logged_in(true);
+                }
+                Err(_) => {
+                    client
+                        .default()
+                        .await
+                        .map_err(|_| MainError::DefaultServer)?;
+                }
+            }
+            restoring_session.set(false);
 
             restoring_session.set(false);
 
-            Ok::<(), String>(())
+            Ok::<(), MainError>(())
         }
-        .unwrap_or_else(move |e: String| {
-            notification.handle_error(&e);
+        .unwrap_or_else(move |e: MainError| {
+            let message = match e {
+                MainError::DefaultServer => &key_chat_common_error_default_server,
+                MainError::RestoreFailed => &key_main_error_restore,
+                MainError::SyncFailed => &key_chat_common_error_sync,
+            };
+            notification.handle_error(&message);
         })
     });
 
@@ -156,10 +144,9 @@ fn App(cx: Scope) -> Element {
                             NotificationType::Click => {
 
                             },
-                            NotificationType::AcceptSas(sas, redirect) => {
+                            NotificationType::AcceptSas(_, _) => {
                                 cx.spawn({
                                     async move {
-                                        let x = sas.accept().await;
                                         todo!()
                                     }
                                 });

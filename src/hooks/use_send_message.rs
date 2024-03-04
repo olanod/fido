@@ -53,7 +53,6 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
     let session = use_session(cx);
     let replying_to = use_reply(cx);
     let threading_to = use_thread(cx);
-
     let message_factory = use_message_factory(cx);
 
     let key_common_error_thread_id = translate!(i18, "chat.common.error.thread_id");
@@ -61,8 +60,6 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
     let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
     let key_common_error_user_id = translate!(i18, "chat.common.error.user_id");
     let key_common_error_file_type = translate!(i18, "chat.common.error.file_type");
-
-    let key_message_error_send_message = translate!(i18, "chat.message.error.send_message");
 
     let key_message_error_send_message = translate!(i18, "chat.message.error.send_message");
 
@@ -78,7 +75,6 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
     let message_dispatch_id =
         use_shared_state::<MessageDispatchId>(cx).expect("Unable to use MessageDispatchId");
 
-    let message_item = use_state::<Option<MessageItem>>(cx, || None);
     let value = use_ref::<MessageStatus>(cx, || MessageStatus::None);
 
     let task_push = use_coroutine(cx, |mut rx: UnboundedReceiver<MessageItem>| {
@@ -87,8 +83,6 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
             replying_to,
             threading_to,
             notification,
-            message_item,
-            value,
             messages,
             session,
             message_dispatch_id,
@@ -144,7 +138,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
                             &timestamp,
                             &session_data,
                         )
-                    } else if let Some(mut thread) = threading_to.get().to_owned() {
+                    } else if let Some(thread) = threading_to.get().to_owned() {
                         message_factory.thread(thread).create_message(
                             &TimelineMessageType::Text(message_item.msg.clone().into()),
                             &uuid,

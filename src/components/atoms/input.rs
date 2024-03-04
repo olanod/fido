@@ -50,7 +50,7 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                 )
             }
             div {
-                class: "input-wrapper input_error_container",
+                class: "input-wrapper {input_error_container}",
                 match cx.props.itype {
                     InputType::Search => {
                         render!(

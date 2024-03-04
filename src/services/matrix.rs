@@ -511,7 +511,7 @@ pub mod matrix {
             lazy_load_options: LazyLoadOptions::Enabled { include_redundant_members: false },
         });
         let options = assign!(MessagesOptions::backward(), {
-            limit: UInt::new(20).ok_or(TimelineError::InvalidLimit)?,
+            limit: UInt::new(limit).ok_or(TimelineError::InvalidLimit)?,
             filter,
             from: from.as_deref()
         });
@@ -1150,11 +1150,10 @@ pub mod matrix {
         let uiaa_dummy = uiaa::Dummy::new();
         request.auth = Some(uiaa::AuthData::Dummy(uiaa_dummy));
 
-        let result = build_client(homeserver, username).await;
-        let (client, client_session) = match result {
-            Ok((client, client_session)) => (client, client_session),
-            Err(_) => panic!("Can't create client"),
-        };
+        // Temporal use of UnknownError
+        let (client, _) = build_client(homeserver, username)
+            .await
+            .map_err(|e| matrix_sdk::Error::UnknownError(e.into()))?;
 
         match client.register(request.clone()).await {
             Ok(info) => {
@@ -1181,17 +1180,16 @@ pub mod matrix {
             request.auth = Some(uiaa::AuthData::ReCaptcha(uiaa_recaptcha));
         }
 
-        let result = build_client(homeserver, username).await;
-        let (client, client_session) = match result {
-            Ok((client, client_session)) => (client, client_session),
-            Err(_) => panic!("Can't create client"),
-        };
+        // Temporal use of UnknownError
+        let (client, _) = build_client(homeserver, username)
+            .await
+            .map_err(|e| matrix_sdk::Error::UnknownError(e.into()))?;
 
         match client.register(request.clone()).await {
             Ok(info) => {
                 info!("signup result {:?}", info);
 
-                client.logout();
+                client.logout().await?;
 
                 Ok((client, "registered".to_string()))
             }

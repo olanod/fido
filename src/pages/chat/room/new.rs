@@ -12,7 +12,6 @@ use crate::{
     },
     hooks::{
         use_client::use_client, use_notification::use_notification, use_room::use_room,
-        use_session::use_session,
     },
     pages::chat::room::group::{self, CreateRoomError, Profile},
     services::matrix::matrix::create_room,
@@ -30,17 +29,11 @@ pub enum CreationStatus {
 pub fn RoomNew(cx: Scope) -> Element {
     let i18 = use_i18(cx);
 
-    let key_common_error_thread_id = translate!(i18, "chat.common.error.thread_id");
-    let key_common_error_event_id = translate!(i18, "chat.common.error.event_id");
-    let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
-    let key_dm_error_not_found = translate!(i18, "chat.common.error.user_id");
     let key_common_error_user_id = translate!(i18, "chat.common.error.user_id");
     let key_common_error_server = translate!(i18, "chat.common.error.server");
 
     let key_dm_error_not_found = translate!(i18, "dm.error.not_found");
-    let key_dm_error_dm = translate!(i18, "dm.error.dm");
     let key_dm_error_profile = translate!(i18, "dm.error.profile");
-    let key_dm_error_file = translate!(i18, "dm.error.file");
 
     let key_dm_title = "dm-title";
     let key_dm_label = "dm-label";
@@ -58,12 +51,10 @@ pub fn RoomNew(cx: Scope) -> Element {
     let client = use_client(cx);
     let notification = use_notification(cx);
     let room = use_room(cx);
-    let session = use_session(cx);
 
     let user_id = use_state::<String>(cx, || String::from(""));
     let user = use_state::<Option<Profile>>(cx, || None);
     let error_field = use_state::<Option<String>>(cx, || None);
-    let error_creation = use_state::<Option<String>>(cx, || None);
     let status = use_state::<CreationStatus>(cx, || CreationStatus::Start);
 
     let task_search_user = use_coroutine(cx, |mut rx: UnboundedReceiver<String>| {
@@ -73,7 +64,7 @@ pub fn RoomNew(cx: Scope) -> Element {
             while let Some(id) = rx.next().await {
                 match group::process_find_user_by_id(&id, &client).await {
                     Ok(profile) => user.set(Some(profile)),
-                    Err(err) => {
+                    Err(_) => {
                         notification.handle_error(&key_dm_error_not_found);
                     }
                 }
@@ -86,7 +77,6 @@ pub fn RoomNew(cx: Scope) -> Element {
             to_owned![
                 client,
                 user_id,
-                error_creation,
                 navigation,
                 room,
                 user,
@@ -95,7 +85,6 @@ pub fn RoomNew(cx: Scope) -> Element {
                 key_dm_error_not_found,
                 key_common_error_server,
                 notification,
-                session,
                 status
             ];
 

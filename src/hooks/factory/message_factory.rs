@@ -11,7 +11,7 @@ use dioxus::prelude::*;
 
 #[allow(clippy::needless_return)]
 
-pub fn use_message_factory(cx: &ScopeState) -> MessageFactoryType {
+pub fn use_message_factory(_cx: &ScopeState) -> MessageFactoryType {
     MessageFactoryType {}
 }
 

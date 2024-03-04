@@ -6,7 +6,6 @@ use crate::{
     components::{
         atoms::{
             header_main::{HeaderCallOptions, HeaderEvent},
-            input::InputType,
             Avatar, Close, Header, Icon,
         },
         molecules::{input_message::FormMessageEvent, rooms::CurrentRoom, InputMessage, List},
@@ -118,7 +117,6 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                     }
                 },
                 InputMessage {
-                    message_type: InputType::Message,
                     placeholder: input_placeholder.get().as_str(),
                     on_submit: move |event| {
                         on_push_message(event, false)
@@ -165,7 +163,6 @@ pub fn ActiveRoom(cx: Scope) -> Element {
                             }
                         },
                         InputMessage {
-                            message_type: InputType::Message,
                             placeholder: input_placeholder.get().as_str(),
                             on_submit: move |event| {
                                 on_push_message(event, true)

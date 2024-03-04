@@ -1,16 +1,13 @@
-use crate::hooks::use_notification::use_notification;
-use crate::MatrixClientState;
-use crate::{hooks::use_auth::use_auth, services::matrix::matrix::create_client};
-use crate::hooks::use_client::use_client;
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
-use gloo::storage::LocalStorage;
-use wasm_bindgen::prelude::wasm_bindgen;
+use dioxus_router::prelude::*;
+use futures::TryFutureExt;
 
 use crate::components::atoms::{ChatConversation, Icon, LogOut, MenuItem, UserCircle};
-
-use dioxus_router::prelude::*;
-
+use crate::hooks::use_auth::LogoutError;
+use crate::hooks::use_notification::use_notification;
+use crate::hooks::use_auth::use_auth;
+use crate::hooks::use_client::use_client;
 use crate::pages::route::Route;
 
 #[derive(Props)]
@@ -36,24 +33,15 @@ pub fn Menu<'a>(cx: Scope<'a, MenuProps<'a>>) -> Element<'a> {
             to_owned![client, auth, notification, key_logout_error_server, key_chat_common_error_default_server];
 
             async move {
-                let response = client.get().logout().await;
-
-                let Ok(_) = response else {
-                    return notification.handle_error(&key_logout_error_server)
+                auth.logout(&client).await
+            }.unwrap_or_else(move |e: LogoutError| {
+                let message = match e {
+                    LogoutError::Failed |LogoutError::DefaultClient => key_logout_error_server,
+                    LogoutError::RemoveSession => key_chat_common_error_default_server,
                 };
-
-                let _ = <LocalStorage as gloo::storage::Storage>::delete("session_file");
                 
-                let Ok(c) = create_client("https://matrix.org").await else {
-                    return notification.handle_error(&key_chat_common_error_default_server)
-                };
-
-                client.set(MatrixClientState {
-                    client: Some(c.clone()),
-                });
-
-                auth.set_logged_in(false)
-            }
+                notification.handle_error(&message)
+            })
         });
     };
     

@@ -5,9 +5,9 @@ use dioxus_std::{i18n::use_i18, translate};
 use futures_util::TryFutureExt;
 
 use crate::{
-    components::{atoms::{header_main::{HeaderEvent, HeaderCallOptions}, hover_menu::{MenuEvent, MenuOption}, input::InputType, message::MessageView, Attach, Button, Close, Icon, Message, TextareaInput
+    components::{atoms::{header_main::{HeaderEvent, HeaderCallOptions}, hover_menu::{MenuEvent, MenuOption}, message::MessageView, Attach, Button, Close, Icon, Message, TextareaInput
     }, molecules::AttachPreview},
-    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachError, AttachFile}, use_client::use_client, use_notification::use_notification, use_reply::use_reply, use_room::use_room, use_send_attach::SendAttachStatus},
+    services::matrix::matrix::{TimelineMessageType, EventOrigin, Attachment}, hooks::{use_attach::{use_attach, AttachError, AttachFile}, use_notification::use_notification, use_reply::use_reply},
 };
 
 #[derive(Debug, Clone)]
@@ -26,7 +26,6 @@ pub struct ReplyingTo {
 
 #[derive(Props)]
 pub struct InputMessageProps<'a> {
-    message_type: InputType,
     placeholder: &'a str,
     on_submit: EventHandler<'a, FormMessageEvent>,
     on_event: EventHandler<'a, HeaderEvent>,
@@ -36,8 +35,6 @@ pub struct InputMessageProps<'a> {
 pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
     let i18 = use_i18(cx);
     let attach = use_attach(cx);
-    let client = use_client(cx);
-    let room = use_room(cx);
     let notification = use_notification(cx);
 
     let key_input_message_unknown_content = translate!(i18, "chat.input_message.unknown_content");
@@ -45,8 +42,6 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
     let key_input_message_not_found = translate!(i18, "chat.input_message.not_found");
     let key_input_message_cta = translate!(i18, "chat.input_message.cta");
     
-    let send_attach_status =
-        use_shared_state::<SendAttachStatus>(cx).expect("Unable to use SendAttachStatus");
     let replying_to = use_reply(cx);
     
     let message_field = use_state(cx, String::new);
@@ -73,7 +68,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                 let infered_type = infer::get(content.deref()).ok_or(AttachError::UncoverType)?;
 
                 let content_type: Result<mime::Mime, _> = infered_type.mime_type().parse();
-                let content_type = content_type.map_err(|e|AttachError::UnknownContent)?;
+                let content_type = content_type.map_err(|_|AttachError::UnknownContent)?;
 
                 let blob = match content_type.type_() {
                     mime::IMAGE => {
@@ -168,7 +163,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
         if let Some(_) = attach.get() {
             rsx!(
                 AttachPreview {
-                    on_event: move |event| {
+                    on_event: move |_| {
                         on_handle_send_attach();
                         attach.reset();
                     }
@@ -191,7 +186,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                     Button {
                         text: "{key_input_message_cta}",
                         status: None,
-                        on_click: move |event| {
+                        on_click: move |_| {
                             if let Some(l) = &cx.props.on_attach {
                                 let attachment = Attachment {
                                     body: file.name.clone(),
@@ -212,7 +207,6 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                         value: "{message_field}",
                         placeholder: cx.props.placeholder,
                         on_input: move |event: FormEvent| {
-                            let value = event.value.clone();
                             message_field.set(event.value.clone());
                         },
                         on_keypress: move |event: KeyboardEvent| {

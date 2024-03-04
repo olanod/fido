@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
-use futures_util::StreamExt;
+use futures_util::{StreamExt, TryFutureExt};
 use log::info;
 use matrix_sdk::{
     config::SyncSettings, room::Room, ruma::events::room::message::OriginalSyncRoomMessageEvent,
@@ -33,9 +33,8 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
 
     let handler_added = use_ref(cx, || false);
 
-    let key_common_error_thread_id = translate!(i18, "chat.common.error.thread_id");
-    let key_common_error_event_id = translate!(i18, "chat.common.error.event_id");
     let key_common_error_user_id = translate!(i18, "chat.common.error.user_id");
+    let key_common_error_sync = translate!(i18, "chat.common.error.sync");
     let key_listen_message_image = translate!(i18, "chat.listen.message.image");
     let key_listen_message_file = translate!(i18, "chat.listen.message.file");
     let key_listen_message_video = translate!(i18, "chat.listen.message.video");
@@ -45,203 +44,239 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
     let message_dispatch_id =
         use_shared_state::<MessageDispatchId>(cx).expect("Unable to use MessageDispatchId");
     let threading_to = use_thread(cx);
+    let position = use_ref(cx, || None);
 
-    let task_sender = use_coroutine(
-        cx,
-        |mut rx: UnboundedReceiver<(MessageEvent, Option<usize>)>| {
-            to_owned![
-                client,
-                messages,
-                notification,
-                room,
-                threading_to,
-                session,
-                key_common_error_user_id
-            ];
+    let task_sender = use_coroutine(cx, |mut rx: UnboundedReceiver<MessageEvent>| {
+        to_owned![
+            messages,
+            notification,
+            room,
+            threading_to,
+            session,
+            key_common_error_user_id,
+            position
+        ];
 
-            async move {
-                while let Some((message_event, message_position_local)) = rx.next().await {
-                    if let Some(message) = message_event.mgs {
-                        let mut msgs = messages.get().clone();
-                        let mut plain_message = None;
+        async move {
+            while let Some(message_event) = rx.next().await {
+                let message_position_local = *position.read();
+                if let Some(message) = message_event.mgs {
+                    let mut msgs = messages.get().clone();
+                    let mut plain_message = None;
 
-                        let is_in_current_room =
-                            message_event.room.room_id().as_str().eq(&room.get().id);
+                    let is_in_current_room =
+                        message_event.room.room_id().as_str().eq(&room.get().id);
 
-                        let last_message_id = messages.get().len() as i64;
-
-                        match &message {
-                            TimelineRelation::Thread(timeline_thread) => {
-                                // Position of an existing thread timeline
-                                let position = msgs.iter().position(|m| {
-                                    let TimelineRelation::CustomThread(t) = m else {
-                                        return false;
-                                    };
-
-                                    t.event_id.eq(&timeline_thread.event_id)
-                                });
-
-                                match position {
-                                    Some(p) => {
-                                        if let TimelineRelation::CustomThread(ref mut t) = msgs[p] {
-                                            t.thread.push(timeline_thread.thread[0].clone());
-                                        };
-                                    }
-                                    None => {
-                                        let relation =
-                                            TimelineRelation::CustomThread(TimelineThread {
-                                                event_id: timeline_thread.event_id.clone(),
-                                                thread: timeline_thread.thread.clone(),
-                                                latest_event: timeline_thread.thread
-                                                    [timeline_thread.thread.len() - 1]
-                                                    .clone()
-                                                    .event_id,
-                                                count: timeline_thread.thread.len(),
-                                            });
-
-                                        if is_in_current_room {
-                                            msgs.push(relation);
-                                        }
-                                    }
-                                }
-
-                                plain_message = Some(key_listen_message_thread.as_str());
-                            }
-                            TimelineRelation::None(timeline_message) => {
-                                // Position of a head thread timeline
-                                let position = msgs.iter().position(|m| {
-                                    let TimelineRelation::CustomThread(t) = m else {
-                                        return false;
-                                    };
-
-                                    t.event_id.eq(&timeline_message.event_id)
-                                });
-
-                                match position {
-                                    Some(p) => {
-                                        if let TimelineRelation::CustomThread(ref mut z) = msgs[p] {
-                                        }
-                                    }
-                                    None => {
-                                        if is_in_current_room {
-                                            if let Some(position) = message_position_local {
-                                                msgs[position] = message.clone()
-                                            } else {
-                                                msgs.push(message.clone());
-                                            }
-                                        } else {
-                                            plain_message = Some(message_to_plain_content(
-                                                &timeline_message.body,
-                                                &key_listen_message_image,
-                                                &key_listen_message_file,
-                                                &key_listen_message_video,
-                                                &key_listen_message_html,
-                                            ));
-                                        }
-                                    }
-                                }
-                            }
-                            TimelineRelation::Reply(timeline_message) => {
-                                if is_in_current_room {
-                                    if let Some(position) = message_position_local {
-                                        msgs[position] = message.clone();
-                                    } else {
-                                        msgs.push(message.clone());
-                                    };
-                                } else {
-                                    plain_message = Some(message_to_plain_content(
-                                        &timeline_message.event.body,
-                                        &key_listen_message_image,
-                                        &key_listen_message_file,
-                                        &key_listen_message_video,
-                                        &key_listen_message_html,
-                                    ));
-                                }
-                            }
-                            TimelineRelation::CustomThread(timeline_message) => {
-                                if is_in_current_room {
-                                    msgs.push(message);
-                                }
-
-                                plain_message = Some(key_listen_message_thread.as_str());
-                            }
-                        };
-
-                        messages.set(msgs.clone());
-                        let thread_to = threading_to.get().clone();
-
-                        if let Some(thread) = thread_to {
-                            messages.get().iter().for_each(|m| {
-                                if let TimelineRelation::CustomThread(t) = m {
-                                    if t.event_id.eq(&thread.event_id) {
-                                        threading_to.set(Some(TimelineThread {
-                                            event_id: t.event_id.clone(),
-                                            thread: t.thread.clone(),
-                                            count: t.count.clone(),
-                                            latest_event: t.latest_event.clone(),
-                                        }));
-                                    }
-                                } else if let TimelineRelation::None(t) = m {
-                                    if t.event_id.eq(&thread.event_id) {
-                                        let mut new_thread = thread.clone();
-
-                                        new_thread.thread.push(t.clone());
-
-                                        threading_to.set(Some(TimelineThread {
-                                            event_id: t.event_id.clone(),
-                                            thread: new_thread.thread.clone(),
-                                            count: new_thread.count.clone(),
-                                            latest_event: new_thread.latest_event.clone(),
-                                        }));
-                                    }
-                                }
-                            });
-                        }
-
-                        let room_name = match message_event.room.name() {
-                            Some(name) => name,
-                            None => {
-                                let mut name = String::from("Unknown name room");
-
-                                let Some(session_data) = session.get() else {
-                                    notification.handle_error(&key_common_error_user_id);
-                                    return;
+                    match &message {
+                        TimelineRelation::Thread(timeline_thread) => {
+                            // Position of an existing thread timeline
+                            let position = msgs.iter().position(|m| {
+                                let TimelineRelation::CustomThread(t) = m else {
+                                    return false;
                                 };
 
-                                let users = message_event.room.members().await;
+                                t.event_id.eq(&timeline_thread.event_id)
+                            });
 
-                                if let Ok(members) = users {
-                                    let member = members
-                                        .into_iter()
-                                        .find(|member| !member.user_id().eq(&session_data.user_id));
+                            match position {
+                                Some(p) => {
+                                    if let TimelineRelation::CustomThread(ref mut t) = msgs[p] {
+                                        t.thread.push(timeline_thread.thread[0].clone());
+                                    };
+                                }
+                                None => {
+                                    let relation = TimelineRelation::CustomThread(TimelineThread {
+                                        event_id: timeline_thread.event_id.clone(),
+                                        thread: timeline_thread.thread.clone(),
+                                        latest_event: timeline_thread.thread
+                                            [timeline_thread.thread.len() - 1]
+                                            .clone()
+                                            .event_id,
+                                        count: timeline_thread.thread.len(),
+                                    });
 
-                                    if let Some(m) = member {
-                                        let n = m.name();
-
-                                        name = String::from(n);
+                                    if is_in_current_room {
+                                        msgs.push(relation);
                                     }
                                 }
-
-                                name
                             }
-                        };
 
-                        if let Some(content) = plain_message {
-                            notification.handle_notification(NotificationItem {
-                                title: room_name,
-                                body: String::from(content),
-                                show: true,
-                                handle: NotificationHandle {
-                                    value: NotificationType::Click,
-                                },
-                            })
+                            plain_message = Some(key_listen_message_thread.as_str());
                         }
+                        TimelineRelation::None(timeline_message) => {
+                            // Position of a head thread timeline
+                            let position = msgs.iter().position(|m| {
+                                let TimelineRelation::CustomThread(t) = m else {
+                                    return false;
+                                };
+
+                                t.event_id.eq(&timeline_message.event_id)
+                            });
+
+                            match position {
+                                Some(p) => if let TimelineRelation::CustomThread(_) = msgs[p] {},
+                                None => {
+                                    if is_in_current_room {
+                                        if let Some(position) = message_position_local {
+                                            msgs[position] = message.clone()
+                                        } else {
+                                            msgs.push(message.clone());
+                                        }
+                                    } else {
+                                        plain_message = Some(message_to_plain_content(
+                                            &timeline_message.body,
+                                            &key_listen_message_image,
+                                            &key_listen_message_file,
+                                            &key_listen_message_video,
+                                            &key_listen_message_html,
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                        TimelineRelation::Reply(timeline_message) => {
+                            if is_in_current_room {
+                                if let Some(position) = message_position_local {
+                                    msgs[position] = message.clone();
+                                } else {
+                                    msgs.push(message.clone());
+                                };
+                            } else {
+                                plain_message = Some(message_to_plain_content(
+                                    &timeline_message.event.body,
+                                    &key_listen_message_image,
+                                    &key_listen_message_file,
+                                    &key_listen_message_video,
+                                    &key_listen_message_html,
+                                ));
+                            }
+                        }
+                        TimelineRelation::CustomThread(_) => {
+                            if is_in_current_room {
+                                msgs.push(message);
+                            }
+
+                            plain_message = Some(key_listen_message_thread.as_str());
+                        }
+                    };
+
+                    messages.set(msgs.clone());
+                    let thread_to = threading_to.get().clone();
+
+                    if let Some(thread) = thread_to {
+                        messages.get().iter().for_each(|m| {
+                            if let TimelineRelation::CustomThread(t) = m {
+                                if t.event_id.eq(&thread.event_id) {
+                                    threading_to.set(Some(TimelineThread {
+                                        event_id: t.event_id.clone(),
+                                        thread: t.thread.clone(),
+                                        count: t.count.clone(),
+                                        latest_event: t.latest_event.clone(),
+                                    }));
+                                }
+                            } else if let TimelineRelation::None(t) = m {
+                                if t.event_id.eq(&thread.event_id) {
+                                    let mut new_thread = thread.clone();
+
+                                    new_thread.thread.push(t.clone());
+
+                                    threading_to.set(Some(TimelineThread {
+                                        event_id: t.event_id.clone(),
+                                        thread: new_thread.thread.clone(),
+                                        count: new_thread.count.clone(),
+                                        latest_event: new_thread.latest_event.clone(),
+                                    }));
+                                }
+                            }
+                        });
+                    }
+
+                    let room_name = match message_event.room.name() {
+                        Some(name) => name,
+                        None => {
+                            let mut name = String::from("Unknown name room");
+
+                            let Some(session_data) = session.get() else {
+                                notification.handle_error(&key_common_error_user_id);
+                                return;
+                            };
+
+                            let users = message_event.room.members().await;
+
+                            if let Ok(members) = users {
+                                let member = members
+                                    .into_iter()
+                                    .find(|member| !member.user_id().eq(&session_data.user_id));
+
+                                if let Some(m) = member {
+                                    let n = m.name();
+
+                                    name = String::from(n);
+                                }
+                            }
+
+                            name
+                        }
+                    };
+
+                    if let Some(content) = plain_message {
+                        notification.handle_notification(NotificationItem {
+                            title: room_name,
+                            body: String::from(content),
+                            show: true,
+                            handle: NotificationHandle {
+                                value: NotificationType::Click,
+                            },
+                        })
+                    }
+                }
+            }
+        }
+    })
+    .clone();
+
+    let task_replacer = use_coroutine(
+        cx,
+        |mut rx: UnboundedReceiver<OriginalSyncRoomMessageEvent>| {
+            to_owned![messages, message_dispatch_id, position];
+
+            async move {
+                while let Some(ev) = rx.next().await {
+                    let back_messages = messages.get().clone();
+                    let value = &message_dispatch_id.read().value;
+
+                    let to_find: Option<(String, Option<String>)> =
+                        value.iter().find_map(|(uuid, event_id)| {
+                            event_id.clone().and_then(|id| {
+                                if ev.event_id == id {
+                                    Some((uuid.clone(), event_id.clone()))
+                                } else {
+                                    None
+                                }
+                            })
+                        });
+
+                    info!("to find {:?}", to_find);
+                    info!("back messages {:?}", back_messages);
+
+                    if let Some((uuid, _)) = to_find {
+                        position.set(back_messages.iter().position(|m| match m {
+                            TimelineRelation::None(relation) => relation.event_id == uuid,
+                            TimelineRelation::Reply(relation) => relation.event.event_id == uuid,
+                            TimelineRelation::CustomThread(relation) => {
+                                relation.thread.iter().any(|rm| rm.event_id == uuid)
+                            }
+                            TimelineRelation::Thread(relation) => {
+                                relation.thread.iter().any(|rm| rm.event_id == uuid)
+                            }
+                        }));
+
+                        info!("position {:?}", position.read());
                     }
                 }
             }
         },
-    )
-    .clone();
+    );
 
     // After logging is mandatory to perform a client sync,
     // since the chat needs sync to listen for new messages
@@ -251,20 +286,19 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
             client,
             handler_added,
             task_sender,
-            message_dispatch_id,
-            messages,
+            task_replacer,
             session,
             notification,
             key_common_error_user_id
         ];
 
         async move {
-            client.sync_once(SyncSettings::default()).await;
+            client
+                .sync_once(SyncSettings::default())
+                .await
+                .map_err(|_| ListenMessageError::FailedSync)?;
 
-            let Some(me) = session.get() else {
-                notification.handle_error(&key_common_error_user_id);
-                return;
-            };
+            let me = session.get().ok_or(ListenMessageError::SessionNotFound)?;
 
             if !*handler_added.read() {
                 client.add_event_handler(
@@ -272,21 +306,8 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                           room: Room,
                           client: matrix_sdk::Client| {
                         let task_sender = task_sender.clone();
-                        let messages = messages.clone();
                         let me = me.clone();
-                        let mut back_messages = messages.get().clone();
-
-                        let value = &message_dispatch_id.read().value;
-                        let to_find: Option<(String, Option<String>)> =
-                            value.iter().find_map(|(uuid, event_id)| {
-                                event_id.clone().and_then(|id| {
-                                    if ev.event_id == id {
-                                        Some((uuid.clone(), event_id.clone()))
-                                    } else {
-                                        None
-                                    }
-                                })
-                            });
+                        task_replacer.send(ev.clone());
 
                         async move {
                             let message_type = &ev.content.msgtype;
@@ -296,28 +317,6 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                             };
                             let relates = &ev.content.relates_to;
                             let time = ev.origin_server_ts;
-                            let to_find = to_find.clone();
-                            let mut position = None;
-
-                            info!("to find {:?}", to_find);
-                            info!("back messages {:?}", back_messages);
-
-                            if let Some((uuid, event_id)) = to_find {
-                                position = back_messages.iter().position(|m| match m {
-                                    TimelineRelation::None(relation) => relation.event_id == uuid,
-                                    TimelineRelation::Reply(relation) => {
-                                        relation.event.event_id == uuid
-                                    }
-                                    TimelineRelation::CustomThread(relation) => {
-                                        relation.thread.iter().any(|rm| rm.event_id == uuid)
-                                    }
-                                    TimelineRelation::Thread(relation) => {
-                                        relation.thread.iter().any(|rm| rm.event_id == uuid)
-                                    }
-                                });
-
-                                info!("position {:?}", position);
-                            }
 
                             let formatted_message = format_original_any_room_message_event(
                                 &message_type,
@@ -362,13 +361,10 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                     }
                                 }
                             }
-                            task_sender.send((
-                                MessageEvent {
-                                    room,
-                                    mgs: message_result,
-                                },
-                                position,
-                            ));
+                            task_sender.send(MessageEvent {
+                                room,
+                                mgs: message_result,
+                            });
                         }
                     },
                 );
@@ -376,11 +372,28 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                 handler_added.set(true);
             }
 
-            let _ = client.sync(SyncSettings::default()).await;
+            client
+                .sync(SyncSettings::default())
+                .await
+                .map_err(|_| ListenMessageError::FailedSync)?;
+
+            Ok::<(), ListenMessageError>(())
         }
+        .unwrap_or_else(move |e: ListenMessageError| {
+            let message = match e {
+                ListenMessageError::FailedSync => key_common_error_sync,
+                ListenMessageError::SessionNotFound => key_common_error_user_id,
+            };
+            notification.handle_error(&message);
+        })
     });
 
     cx.use_hook(move || UseListenMessagesState {})
+}
+
+pub enum ListenMessageError {
+    FailedSync,
+    SessionNotFound,
 }
 
 #[derive(Clone)]
@@ -400,8 +413,8 @@ pub fn message_to_plain_content<'a>(
     match &content {
         TimelineMessageType::Image(_) => key_image,
         TimelineMessageType::Text(t) => t,
-        TimelineMessageType::File(t) => key_file,
-        TimelineMessageType::Video(t) => key_video,
-        TimelineMessageType::Html(t) => key_html,
+        TimelineMessageType::File(_) => key_file,
+        TimelineMessageType::Video(_) => key_video,
+        TimelineMessageType::Html(_) => key_html,
     }
 }

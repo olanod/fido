@@ -1,13 +1,14 @@
 use dioxus::prelude::*;
 use gloo::storage::{errors::StorageError, LocalStorage};
 use matrix_sdk::Client;
+use ruma::api::client::discovery::discover_homeserver::Response as WellKnownResponse;
 use ruma::api::IncomingResponse;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use ruma::api::client::discovery::discover_homeserver::Response as WellKnownResponse;
-
 use crate::pages::login::LoggedIn;
+
+use super::use_client::UseClientState;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AuthError {
@@ -180,7 +181,7 @@ impl UseAuthState {
                 let Some(domain) = server.domain() else {
                     return;
                 };
-                
+
                 let domain_name = extract_domain_name(domain);
                 if !username_parse.ends_with(domain_name.as_str()) {
                     username_parse = format!("{}:{}", username_parse, domain_name);
@@ -248,6 +249,30 @@ impl UseAuthState {
     pub fn set_logged_in(&self, option: bool) {
         *self.logged_in.write() = LoggedIn(option);
     }
+
+    pub async fn logout(&self, client: &UseClientState) -> Result<(), LogoutError> {
+        client
+            .get()
+            .logout()
+            .await
+            .map_err(|_| LogoutError::Failed)?;
+        <LocalStorage as gloo::storage::Storage>::delete("session_file");
+
+        client
+            .default()
+            .await
+            .map_err(|_| LogoutError::DefaultClient)?;
+
+        self.set_logged_in(false);
+
+        Ok(())
+    }
+}
+
+pub enum LogoutError {
+    DefaultClient,
+    RemoveSession,
+    Failed,
 }
 
 fn extract_domain_name(host: &str) -> String {

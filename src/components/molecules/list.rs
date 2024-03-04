@@ -58,7 +58,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
 
     cx.render(rsx! {  
         div {
-            class:"messages-list messages_list_thread",
+            class:"messages-list {messages_list_thread}",
             onmounted: move |event| {
                 event.data.get_raw_element()
                     .ok()
@@ -82,7 +82,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                                 
                                 let mut old_value = 0;
                                 
-                                let on_down = EventListener::new(&container.clone(), "scroll", move |_| {
+                                EventListener::new(&container.clone(), "scroll", move |_| {
                                     let container_height = container.client_height();
                                     let scroll_top = container.scroll_top() * -1; 
                                     let list_height = list.client_height();

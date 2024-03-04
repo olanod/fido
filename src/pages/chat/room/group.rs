@@ -54,17 +54,10 @@ pub fn RoomGroup(cx: Scope) -> Element {
 
     let i18 = use_i18(cx);
 
-    let key_common_error_thread_id = translate!(i18, "chat.common.error.thread_id");
-    let key_common_error_event_id = translate!(i18, "chat.common.error.event_id");
-    let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
     let key_common_error_user_id = translate!(i18, "chat.common.error.user_id");
     let key_common_error_server = translate!(i18, "chat.common.error.server");
-
     let key_group_error_not_found = translate!(i18, "group.error.not_found");
-    let key_group_error_dm = translate!(i18, "group.error.dm");
     let key_group_error_profile = translate!(i18, "group.error.profile");
-    let key_group_error_file = translate!(i18, "group.error.file");
-    let key_group_success_description = translate!(i18, "group.success.description");
 
     let key_group_title = "group-title";
     let key_group_select_label = "group-select-label";
@@ -124,7 +117,6 @@ pub fn RoomGroup(cx: Scope) -> Element {
     let users = use_ref::<Vec<Profile>>(cx, || vec![]);
 
     let error = use_state::<Option<String>>(cx, || None);
-    let error_creation = use_state::<Option<String>>(cx, || None);
 
     let handle_complete_group = use_ref::<bool>(cx, || false);
     let group_name = use_state::<String>(cx, || String::from(""));
@@ -140,7 +132,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                 if let None = element {
                     match process_find_user_by_id(&id, &client).await {
                         Ok(profile) => users.with_mut(|user| user.push(profile)),
-                        Err(err) => {
+                        Err(_) => {
                             notification.handle_error(&key_group_error_not_found);
                         }
                     }
@@ -156,13 +148,13 @@ pub fn RoomGroup(cx: Scope) -> Element {
                 selected_users,
                 attach,
                 group_name,
-                error_creation,
+                
                 navigation,
                 key_common_error_user_id,
                 key_group_error_profile,
                 key_group_error_not_found,
                 key_common_error_server,
-                key_group_success_description,
+                
                 notification,
                 status,
                 room
@@ -248,7 +240,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                 let infered_type = infer::get(content.deref()).ok_or(AttachError::UncoverType)?;
 
                 let content_type: Result<mime::Mime, _> = infered_type.mime_type().parse();
-                let content_type = content_type.map_err(|e| AttachError::UnknownContent)?;
+                let content_type = content_type.map_err(|_| AttachError::UnknownContent)?;
 
                 let blob = match content_type.type_() {
                     mime::IMAGE => gloo::file::Blob::new(content.deref()),
