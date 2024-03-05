@@ -74,7 +74,7 @@ pub fn MessageInput<'a>(cx: Scope<'a, MessageInputProps<'a>>) -> Element<'a> {
                     onkeypress: move |event| cx.props.on_keypress.call(event)
                 }
 
-                if cx.props.message.len() > 0 {
+                if cx.props.message.is_empty() {
                    match cx.props.itype {
                         InputType::Message => render!(
                             rsx!(

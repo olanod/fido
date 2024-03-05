@@ -217,7 +217,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                                 keyboard_types::Modifiers::SHIFT => {}
                                 _ => {
                                     if event.code() == keyboard_types::Code::Enter {
-                                        if message_field.get().trim().len() > 0 {
+                                        if message_field.get().trim().is_empty() {
                                             cx.props.on_submit.call(FormMessageEvent { value: message_field.get().clone() });
                                         }
                                         message_field.set(String::from(""));

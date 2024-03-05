@@ -22,7 +22,7 @@ pub struct RoomsListProps<'a> {
 }
 
 pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
-    let rooms_list_skeleton = if cx.props.rooms.len() > 0 {
+    let rooms_list_skeleton = if cx.props.rooms.is_empty() {
         ""
     } else {
         "rooms-list--skeleton"
@@ -31,7 +31,7 @@ pub fn RoomsList<'a>(cx: Scope<'a, RoomsListProps<'a>>) -> Element<'a> {
     cx.render(rsx! {
         section {
             class:"rooms-list {rooms_list_skeleton} fade-in",
-            if cx.props.rooms.len() > 0 {
+            if cx.props.rooms.is_empty() {
                 rsx!(cx.props.rooms.iter().map(|room| {
                     rsx!(RoomView {
                         key: "{room.id}",

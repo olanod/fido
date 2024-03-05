@@ -58,7 +58,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
         async move {}
     });
 
-    let messages_list_skeleton = if cx.props.messages.len() > 0 {
+    let messages_list_skeleton = if cx.props.messages.is_empty() {
         ""
     } else {
         "messages-list--skeleton"
@@ -107,7 +107,7 @@ pub fn List<'a>(cx: Scope<'a, ListProps<'a>>) -> Element<'a> {
                         }
                     },
                     rsx!(
-                        if cx.props.messages.len() > 0 { 
+                        if cx.props.messages.is_empty() { 
                             rsx!(cx.props.messages.iter().enumerate().map(|(i, m)| {
                                 match m {
                                     TimelineRelation::None(message) => {

@@ -108,7 +108,7 @@ pub fn ChatList(cx: Scope) -> Element {
         section {
             class: "chat-list options",
             div {
-                if spaces.get().len() > 0 {
+                if spaces.get().is_empty() {
                     rsx!(
                         ul {
                             class: "chat-list__wrapper",
@@ -183,7 +183,7 @@ pub fn ChatList(cx: Scope) -> Element {
 
                             let default_rooms = all_rooms.get().iter().cloned().collect::<Vec<_>>();
 
-                            if event.value.len() > 0 {
+                            if event.value.is_empty() {
                                 let x = default_rooms
                                     .iter()
                                     .filter(|r| r.name.to_lowercase().contains(&event.value.to_lowercase()))
