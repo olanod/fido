@@ -208,6 +208,7 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                         placeholder: cx.props.placeholder,
                         on_input: move |event: FormEvent| {
                             message_field.set(event.value.clone());
+                            log::info!("{:?}", event.value.clone());
                         },
                         on_keypress: move |event: KeyboardEvent| {
                             let modifiers = event.modifiers();
@@ -215,8 +216,10 @@ pub fn InputMessage<'a>(cx: Scope<'a, InputMessageProps<'a>>) -> Element<'a> {
                             match modifiers {
                                 keyboard_types::Modifiers::SHIFT => {}
                                 _ => {
-                                    if event.code() == keyboard_types::Code::Enter && message_field.get().len() > 0 {
-                                        cx.props.on_submit.call(FormMessageEvent { value: message_field.get().clone() });
+                                    if event.code() == keyboard_types::Code::Enter {
+                                        if message_field.get().trim().len() > 0 {
+                                            cx.props.on_submit.call(FormMessageEvent { value: message_field.get().clone() });
+                                        }
                                         message_field.set(String::from(""));
                                     }
                                 }

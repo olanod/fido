@@ -551,6 +551,7 @@ ul {
 .message__content {
   display: flex;
   flex-direction: column;
+  white-space: pre-line
 }
 
 .message__container__content {
