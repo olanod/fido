@@ -6,8 +6,7 @@ use dioxus_std::{i18n::use_i18, translate};
 use crate::{
     components::{
         atoms::{
-            avatar::Variant, input::InputType, message::Messages, room::RoomItem, Avatar,
-            MessageInput,
+            input::InputType, message::Messages, room::RoomItem, MessageInput, Space, SpaceSkeleton,
         },
         molecules::{
             rooms::{CurrentRoom, FormRoomEvent},
@@ -30,7 +29,6 @@ pub fn ChatList(cx: Scope) -> Element {
     let notification = use_notification(cx);
     let room = use_room(cx);
     let messages = use_messages(cx);
-    // use_shared_state_provider::<HashMap<CurrentRoom, Messages>>(cx, || HashMap::new());
 
     let room_tabs = use_ref::<HashMap<CurrentRoom, Messages>>(cx, || HashMap::new());
 
@@ -47,6 +45,7 @@ pub fn ChatList(cx: Scope) -> Element {
     let selected_space = use_ref::<String>(cx, || String::new());
     let title_header =
         use_shared_state::<TitleHeaderMain>(cx).expect("Unable to read title header");
+    let is_loading = use_state(cx, || false);
 
     let on_click_room = move |evt: FormRoomEvent| {
         room.set(evt.room.clone());
@@ -67,10 +66,12 @@ pub fn ChatList(cx: Scope) -> Element {
             session,
             notification,
             key_chat_list_home,
-            key_session_error_not_found
+            key_session_error_not_found,
+            is_loading
         ];
 
         async move {
+            is_loading.set(true);
             let Some(session_data) = session.get() else {
                 return notification.handle_error(&key_session_error_not_found);
             };
@@ -98,6 +99,8 @@ pub fn ChatList(cx: Scope) -> Element {
 
             selected_space.set(key_chat_list_home.clone());
             title_header.write().title = key_chat_list_home.clone();
+
+            is_loading.set(false);
         }
     });
 
@@ -105,82 +108,92 @@ pub fn ChatList(cx: Scope) -> Element {
         section {
             class: "chat-list options",
             div {
-                ul {
-                    class: "chat-list__wrapper",
-                    button {
-                      class: "button button--tertiary padding-reset",
-                      onclick: move |_| {
-                          rooms_to_list.set(rooms.get().clone());
-                          rooms_filtered.set(rooms.get().clone());
-                          selected_space.set(key_chat_list_home.clone());
-                          title_header.write().title = key_chat_list_home.clone();
-                      },
-                      Avatar {
-                          name: key_chat_list_home.clone(),
-                          size: 50,
-                          uri: None,
-                          variant: Variant::SemiRound
-                      }
-                    }
-                    spaces.get().iter().map(|(space, value)|{
-                        rsx!(
-                            button {
-                                class: "button button--tertiary padding-reset",
-                                onclick: move |_| {
-                                    rooms_to_list.set(value.clone());
-                                    rooms_filtered.set(value.clone());
-                                    selected_space.set(space.name.clone());
-                                    title_header.write().title = space.name.clone();
-                                },
-                                Avatar {
-                                    name: space.name.clone(),
-                                    size: 50,
-                                    uri: space.avatar_uri.clone(),
-                                    variant: Variant::SemiRound
+                if spaces.get().len() > 0 {
+                    rsx!(
+                        ul {
+                            class: "chat-list__wrapper",
+                            Space {
+                                text: "{key_chat_list_home}",
+                                uri: None,
+                                on_click: move |_| {
+                                    rooms_to_list.set(rooms.get().clone());
+                                    rooms_filtered.set(rooms.get().clone());
+                                    selected_space.set(key_chat_list_home.clone());
+                                    title_header.write().title = key_chat_list_home.clone();
                                 }
                             }
-                        )
-                    })
+
+                            spaces.get().iter().map(|(space, value)|{
+                                let name = space.name.clone();
+                                rsx!(
+                                    Space {
+                                        text: "{name}",
+                                        uri: space.avatar_uri.clone(),
+                                        on_click: move |_| {
+                                            rooms_to_list.set(value.clone());
+                                            rooms_filtered.set(value.clone());
+                                            selected_space.set(space.name.clone());
+                                            title_header.write().title = space.name.clone();
+                                        }
+                                    }
+                                )
+                            })
+                        }
+                    )
+                } else if *is_loading.get() {
+                    rsx!(
+                        ul {
+                            class: "chat-list__wrapper",
+                            (0..5).map(|_| {
+                                rsx!(
+                                    SpaceSkeleton {
+                                        size: 50
+                                    }
+                                )
+                            })
+                        }
+                    )
+                } else {
+                    rsx!( div {})
                 }
             }
 
-            if !rooms_to_list.read().is_empty() {
-                rsx!(
-                    div {
-                        class: "chat-list__rooms",
-                        MessageInput {
-                            message: "{pattern}",
-                            placeholder: "{key_chat_list_search}",
-                            itype: InputType::Search,
-                            error: None,
-                            on_input: move |event: FormEvent| {
-                                pattern.set(event.value.clone());
+            rsx!(
+                div {
+                    class: "chat-list__rooms",
+                    MessageInput {
+                        message: "{pattern}",
+                        placeholder: "{key_chat_list_search}",
+                        itype: InputType::Search,
+                        error: None,
+                        on_input: move |event: FormEvent| {
+                            pattern.set(event.value.clone());
 
-                                let default_rooms = all_rooms.get().iter().cloned().collect::<Vec<_>>();
+                            let default_rooms = all_rooms.get().iter().cloned().collect::<Vec<_>>();
 
-                                if event.value.len() > 0 {
-                                    let x = default_rooms
-                                        .iter()
-                                        .filter(|r| r.name.to_lowercase().contains(&event.value.to_lowercase()))
-                                        .cloned()
-                                        .collect::<Vec<_>>();
+                            if event.value.len() > 0 {
+                                let x = default_rooms
+                                    .iter()
+                                    .filter(|r| r.name.to_lowercase().contains(&event.value.to_lowercase()))
+                                    .cloned()
+                                    .collect::<Vec<_>>();
 
-                                    rooms_filtered.set(x);
-                                } else {
-                                    rooms_filtered.set(rooms_to_list.read().clone())
-                                }
-                            },
-                            on_keypress: move |_| {},
-                            on_click: move |_| {}
-                        }
-
-                        RoomsList {
-                            rooms: rooms_filtered.read().clone(),
-                            on_submit: on_click_room
-                        }
+                                rooms_filtered.set(x);
+                            } else {
+                                rooms_filtered.set(rooms_to_list.read().clone())
+                            }
+                        },
+                        on_keypress: move |_| {},
+                        on_click: move |_| {}
                     }
-                )
-            }
+
+                    RoomsList {
+                        rooms: rooms_filtered.read().clone(),
+                        is_loading: *is_loading.get(),
+                        on_submit: on_click_room
+                    }
+                }
+            )
 
             if !room.get().name.is_empty() {
                 rsx!(

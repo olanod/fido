@@ -304,6 +304,10 @@ pub mod matrix {
             });
         }
 
+        if spaces.len() == 0 {
+            to_list_rooms = rooms;
+        }
+
         Conversations {
             rooms: to_list_rooms,
             spaces: spaces,
