@@ -15,8 +15,7 @@ use crate::{
         organisms::{chat::ActiveRoom, main::TitleHeaderMain},
     },
     hooks::{
-        use_client::use_client, use_messages::use_messages, use_notification::use_notification,
-        use_room::use_room, use_session::use_session,
+        use_client::use_client, use_lifecycle::use_lifecycle, use_messages::use_messages, use_notification::use_notification, use_room::use_room, use_session::use_session
     },
     services::matrix::matrix::{list_rooms_and_spaces, Conversations},
 };
@@ -46,6 +45,17 @@ pub fn ChatList(cx: Scope) -> Element {
     let title_header =
         use_shared_state::<TitleHeaderMain>(cx).expect("Unable to read title header");
     let is_loading = use_state(cx, || false);
+    
+    let r = room.clone();
+    use_lifecycle(
+        &cx,
+        || {},
+        move || {
+            to_owned![r];
+
+            r.default();
+        },
+    );
 
     let on_click_room = move |evt: FormRoomEvent| {
         room.set(evt.room.clone());
