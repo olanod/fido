@@ -293,10 +293,9 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
         ];
 
         async move {
-            client
-                .sync_once(SyncSettings::default())
-                .await
-                .map_err(|_| ListenMessageError::FailedSync)?;
+            if let Err(e) = client.sync_once(SyncSettings::default()).await {
+                log::warn!("{e:?}")
+            };
 
             let me = session.get().ok_or(ListenMessageError::SessionNotFound)?;
 
