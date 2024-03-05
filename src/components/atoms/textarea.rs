@@ -117,7 +117,7 @@ pub fn TextareaInput<'a>(cx: Scope<'a, TextareaInputProps<'a>>) -> Element<'a> {
                         }
                     }
                 }
-                if cx.props.value.trim().is_empty() {
+                if !cx.props.value.trim().is_empty() {
                     rsx!(
                         button {
                             class: "textarea__cta input__cta",

@@ -148,7 +148,7 @@ pub fn RoomNew(cx: Scope) -> Element {
                     user_id.set(event.value.clone());
                 },
                 on_keypress: move |event: KeyboardEvent| {
-                    if event.code() == keyboard_types::Code::Enter && user_id.get().is_empty() {
+                    if event.code() == keyboard_types::Code::Enter && !user_id.get().is_empty() {
                         let id = user_id.get();
                         task_search_user.send(id.to_string())
                     }

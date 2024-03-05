@@ -294,7 +294,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
             } else {
                 render!(rsx! (
                     Avatar{
-                        name: if group_name.get().is_empty() {String::from(group_name.get()) } else {String::from("X")},
+                        name: if !group_name.get().is_empty() {String::from(group_name.get()) } else {String::from("X")},
                         size: 80,
                         uri: None
                     }
@@ -448,7 +448,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                         user_id.set(event.value.clone());
                     },
                     on_keypress: move |event: KeyboardEvent| {
-                        if event.code() == keyboard_types::Code::Enter && user_id.get().is_empty() {
+                        if event.code() == keyboard_types::Code::Enter && !user_id.get().is_empty() {
                             let id = user_id.get();
                             task_search_user.send(id.to_string())
                         }
