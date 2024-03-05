@@ -25,4 +25,8 @@ impl UseRoomState {
         let mut inner = self.inner.write();
         *inner = room;
     }
+
+    pub fn default(&self) {
+        self.set(CurrentRoom::default())
+    }
 }

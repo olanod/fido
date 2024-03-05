@@ -120,6 +120,12 @@ pub fn ChatList(cx: Scope) -> Element {
                                     rooms_filtered.set(rooms.get().clone());
                                     selected_space.set(key_chat_list_home.clone());
                                     title_header.write().title = key_chat_list_home.clone();
+
+                                    if !rooms.get().iter().any(|r| {
+                                        room.get().id.eq(&r.id)
+                                    }) {
+                                        room.default()
+                                    }
                                 }
                             }
 
@@ -134,6 +140,12 @@ pub fn ChatList(cx: Scope) -> Element {
                                             rooms_filtered.set(value.clone());
                                             selected_space.set(space.name.clone());
                                             title_header.write().title = space.name.clone();
+
+                                            if !value.iter().any(|r| {
+                                                room.get().id.eq(&r.id)
+                                            }) {
+                                                room.default()
+                                            }
                                         }
                                     }
                                 )

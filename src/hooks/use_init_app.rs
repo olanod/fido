@@ -39,11 +39,7 @@ pub fn use_init_app(cx: &ScopeState) {
     // Temporarily moved here because Route has an unexpected
     // change when we push a ChatRoom from a different nest route
 
-    use_shared_state_provider::<CurrentRoom>(cx, || CurrentRoom {
-        id: String::from(""),
-        name: String::from(""),
-        avatar_uri: None,
-    });
+    use_shared_state_provider::<CurrentRoom>(cx, || CurrentRoom::default());
     use_shared_state_provider::<Messages>(cx, || Vec::new());
     use_shared_state_provider::<Option<AttachFile>>(cx, || None);
     use_shared_state_provider::<Option<ReplyingTo>>(cx, || None);

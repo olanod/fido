@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 
 use crate::components::atoms::{room::RoomItem, RoomView, RoomViewSkeleton};
 
-#[derive(Clone, Debug, PartialEq, Hash, Eq)]
+#[derive(Clone, Debug, PartialEq, Hash, Eq, Default)]
 pub struct CurrentRoom {
     pub id: String,
     pub name: String,
