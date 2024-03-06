@@ -148,13 +148,11 @@ pub fn RoomGroup(cx: Scope) -> Element {
                 selected_users,
                 attach,
                 group_name,
-                
                 navigation,
                 key_common_error_user_id,
                 key_group_error_profile,
                 key_group_error_not_found,
                 key_common_error_server,
-                
                 notification,
                 status,
                 room
@@ -294,7 +292,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
             } else {
                 render!(rsx! (
                     Avatar{
-                        name: if !group_name.get().is_empty() {String::from(group_name.get()) } else {String::from("X")},
+                        name: if !group_name.get().is_empty() { String::from(group_name.get()) } else { String::from("X") },
                         size: 80,
                         uri: None
                     }
@@ -471,7 +469,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                         }
                     },
                     users.read().deref().iter().map(|u| {
-                        let checked = if let Some(_) = selected_users.read().profiles.clone().into_iter().find(|selected_p| selected_p.eq(&u.id)) {true} else {false} ;
+                        let checked = if let Some(_) = selected_users.read().profiles.clone().into_iter().find(|selected_p| selected_p.eq(&u.id)) { true } else { false } ;
 
                         rsx!(
                             label {
