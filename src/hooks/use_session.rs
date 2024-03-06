@@ -11,7 +11,6 @@ use std::time::Duration;
 
 use crate::services::matrix::matrix::FullSession;
 
-#[allow(clippy::needless_return)]
 pub fn use_session(cx: &ScopeState) -> &UseSessionState {
     let user = use_shared_state::<Option<UserSession>>(cx).expect("Unable to use UserSession");
 

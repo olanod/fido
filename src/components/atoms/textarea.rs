@@ -117,15 +117,19 @@ pub fn TextareaInput<'a>(cx: Scope<'a, TextareaInputProps<'a>>) -> Element<'a> {
                         }
                     }
                 }
-                button {
-                    class: "textarea__cta input__cta",
-                    onclick: move |event| cx.props.on_click.call(event),
-                    Icon {
-                        stroke: "var(--icon-subdued)",
-                        icon: Send,
-                        height: 20,
-                        width: 20
-                    }
+                if !cx.props.value.trim().is_empty() {
+                    rsx!(
+                        button {
+                            class: "textarea__cta input__cta",
+                            onclick: move |event| cx.props.on_click.call(event),
+                            Icon {
+                                stroke: "var(--icon-subdued)",
+                                icon: Send,
+                                height: 20,
+                                width: 20
+                            }
+                        }
+                    )
                 }
             }
         }

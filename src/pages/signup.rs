@@ -382,7 +382,7 @@ pub fn Signup(cx: Scope) -> Element {
                                 },
                                 on_keypress: move |event: KeyboardEvent| {
                                     info!("{:?}", event.code());
-                                    if event.code() == keyboard_types::Code::Enter && homeserver.get().len() > 0 {
+                                    if event.code() == keyboard_types::Code::Enter && !homeserver.get().is_empty() {
                                         on_update_homeserver()
                                     }
                                 },
@@ -448,7 +448,7 @@ pub fn Signup(cx: Scope) -> Element {
                         }
                     ))
                 })
-            } else if flows.read().len() > 0 {
+            } else if !flows.read().is_empty() {
                 let f = flows.read();
                 let flows = f.clone();
 

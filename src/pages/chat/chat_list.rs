@@ -15,8 +15,7 @@ use crate::{
         organisms::{chat::ActiveRoom, main::TitleHeaderMain},
     },
     hooks::{
-        use_client::use_client, use_messages::use_messages, use_notification::use_notification,
-        use_room::use_room, use_session::use_session,
+        use_client::use_client, use_lifecycle::use_lifecycle, use_messages::use_messages, use_notification::use_notification, use_room::use_room, use_session::use_session
     },
     services::matrix::matrix::{list_rooms_and_spaces, Conversations},
 };
@@ -46,6 +45,17 @@ pub fn ChatList(cx: Scope) -> Element {
     let title_header =
         use_shared_state::<TitleHeaderMain>(cx).expect("Unable to read title header");
     let is_loading = use_state(cx, || false);
+    
+    let r = room.clone();
+    use_lifecycle(
+        &cx,
+        || {},
+        move || {
+            to_owned![r];
+
+            r.default();
+        },
+    );
 
     let on_click_room = move |evt: FormRoomEvent| {
         room.set(evt.room.clone());
@@ -108,7 +118,7 @@ pub fn ChatList(cx: Scope) -> Element {
         section {
             class: "chat-list options",
             div {
-                if spaces.get().len() > 0 {
+                if !spaces.get().is_empty() {
                     rsx!(
                         ul {
                             class: "chat-list__wrapper",
@@ -120,6 +130,12 @@ pub fn ChatList(cx: Scope) -> Element {
                                     rooms_filtered.set(rooms.get().clone());
                                     selected_space.set(key_chat_list_home.clone());
                                     title_header.write().title = key_chat_list_home.clone();
+
+                                    if !rooms.get().iter().any(|r| {
+                                        room.get().id.eq(&r.id)
+                                    }) {
+                                        room.default()
+                                    }
                                 }
                             }
 
@@ -134,6 +150,12 @@ pub fn ChatList(cx: Scope) -> Element {
                                             rooms_filtered.set(value.clone());
                                             selected_space.set(space.name.clone());
                                             title_header.write().title = space.name.clone();
+
+                                            if !value.iter().any(|r| {
+                                                room.get().id.eq(&r.id)
+                                            }) {
+                                                room.default()
+                                            }
                                         }
                                     }
                                 )
@@ -171,7 +193,7 @@ pub fn ChatList(cx: Scope) -> Element {
 
                             let default_rooms = all_rooms.get().iter().cloned().collect::<Vec<_>>();
 
-                            if event.value.len() > 0 {
+                            if !event.value.is_empty() {
                                 let x = default_rooms
                                     .iter()
                                     .filter(|r| r.name.to_lowercase().contains(&event.value.to_lowercase()))

@@ -2,7 +2,6 @@ use dioxus::prelude::*;
 
 use crate::services::matrix::matrix::AccountInfo;
 
-#[allow(clippy::needless_return)]
 pub fn use_modal(cx: &ScopeState) -> &UseModalState {
     let modal = use_shared_state::<ModalState>(cx).expect("Modal state not provided");
 

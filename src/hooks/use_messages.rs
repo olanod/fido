@@ -2,7 +2,6 @@ use dioxus::prelude::*;
 
 use crate::{components::atoms::message::Messages, services::matrix::matrix::TimelineRelation};
 
-#[allow(clippy::needless_return)]
 pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
     let messages = use_shared_state::<Messages>(cx).expect("Unable to use Messages");
 

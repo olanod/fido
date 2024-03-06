@@ -7,7 +7,6 @@ use crate::{
     services::matrix::matrix::create_client, utils::get_homeserver::Homeserver, MatrixClientState,
 };
 
-#[allow(clippy::needless_return)]
 pub fn use_client(cx: &ScopeState) -> &UseClientState {
     let matrix = use_shared_state::<MatrixClientState>(cx).expect("Matrix client not provided");
 

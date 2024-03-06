@@ -54,11 +54,7 @@ pub fn ActiveRoom(cx: Scope) -> Element {
         match evt.value {
             HeaderCallOptions::CLOSE => {
                 nav.push(Route::ChatList {});
-                room.set(CurrentRoom {
-                    id: String::new(),
-                    name: String::new(),
-                    avatar_uri: None,
-                });
+                room.set(CurrentRoom::default());
             }
             _ => {}
         }

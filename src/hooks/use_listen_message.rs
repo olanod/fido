@@ -22,7 +22,6 @@ use super::{
     use_thread::use_thread,
 };
 
-#[allow(clippy::needless_return)]
 pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
     let i18 = use_i18(cx);
     let client = use_client(cx).get();
@@ -293,10 +292,9 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
         ];
 
         async move {
-            client
-                .sync_once(SyncSettings::default())
-                .await
-                .map_err(|_| ListenMessageError::FailedSync)?;
+            if let Err(e) = client.sync_once(SyncSettings::default()).await {
+                log::warn!("{e:?}")
+            };
 
             let me = session.get().ok_or(ListenMessageError::SessionNotFound)?;
 

@@ -19,11 +19,7 @@ pub struct TitleHeaderMain {
 }
 
 pub fn IndexMenu(cx: Scope) -> Element {
-    use_shared_state_provider::<CurrentRoom>(cx, || CurrentRoom {
-        id: String::new(),
-        name: String::new(),
-        avatar_uri: None,
-    });
+    use_shared_state_provider::<CurrentRoom>(cx, || CurrentRoom::default());
     use_shared_state_provider::<TitleHeaderMain>(cx, || TitleHeaderMain {
         title: String::from("Chats"),
     });
