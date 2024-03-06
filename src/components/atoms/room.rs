@@ -24,7 +24,7 @@ pub fn RoomView<'a>(cx: Scope<'a, RoomViewProps<'a>>) -> Element<'a> {
 
     cx.render(rsx! {
       div {
-        class: "room-view",
+        class: "room-view fade-in",
         onclick: move |event| cx.props.on_click.call(event),
 
         Avatar {

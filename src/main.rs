@@ -119,8 +119,6 @@ fn App(cx: Scope) -> Element {
             }
             restoring_session.set(false);
 
-            restoring_session.set(false);
-
             Ok::<(), MainError>(())
         }
         .unwrap_or_else(move |e: MainError| {

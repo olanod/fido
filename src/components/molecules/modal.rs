@@ -34,7 +34,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                 },
             }
             div {
-                class: "modal__wrapper fadeIn",
+                class: "modal__wrapper fade-in-below",
                 article {
                     class: "modal__title",
                     div {
