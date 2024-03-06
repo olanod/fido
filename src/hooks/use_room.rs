@@ -2,7 +2,6 @@ use dioxus::prelude::*;
 
 use crate::components::molecules::rooms::CurrentRoom;
 
-#[allow(clippy::needless_return)]
 pub fn use_room(cx: &ScopeState) -> &UseRoomState {
     let current_room = use_shared_state::<CurrentRoom>(cx).expect("Unable to use CurrentRoom");
 

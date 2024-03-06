@@ -2,7 +2,6 @@ use dioxus::prelude::*;
 
 use crate::services::matrix::matrix::TimelineThread;
 
-#[allow(clippy::needless_return)]
 pub fn use_thread(cx: &ScopeState) -> &UseThreadState {
     let replying_to =
         use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to read TimelineThread");

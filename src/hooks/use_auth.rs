@@ -84,7 +84,6 @@ impl LoginInfoBuilder {
     }
 }
 
-#[allow(clippy::needless_return)]
 pub fn use_auth(cx: &ScopeState) -> &UseAuthState {
     let logged_in = use_shared_state::<LoggedIn>(cx).expect("Unable to use LoggedIn");
     let login_cache =

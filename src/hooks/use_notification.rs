@@ -24,7 +24,6 @@ pub enum NotificationType {
     None,
 }
 
-#[allow(clippy::needless_return)]
 pub fn use_notification(cx: &ScopeState) -> &UseNotificationState {
     let notification = use_shared_state::<NotificationItem>(cx).expect("Notification not provided");
 

@@ -27,7 +27,6 @@ pub struct MessageDispatchId {
     pub value: HashMap<String, Option<String>>,
 }
 
-#[allow(clippy::needless_return)]
 pub fn use_init_app(cx: &ScopeState) {
     use_shared_state_provider::<LoggedIn>(cx, || LoggedIn(false));
     use_shared_state_provider::<MatrixClientState>(cx, || MatrixClientState { client: None });

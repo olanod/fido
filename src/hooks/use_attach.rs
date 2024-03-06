@@ -20,7 +20,6 @@ pub enum AttachError {
     UnknownContent,
 }
 
-#[allow(clippy::needless_return)]
 pub fn use_attach(cx: &ScopeState) -> &UseAttachState {
     let attach = use_shared_state::<Option<AttachFile>>(cx).expect("Attach file not provided");
 

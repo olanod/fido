@@ -22,7 +22,6 @@ use super::{
     use_thread::use_thread,
 };
 
-#[allow(clippy::needless_return)]
 pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
     let i18 = use_i18(cx);
     let client = use_client(cx).get();

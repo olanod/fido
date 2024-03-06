@@ -1,6 +1,5 @@
 use dioxus::prelude::*;
 
-#[allow(clippy::needless_return)]
 pub fn use_lifecycle<C: FnOnce(), D: FnOnce() + 'static>(
     cx: &ScopeState,
     create: C,

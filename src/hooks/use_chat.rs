@@ -25,7 +25,6 @@ pub enum ChatError {
     TimelineError(TimelineError),
 }
 
-#[allow(clippy::needless_return)]
 pub fn use_chat(cx: &ScopeState) -> &UseChatState {
     let i18 = use_i18(cx);
     let client = use_client(cx);

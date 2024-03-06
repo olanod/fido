@@ -44,7 +44,6 @@ pub enum MessageStatus {
     None,
 }
 
-#[allow(clippy::needless_return)]
 pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
     let i18 = use_i18(cx);
     let client = use_client(cx);

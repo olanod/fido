@@ -2,7 +2,6 @@ use dioxus::prelude::*;
 
 use crate::components::molecules::input_message::ReplyingTo;
 
-#[allow(clippy::needless_return)]
 pub fn use_reply(cx: &ScopeState) -> &UseReplyState {
     let replying_to =
         use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to read replying_to");
