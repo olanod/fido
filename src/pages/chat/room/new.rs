@@ -10,11 +10,9 @@ use crate::{
         atoms::{button::Variant, Button, Header, MessageInput, RoomView},
         molecules::rooms::CurrentRoom,
     },
-    hooks::{
-        use_client::use_client, use_notification::use_notification, use_room::use_room,
-    },
-    pages::chat::room::group::{self, CreateRoomError, Profile},
-    services::matrix::matrix::create_room,
+    hooks::{use_client::use_client, use_notification::use_notification, use_room::use_room},
+    pages::chat::room::group::{CreateRoomError, Profile},
+    services::matrix::matrix::{create_room, find_user_by_id},
     utils::{i18n_get_key_value::i18n_get_key_value, sync_room::sync_created_room},
 };
 use futures_util::{StreamExt, TryFutureExt};
@@ -62,7 +60,7 @@ pub fn RoomNew(cx: Scope) -> Element {
 
         async move {
             while let Some(id) = rx.next().await {
-                match group::process_find_user_by_id(&id, &client).await {
+                match find_user_by_id(&id, &client.get()).await {
                     Ok(profile) => user.set(Some(profile)),
                     Err(_) => {
                         notification.handle_error(&key_dm_error_not_found);

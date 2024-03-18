@@ -279,6 +279,8 @@ ul {
 .rooms-list {
   padding: 0;
   gap: 0;
+  height: fit-content;
+  min-height: 78px;
 }
 
 .list {
@@ -489,6 +491,10 @@ ul {
   margin: 0 0 0 auto;
   background: var(--background-modal);
   right: 10px;
+}
+
+.hover-menu--show {
+  display: block !important;
 }
 
 .hover-menu__option {
@@ -837,6 +843,15 @@ ul {
 }
 
 .nav {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 1rem 0;
+  background: var(--background);
+  justify-content: space-around;
+}
+
+.nav-wrapper {
   color: var(--text-1);
   display: flex;
   gap: 0.5rem;
@@ -1462,4 +1477,72 @@ ul {
 
 .room-view-wrapper--skeleton {
   width: 100%;
+}
+
+.room-view--wrap {
+  flex-direction: column;
+  align-items: center;
+  max-width: 200px;
+  box-shadow: 0px 2px 4px 1px rgba(0, 0, 0, 0.05);
+  margin: 5px;
+  border-radius: 12px;
+}
+
+.room-list--wrap {
+  justify-content: center;
+  align-items: flex-start;
+  flex-direction: row;
+  flex-wrap: wrap;
+  max-width: 660px;
+  margin: auto;
+}
+
+.room-menu {
+  width: 200px;
+  background: var(--background);
+  box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.18);
+  padding: 12px 6px;
+  position: absolute;
+  right: 0;
+  top: 64px;
+  border-radius: 8px;
+}
+
+.room-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.room-menu__cta {
+  border: none;
+  color: var(--text-1);
+  border-radius: 0;
+  padding: 0 8px;
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  gap: 4px;
+}
+
+.preview-room {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.preview-room__title {
+  margin-top: 24px;
+  color: var(--text-1);
+}
+
+.preview-room__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  width: 60%;
 }

@@ -15,12 +15,12 @@ use crate::{
     },
     hooks::{
         use_attach::{use_attach, AttachError, AttachFile},
-        use_client::{use_client, UseClientState},
+        use_client::use_client,
         use_notification::use_notification,
         use_room::use_room,
     },
     pages::chat::room::new::CreationStatus,
-    services::matrix::matrix::create_room,
+    services::matrix::matrix::{create_room, find_user_by_id},
     utils::{
         i18n_get_key_value::i18n_get_key_value,
         matrix::{mxc_to_thumbnail_uri, ImageMethod, ImageSize},
@@ -130,7 +130,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                 let element = users.read().clone().into_iter().find(|u| u.id.eq(&id));
 
                 if let None = element {
-                    match process_find_user_by_id(&id, &client).await {
+                    match find_user_by_id(&id, &client.get()).await {
                         Ok(profile) => users.with_mut(|user| user.push(profile)),
                         Err(_) => {
                             notification.handle_error(&key_group_error_not_found);
@@ -507,47 +507,4 @@ pub fn RoomGroup(cx: Scope) -> Element {
             )
         }
     }
-}
-
-pub(crate) async fn process_find_user_by_id(
-    id: &str,
-    client: &UseClientState,
-) -> Result<Profile, CreateRoomError> {
-    let u = UserId::parse(&id).map_err(|_| CreateRoomError::InvalidUserId)?;
-
-    let u = u.deref();
-
-    let request = matrix_sdk::ruma::api::client::profile::get_profile::v3::Request::new(u);
-
-    let response = client
-        .get()
-        .send(request, None)
-        .await
-        .map_err(|_| CreateRoomError::UserNotFound)?;
-
-    let displayname = response
-        .displayname
-        .ok_or(CreateRoomError::InvalidUsername)?;
-
-    let avatar_uri = response
-        .avatar_url
-        .map(|uri| {
-            mxc_to_thumbnail_uri(
-                &uri,
-                ImageSize {
-                    width: 48,
-                    height: 48,
-                },
-                ImageMethod::CROP,
-            )
-        })
-        .flatten();
-
-    let profile = Profile {
-        displayname,
-        avatar_uri,
-        id: id.to_string(),
-    };
-
-    Ok(profile)
 }

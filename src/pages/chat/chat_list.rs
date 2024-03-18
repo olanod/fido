@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use dioxus::prelude::*;
 use dioxus_std::{i18n::use_i18, translate};
+use futures::TryFutureExt;
 
 use crate::{
     components::{
@@ -12,13 +13,32 @@ use crate::{
             rooms::{CurrentRoom, FormRoomEvent},
             RoomsList,
         },
-        organisms::{chat::ActiveRoom, main::TitleHeaderMain},
+        organisms::{
+            chat::{ActiveRoom, PreviewRoom, PublicRooms},
+            main::TitleHeaderMain,
+        },
     },
     hooks::{
-        use_client::use_client, use_lifecycle::use_lifecycle, use_messages::use_messages, use_notification::use_notification, use_room::use_room, use_session::use_session
+        use_client::use_client,
+        use_lifecycle::use_lifecycle,
+        use_messages::use_messages,
+        use_notification::use_notification,
+        use_public::use_public,
+        use_room::use_room,
+        use_room_preview::{use_room_preview, PreviewRoom},
+        use_rooms::{use_rooms, RoomsList},
+        use_session::use_session,
     },
-    services::matrix::matrix::{list_rooms_and_spaces, Conversations},
+    services::matrix::matrix::{
+        invited_rooms, list_rooms_and_spaces, public_rooms_and_spaces, Conversations,
+    },
 };
+
+pub enum ChatListError {
+    SessionNotFound,
+    InvitedRooms,
+    PublicRooms,
+}
 
 #[inline_props]
 pub fn ChatList(cx: Scope) -> Element {
@@ -27,25 +47,29 @@ pub fn ChatList(cx: Scope) -> Element {
     let session = use_session(cx);
     let notification = use_notification(cx);
     let room = use_room(cx);
+    let public = use_public(cx);
+    let rooms_list = use_rooms(cx);
+    let preview = use_room_preview(cx);
     let messages = use_messages(cx);
 
     let room_tabs = use_ref::<HashMap<CurrentRoom, Messages>>(cx, || HashMap::new());
 
     let key_chat_list_home = translate!(i18, "chat.list.home");
     let key_chat_list_search = translate!(i18, "chat.list.search");
+    let key_chat_list_errors_public_rooms = translate!(i18, "chat.list.errors.public_rooms");
+    let key_chat_list_errors_invited_rooms = translate!(i18, "chat.list.errors.invited_rooms");
     let key_session_error_not_found = translate!(i18, "chat.session.error.not_found");
 
     let rooms = use_state::<Vec<RoomItem>>(cx, || Vec::new());
     let all_rooms = use_state::<Vec<RoomItem>>(cx, || Vec::new());
     let spaces = use_state::<HashMap<RoomItem, Vec<RoomItem>>>(cx, || HashMap::new());
-    let rooms_to_list = use_ref::<Vec<RoomItem>>(cx, || Vec::new());
     let pattern = use_state(cx, String::new);
     let rooms_filtered = use_ref(cx, || Vec::new());
     let selected_space = use_ref::<String>(cx, || String::new());
     let title_header =
         use_shared_state::<TitleHeaderMain>(cx).expect("Unable to read title header");
     let is_loading = use_state(cx, || false);
-    
+
     let r = room.clone();
     use_lifecycle(
         &cx,
@@ -57,18 +81,24 @@ pub fn ChatList(cx: Scope) -> Element {
         },
     );
 
+    let on_click_invitation = move |evt: FormRoomEvent| {
+        preview.set(PreviewRoom::Invited(evt.room.clone()));
+        room.default();
+    };
+
     let on_click_room = move |evt: FormRoomEvent| {
         room.set(evt.room.clone());
         room_tabs.with_mut(|tabs| tabs.insert(evt.room, vec![]));
         messages.reset();
+        preview.default();
     };
 
     use_coroutine(cx, |_: UnboundedReceiver<bool>| {
         to_owned![
             client,
+            rooms_list,
             rooms,
             spaces,
-            rooms_to_list,
             rooms_filtered,
             all_rooms,
             selected_space,
@@ -82,14 +112,21 @@ pub fn ChatList(cx: Scope) -> Element {
 
         async move {
             is_loading.set(true);
-            let Some(session_data) = session.get() else {
-                return notification.handle_error(&key_session_error_not_found);
-            };
+
+            let session_data = session.get().ok_or(ChatListError::SessionNotFound)?;
+
+            let invited = invited_rooms(&client)
+                .await
+                .map_err(|_| ChatListError::InvitedRooms)?;
 
             let Conversations {
                 rooms: r,
                 spaces: s,
             } = list_rooms_and_spaces(&client, session_data).await;
+
+            let public_rooms = public_rooms_and_spaces(&client, None, None, None)
+                .await
+                .map_err(|_| ChatListError::PublicRooms)?;
 
             rooms.set(r.clone());
             spaces.set(s.clone());
@@ -104,14 +141,29 @@ pub fn ChatList(cx: Scope) -> Element {
                 all_r.extend_from_slice(&r.clone());
             });
 
-            rooms_to_list.set(r.clone());
+            rooms_list.set(RoomsList {
+                public: public_rooms.rooms,
+                invited,
+                joined: r.clone(),
+            });
             rooms_filtered.set(r);
 
             selected_space.set(key_chat_list_home.clone());
             title_header.write().title = key_chat_list_home.clone();
 
             is_loading.set(false);
+
+            Ok::<(), ChatListError>(())
         }
+        .unwrap_or_else(move |e: ChatListError| {
+            let message = match e {
+                ChatListError::SessionNotFound => &key_session_error_not_found,
+                ChatListError::PublicRooms => &key_chat_list_errors_public_rooms,
+                ChatListError::InvitedRooms => &key_chat_list_errors_invited_rooms,
+            };
+
+            notification.handle_error(&message);
+        })
     });
 
     render! {
@@ -126,7 +178,7 @@ pub fn ChatList(cx: Scope) -> Element {
                                 text: "{key_chat_list_home}",
                                 uri: None,
                                 on_click: move |_| {
-                                    rooms_to_list.set(rooms.get().clone());
+                                    rooms_list.set_joined(rooms.get().clone());
                                     rooms_filtered.set(rooms.get().clone());
                                     selected_space.set(key_chat_list_home.clone());
                                     title_header.write().title = key_chat_list_home.clone();
@@ -146,7 +198,7 @@ pub fn ChatList(cx: Scope) -> Element {
                                         text: "{name}",
                                         uri: space.avatar_uri.clone(),
                                         on_click: move |_| {
-                                            rooms_to_list.set(value.clone());
+                                            rooms_list.set_joined(value.clone());
                                             rooms_filtered.set(value.clone());
                                             selected_space.set(space.name.clone());
                                             title_header.write().title = space.name.clone();
@@ -202,22 +254,54 @@ pub fn ChatList(cx: Scope) -> Element {
 
                                 rooms_filtered.set(x);
                             } else {
-                                rooms_filtered.set(rooms_to_list.read().clone())
+                                rooms_filtered.set(rooms_list.get_joined().clone())
                             }
                         },
                         on_keypress: move |_| {},
                         on_click: move |_| {}
                     }
+                    if !rooms_list.get_invited().is_empty() {
+                        rsx!{
+                            h2 {
+                                class: "header__title",
+                                translate!(i18, "chat.list.invitate")
+                            }
 
+                            RoomsList {
+                                rooms: rooms_list.get_invited().clone(),
+                                is_loading: *is_loading.get(),
+                                on_submit: on_click_invitation
+                            }
+                        }
+                    }
+
+                    h2 {
+                        class: "header__title",
+                        translate!(i18, "chat.list.rooms")
+                    }
                     RoomsList {
-                        rooms: rooms_filtered.read().clone(),
+                        rooms: rooms_list.get_joined().clone(),
                         is_loading: *is_loading.get(),
                         on_submit: on_click_room
                     }
                 }
             )
 
-            if !room.get().name.is_empty() {
+            if public.get().show {
+                rsx!(
+                    section {
+                        class: "chat-list__active-room",
+                       PublicRooms {}
+                    }
+                )
+            } else if !preview.get().is_none() {
+                rsx!(
+                    section {
+                        class: "chat-list__active-room",
+                        PreviewRoom {}
+                    }
+                )
+            } else if !room.get().name.is_empty(){
                 rsx!(
                     section {
                         class: "chat-list__active-room",
