@@ -22,6 +22,7 @@ use super::{use_attach::AttachFile, use_modal::ModalState};
 pub enum BeforeSession {
     Login,
     Signup,
+    Guest,
 }
 
 #[derive(Clone, Debug)]

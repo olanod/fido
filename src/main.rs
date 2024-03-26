@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+use chat::pages::welcome::Welcome;
 use dioxus::prelude::*;
 use dioxus_router::prelude::Router;
 use dioxus_std::{i18n::*, translate};

@@ -26,6 +26,7 @@ pub struct UseSessionState {
 pub struct UserSession {
     pub user_id: String,
     pub device_id: Option<String>,
+    pub is_guest: bool,
 }
 
 pub enum SessionError {
@@ -56,12 +57,23 @@ impl UseSessionState {
             UserSession {
                 user_id: user_id.to_string(),
                 device_id: device_id.map(|id| id.to_string()),
+                is_guest: device_id
+                    .map(|id| {
+                        if id.to_string().contains("guest") {
+                            Some(())
+                        } else {
+                            None
+                        }
+                    })
+                    .flatten()
+                    .is_some(),
             }
         } else {
             let user = client.whoami().await?;
             UserSession {
                 user_id: user.user_id.to_string(),
                 device_id: user.device_id.map(|id| id.to_string()),
+                is_guest: user.is_guest,
             }
         };
 
