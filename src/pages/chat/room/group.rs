@@ -11,16 +11,17 @@ use crate::{
             attach::AttachType, button::Variant, Attach, Avatar, Button, Close, Header, Icon,
             MessageInput, RoomView,
         },
-        molecules::rooms::CurrentRoom,
+        molecules::{rooms::CurrentRoom, Guest},
     },
     hooks::{
         use_attach::{use_attach, AttachError, AttachFile},
-        use_client::{use_client, UseClientState},
+        use_client::use_client,
         use_notification::use_notification,
         use_room::use_room,
+        use_session::use_session,
     },
     pages::chat::room::new::CreationStatus,
-    services::matrix::matrix::create_room,
+    services::matrix::matrix::{create_room, find_user_by_id},
     utils::{
         i18n_get_key_value::i18n_get_key_value,
         matrix::{mxc_to_thumbnail_uri, ImageMethod, ImageSize},
@@ -74,6 +75,9 @@ pub fn RoomGroup(cx: Scope) -> Element {
     let key_input_message_file_type = translate!(i18, "chat.input_message.file_type");
     let key_input_message_not_found = translate!(i18, "chat.input_message.not_found");
 
+    let key_chat_guest_signup_description = translate!(i18, "chat.guest.signup.description");
+    let key_chat_guest_signup_cta = translate!(i18, "chat.guest.signup.cta");
+
     let i18n_map = HashMap::from([
         (key_group_title, translate!(i18, "group.title")),
         (
@@ -109,6 +113,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
     let attach = use_attach(cx);
     let notification = use_notification(cx);
     let room = use_room(cx);
+    let session = use_session(cx);
 
     let selected_users =
         use_shared_state::<SelectedProfiles>(cx).expect("Unable to use SelectedProfile");
@@ -130,7 +135,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                 let element = users.read().clone().into_iter().find(|u| u.id.eq(&id));
 
                 if let None = element {
-                    match process_find_user_by_id(&id, &client).await {
+                    match find_user_by_id(&id, &client.get()).await {
                         Ok(profile) => users.with_mut(|user| user.push(profile)),
                         Err(_) => {
                             notification.handle_error(&key_group_error_not_found);
@@ -414,25 +419,35 @@ pub fn RoomGroup(cx: Scope) -> Element {
                         }
                     )
                 } else {
-                    rsx!(
-                        div {
-                            class: "group__cta__wrapper row",
-                            Button {
-                                text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_back)}",
-                                status: None,
-                                variant: &Variant::Secondary,
-                                on_click: move |_| {
-                                    handle_complete_group.set(false)
+                    if session.is_guest() {
+                        rsx!(
+                            Guest {
+                                description: "{key_chat_guest_signup_description}",
+                                cta: "{key_chat_guest_signup_cta}",
+                                on_click: move |_| {}
+                            }
+                        )
+                    } else {
+                        rsx!(
+                            div {
+                                class: "group__cta__wrapper row",
+                                Button {
+                                    text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_back)}",
+                                    status: None,
+                                    variant: &Variant::Secondary,
+                                    on_click: move |_| {
+                                        handle_complete_group.set(false)
+                                    }
+                                }
+                                Button {
+                                    text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_create)}",
+                                    status: None,
+                                    disabled: group_name.get().len() == 0,
+                                    on_click: on_handle_create
                                 }
                             }
-                            Button {
-                                text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_create)}",
-                                status: None,
-                                disabled: group_name.get().len() == 0,
-                                on_click: on_handle_create
-                            }
-                        }
-                    )
+                        )
+                    }
                 }
             )
         } else {
@@ -493,11 +508,12 @@ pub fn RoomGroup(cx: Scope) -> Element {
                         )
                     })
                 }
+
                 div {
                     class: "group__cta__wrapper",
                     Button {
                         text: "{i18n_get_key_value(&i18n_map, key_group_select_cta)}",
-                        disabled: if selected_users.read().profiles.len() == 0 { true } else { false },
+                        disabled: selected_users.read().profiles.is_empty(),
                         status: None,
                         on_click: move |_| {
                             handle_complete_group.set(true)
@@ -506,48 +522,6 @@ pub fn RoomGroup(cx: Scope) -> Element {
                 }
             )
         }
+
     }
-}
-
-pub(crate) async fn process_find_user_by_id(
-    id: &str,
-    client: &UseClientState,
-) -> Result<Profile, CreateRoomError> {
-    let u = UserId::parse(&id).map_err(|_| CreateRoomError::InvalidUserId)?;
-
-    let u = u.deref();
-
-    let request = matrix_sdk::ruma::api::client::profile::get_profile::v3::Request::new(u);
-
-    let response = client
-        .get()
-        .send(request, None)
-        .await
-        .map_err(|_| CreateRoomError::UserNotFound)?;
-
-    let displayname = response
-        .displayname
-        .ok_or(CreateRoomError::InvalidUsername)?;
-
-    let avatar_uri = response
-        .avatar_url
-        .map(|uri| {
-            mxc_to_thumbnail_uri(
-                &uri,
-                ImageSize {
-                    width: 48,
-                    height: 48,
-                },
-                ImageMethod::CROP,
-            )
-        })
-        .flatten();
-
-    let profile = Profile {
-        displayname,
-        avatar_uri,
-        id: id.to_string(),
-    };
-
-    Ok(profile)
 }
