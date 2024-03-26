@@ -4,7 +4,7 @@ use dioxus_router::prelude::*;
 use super::{page_not_found::PageNotFound, profile::profile::Profile, profile::verify::Verify};
 
 use crate::{
-    pages::chat::chat::Chat, pages::chat::chat_list::ChatList, pages::chat::chat_room::ChatRoom,
+    pages::chat::chat::Chat, pages::chat::chat_list::ChatList,
     pages::chat::room::group::RoomGroup, pages::chat::room::new::RoomNew,
 };
 
@@ -23,8 +23,6 @@ pub enum Route {
         #[layout(Chat)] 
             #[route("/list")]
             ChatList {},
-            #[route("/chat/:name")]
-            ChatRoom {name: String},
         #[end_layout]
         #[route("/room")]
         RoomNew {},
