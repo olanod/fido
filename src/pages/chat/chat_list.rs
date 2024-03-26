@@ -6,16 +6,35 @@ use dioxus_std::{i18n::use_i18, translate};
 use crate::{
     components::{
         atoms::{
-            input::InputType, message::Messages, room::RoomItem, MessageInput, Space, SpaceSkeleton,
+            helper::HelperData, input::InputType, message::Messages, room::RoomItem, Helper,
+            MessageInput, Space, SpaceSkeleton,
         },
         molecules::{
             rooms::{CurrentRoom, FormRoomEvent},
             RoomsList,
         },
-        organisms::{chat::ActiveRoom, main::TitleHeaderMain},
+        organisms::{
+            chat::{
+                utils::handle_command::{self, Command},
+                ActiveRoom, PreviewRoom, PublicRooms,
+            },
+            main::TitleHeaderMain,
+        },
     },
     hooks::{
-        use_client::use_client, use_lifecycle::use_lifecycle, use_messages::use_messages, use_notification::use_notification, use_room::use_room, use_session::use_session
+        use_client::use_client,
+        use_lifecycle::use_lifecycle,
+        use_messages::use_messages,
+        use_notification::use_notification,
+        use_public::{use_public, PublicState},
+        use_room::use_room,
+        use_room_preview::{use_room_preview, PreviewRoom},
+        use_rooms::{use_rooms, RoomsList},
+        use_session::use_session,
+    },
+    pages::chat::chat::MessageItem,
+    services::matrix::matrix::{
+        invited_rooms, list_rooms_and_spaces, public_rooms_and_spaces, Conversations,
     },
     services::matrix::matrix::{list_rooms_and_spaces, Conversations},
 };
@@ -45,7 +64,7 @@ pub fn ChatList(cx: Scope) -> Element {
     let title_header =
         use_shared_state::<TitleHeaderMain>(cx).expect("Unable to read title header");
     let is_loading = use_state(cx, || false);
-    
+
     let r = room.clone();
     use_lifecycle(
         &cx,
@@ -113,6 +132,66 @@ pub fn ChatList(cx: Scope) -> Element {
             is_loading.set(false);
         }
     });
+
+    enum ScrollToPosition {
+        Top,
+        Bottom,
+        Right,
+        Left,
+        Custom(f64, f64),
+    }
+
+    let on_scroll_chat_list_wrapper = move |position: ScrollToPosition| {
+        if let Some(e) = chat_list_wrapper_ref.read().as_ref() {
+            let (x, y) = match position {
+                ScrollToPosition::Top | ScrollToPosition::Left => (0.0, 0.0),
+                ScrollToPosition::Bottom => (0.0, e.get_bounding_client_rect().height()),
+                ScrollToPosition::Right => (e.get_bounding_client_rect().width(), 0.0),
+                ScrollToPosition::Custom(x, y) => (x, y),
+            };
+            e.scroll_to_with_x_and_y(x, y);
+        }
+    };
+
+    let on_click_invitation = move |evt: FormRoomEvent| {
+        preview.set(PreviewRoom::Invited(evt.room.clone()));
+        room.default();
+    };
+
+    let on_click_room = move |evt: FormRoomEvent| {
+        room.set(evt.room.clone());
+        room_tabs.with_mut(|tabs| tabs.insert(evt.room, vec![]));
+        messages.reset();
+        preview.default();
+
+        on_scroll_chat_list_wrapper(ScrollToPosition::Right);
+    };
+
+    let on_click_helper = move |_| {
+        on_scroll_chat_list_wrapper(ScrollToPosition::Right);
+        cx.spawn({
+            to_owned![client, notification, public];
+            async move {
+                let message_item = MessageItem {
+                    room_id: String::new(),
+                    msg: String::from("!rooms"),
+                    reply_to: None,
+                    send_to_thread: false,
+                };
+                match handle_command::handle_command(&message_item, &client).await {
+                    Ok(Command::Join(_)) => {}
+                    Ok(Command::PublicRooms) => public.set(PublicState { show: true }),
+                    Err(error) => {
+                        let message = match error {
+                            _ => "Error",
+                        };
+
+                        notification.handle_error(message);
+                    }
+                }
+            }
+        })
+    };
 
     render! {
         section {
@@ -217,13 +296,61 @@ pub fn ChatList(cx: Scope) -> Element {
                 }
             )
 
-            if !room.get().name.is_empty() {
-                rsx!(
-                    section {
-                        class: "chat-list__active-room",
-                        ActiveRoom {}
-                    }
-                )
+
+            div {
+                class: "chat-list__content",
+                onclick: move |_| {
+                    on_scroll_chat_list_wrapper(ScrollToPosition::Right)
+                },
+                if public.get().show {
+                    rsx!(
+                        section {
+                            class: "chat-list__active-room",
+                            PublicRooms {
+                                on_back: move |_| {
+                                    on_scroll_chat_list_wrapper(ScrollToPosition::Left)
+                                }
+                            }
+                        }
+                    )
+                } else if !preview.get().is_none() {
+                    rsx!(
+                        section {
+                            class: "chat-list__active-room",
+                            PreviewRoom {
+                                on_back: move |_| {
+                                    on_scroll_chat_list_wrapper(ScrollToPosition::Left)
+                                }
+                            }
+                        }
+                    )
+                } else if !room.get().name.is_empty(){
+                    rsx!(
+                        section {
+                            class: "chat-list__active-room",
+                            ActiveRoom {
+                                on_back: move |_| {
+                                    on_scroll_chat_list_wrapper(ScrollToPosition::Left)
+                                }
+                            }
+                        }
+                    )
+                } else {
+                    rsx!(
+                        section {
+                            class: "chat-list__static",
+                            Helper {
+                                helper: HelperData {
+                                    title: key_chat_helper_rooms_title,
+                                    description: key_chat_helper_rooms_description,
+                                    subtitle: key_chat_helper_rooms_subtitle,
+                                    example: String::from("!rooms")
+                                },
+                                on_click: on_click_helper
+                            }
+                        }
+                    )
+                }
             }
         }
     }
