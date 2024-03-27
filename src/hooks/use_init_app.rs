@@ -42,11 +42,8 @@ pub fn use_init_app(cx: &ScopeState) {
     // change when we push a ChatRoom from a different nest route
 
     use_shared_state_provider::<CurrentRoom>(cx, || CurrentRoom::default());
-<<<<<<< HEAD
-=======
     use_shared_state_provider::<PreviewRoom>(cx, || PreviewRoom::default());
     use_shared_state_provider::<RoomsList>(cx, || RoomsList::default());
->>>>>>> c93a15b (feat: room interaction)
     use_shared_state_provider::<Messages>(cx, || Vec::new());
     use_shared_state_provider::<Option<AttachFile>>(cx, || None);
     use_shared_state_provider::<Option<ReplyingTo>>(cx, || None);
