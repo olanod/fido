@@ -8,13 +8,13 @@ use matrix_sdk::ruma::UserId;
 use crate::{
     components::{
         atoms::{button::Variant, Button, Header, MessageInput, RoomView},
-        molecules::rooms::CurrentRoom,
+        molecules::{rooms::CurrentRoom, Guest},
     },
     hooks::{
-        use_client::use_client, use_notification::use_notification, use_room::use_room,
+        use_auth::use_auth, use_client::use_client, use_init_app::BeforeSession, use_notification::use_notification, use_room::use_room, use_session::use_session
     },
-    pages::chat::room::group::{self, CreateRoomError, Profile},
-    services::matrix::matrix::create_room,
+    pages::chat::room::group::{CreateRoomError, Profile},
+    services::matrix::matrix::{create_room, find_user_by_id},
     utils::{i18n_get_key_value::i18n_get_key_value, sync_room::sync_created_room},
 };
 use futures_util::{StreamExt, TryFutureExt};
@@ -35,6 +35,9 @@ pub fn RoomNew(cx: Scope) -> Element {
     let key_dm_error_not_found = translate!(i18, "dm.error.not_found");
     let key_dm_error_profile = translate!(i18, "dm.error.profile");
 
+    let key_chat_guest_signup_description = translate!(i18, "chat.guest.signup.description");
+    let key_chat_guest_signup_cta = translate!(i18, "chat.guest.signup.cta");
+
     let key_dm_title = "dm-title";
     let key_dm_label = "dm-label";
     let key_dm_placeholder = "dm-placeholder";
@@ -51,8 +54,13 @@ pub fn RoomNew(cx: Scope) -> Element {
     let client = use_client(cx);
     let notification = use_notification(cx);
     let room = use_room(cx);
+    let session = use_session(cx);
+    let auth = use_auth(cx);
 
-    let user_id = use_state::<String>(cx, || String::from(""));
+    let before_session =
+        use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
+
+    let user_id = use_state::<String>(cx, || String::from("@edith-test-1:matrix.org"));
     let user = use_state::<Option<Profile>>(cx, || None);
     let error_field = use_state::<Option<String>>(cx, || None);
     let status = use_state::<CreationStatus>(cx, || CreationStatus::Start);
@@ -62,7 +70,7 @@ pub fn RoomNew(cx: Scope) -> Element {
 
         async move {
             while let Some(id) = rx.next().await {
-                match group::process_find_user_by_id(&id, &client).await {
+                match find_user_by_id(&id, &client.get()).await {
                     Ok(profile) => user.set(Some(profile)),
                     Err(_) => {
                         notification.handle_error(&key_dm_error_not_found);
@@ -73,6 +81,10 @@ pub fn RoomNew(cx: Scope) -> Element {
     });
 
     let on_handle_create = move |_| {
+        if session.is_guest() {
+            return;
+        }
+
         cx.spawn({
             to_owned![
                 client,
@@ -168,6 +180,18 @@ pub fn RoomNew(cx: Scope) -> Element {
                             avatar_uri: user.avatar_uri.clone(),
                             description: "{i18n_get_key_value(&i18n_map, key_dm_description)} {user.displayname}",
                             on_click: on_handle_create
+                        }
+                    }
+                )
+            }
+            if session.is_guest() {
+                rsx!(
+                    Guest {
+                        description: "{key_chat_guest_signup_description}",
+                        cta: "{key_chat_guest_signup_cta}",
+                        on_click: move |_| {
+                            auth.set_logged_in(false);
+                            *before_session.write() = BeforeSession::Signup;
                         }
                     }
                 )
