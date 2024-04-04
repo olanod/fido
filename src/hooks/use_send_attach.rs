@@ -35,44 +35,22 @@ pub enum SendAttachStatus {
     None,
 }
 
-pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
-    let i18 = use_i18(cx);
-    let client = use_client(cx);
-    let room = use_room(cx).get();
-    let notification = use_notification(cx);
-    let messages = use_messages(cx);
-    let attach = use_attach(cx);
-    let session = use_session(cx);
-    let message_factory = use_message_factory(cx);
+pub fn use_send_attach() -> UseSendMessageState {
+    let i18 = use_i18();
+    let client = use_client();
+    let room = use_room().get();
+    let mut notification = use_notification();
+    let mut messages = use_messages();
+    let mut attach = use_attach();
+    let session = use_session();
+    let message_factory = use_message_factory();
 
-    let key_common_error_thread_id = translate!(i18, "chat.common.error.thread_id");
-    let key_common_error_event_id = translate!(i18, "chat.common.error.event_id");
-    let key_common_error_room_id = translate!(i18, "chat.common.error.room_id");
-    let key_common_error_file_type = translate!(i18, "chat.common.error.file_type");
+    let mut send_attach_status = consume_context::<Signal<SendAttachStatus>>();
+    let mut message_dispatch_id = consume_context::<Signal<MessageDispatchId>>();
+    let mut replying_to = use_reply();
+    let mut threading_to = use_thread();
 
-    let key_attach_error_send_message = translate!(i18, "chat.attach.error.send_message");
-
-    let send_attach_status =
-        use_shared_state::<SendAttachStatus>(cx).expect("Unable to use SendAttachStatus");
-    let message_dispatch_id =
-        use_shared_state::<MessageDispatchId>(cx).expect("Unable to use MessageDispatchId");
-    let replying_to = use_reply(cx);
-    let threading_to = use_thread(cx);
-
-    let task_push_attach = use_coroutine(cx, |mut rx: UnboundedReceiver<AttachmentStream>| {
-        to_owned![
-            client,
-            replying_to,
-            threading_to,
-            notification,
-            messages,
-            message_dispatch_id,
-            send_attach_status,
-            attach,
-            session,
-            message_factory
-        ];
-
+    let task_push_attach = use_coroutine(|mut rx: UnboundedReceiver<AttachmentStream>| {
         async move {
             while let Some(message_item) = rx.next().await {
                 let mut back_messages = messages.get().clone();
@@ -97,7 +75,8 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                             crate::services::matrix::matrix::ImageType::Media(file.data.clone())
                         }
                         _ => {
-                            notification.handle_error(&key_common_error_file_type);
+                            notification
+                                .handle_error(&translate!(i18, "chat.common.error.file_type"));
                             return;
                         }
                     };
@@ -113,7 +92,8 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                         mime::VIDEO => TimelineMessageType::Video(content),
                         mime::APPLICATION => TimelineMessageType::File(content),
                         _ => {
-                            notification.handle_error(&key_common_error_file_type);
+                            notification
+                                .handle_error(&translate!(i18, "chat.common.error.file_type"));
                             return;
                         }
                     };
@@ -140,7 +120,8 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                         )
                     };
 
-                    if let TimelineRelation::None(_) | TimelineRelation::Reply(_) = message_to_push {
+                    if let TimelineRelation::None(_) | TimelineRelation::Reply(_) = message_to_push
+                    {
                         messages.push(message_to_push);
                     } else if let TimelineRelation::CustomThread(ref t) = message_to_push {
                         let position = back_messages.iter().position(|m| {
@@ -161,25 +142,33 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
                 let event_id = process(
                     &client,
                     &room.id,
-                    &replying_to,
-                    &threading_to,
+                    &mut replying_to,
+                    &mut threading_to,
                     &message_item.attachment,
                     message_item.send_to_thread,
-                    &attach,
+                    &mut attach,
                 )
                 .await
                 .map_err(|e| {
                     let message = match e {
                         SendMessageError::RoomNotFound | SendMessageError::InvalidRoom => {
-                            &key_common_error_room_id
+                            translate!(i18, "chat.common.error.room_id")
                         }
-                        SendMessageError::InvalidReplyEventId => &key_common_error_event_id,
-                        SendMessageError::InvalidThreadEventId => &key_common_error_thread_id,
-                        SendMessageError::DispatchMessage => &key_attach_error_send_message,
-                        SendMessageError::InvalidFile => &key_common_error_file_type,
+                        SendMessageError::InvalidReplyEventId => {
+                            translate!(i18, "chat.common.error.event_id")
+                        }
+                        SendMessageError::InvalidThreadEventId => {
+                            translate!(i18, "chat.common.error.thread_id")
+                        }
+                        SendMessageError::DispatchMessage => {
+                            translate!(i18, "chat.attach.error.send_message")
+                        }
+                        SendMessageError::InvalidFile => {
+                            translate!(i18, "chat.common.error.file_type")
+                        }
                     };
 
-                    notification.handle_error(message);
+                    notification.handle_error(&message);
                     return;
                 })
                 .ok();
@@ -189,12 +178,12 @@ pub fn use_send_attach(cx: &ScopeState) -> &UseSendMessageState {
         }
     });
 
-    cx.use_hook(move || UseSendMessageState {
+    use_hook(move || UseSendMessageState {
         inner: task_push_attach.clone(),
     })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseSendMessageState {
     inner: Coroutine<AttachmentStream>,
 }
@@ -208,11 +197,11 @@ impl UseSendMessageState {
 pub async fn process(
     client: &UseClientState,
     room_id: &str,
-    reply_to: &UseReplyState,
-    thread_to: &UseThreadState,
+    reply_to: &mut UseReplyState,
+    thread_to: &mut UseThreadState,
     content: &Attachment,
     send_to_thread: bool,
-    attach: &UseAttachState,
+    attach: &mut UseAttachState,
 ) -> Result<String, SendMessageError> {
     let thread_to = thread_to.get();
     let room_id = RoomId::parse(room_id).map_err(|_| SendMessageError::InvalidRoom)?;

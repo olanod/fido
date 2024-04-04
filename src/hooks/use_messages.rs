@@ -2,17 +2,15 @@ use dioxus::prelude::*;
 
 use crate::{components::atoms::message::Messages, services::matrix::matrix::TimelineRelation};
 
-pub fn use_messages(cx: &ScopeState) -> &UseMessagesState {
-    let messages = use_shared_state::<Messages>(cx).expect("Unable to use Messages");
+pub fn use_messages() -> UseMessagesState {
+    let messages = consume_context::<Signal<Messages>>();
 
-    cx.use_hook(move || UseMessagesState {
-        inner: messages.clone(),
-    })
+    use_hook(move || UseMessagesState { inner: messages })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseMessagesState {
-    inner: UseSharedState<Messages>,
+    inner: Signal<Messages>,
 }
 
 impl UseMessagesState {
@@ -20,16 +18,16 @@ impl UseMessagesState {
         self.inner.read().clone()
     }
 
-    pub fn set(&self, messages: Messages) {
+    pub fn set(&mut self, messages: Messages) {
         let mut inner = self.inner.write();
         *inner = messages;
     }
 
-    pub fn push(&self, message: TimelineRelation) {
+    pub fn push(&mut self, message: TimelineRelation) {
         self.inner.write().push(message);
     }
 
-    pub fn reset(&self) {
+    pub fn reset(&mut self) {
         self.inner.write().clear();
     }
 }

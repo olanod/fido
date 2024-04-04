@@ -24,17 +24,17 @@ pub enum NotificationType {
     None,
 }
 
-pub fn use_notification(cx: &ScopeState) -> &UseNotificationState {
-    let notification = use_shared_state::<NotificationItem>(cx).expect("Notification not provided");
+pub fn use_notification() -> UseNotificationState {
+    let notification = consume_context::<Signal<NotificationItem>>();
 
-    cx.use_hook(move || UseNotificationState {
-        inner: notification.clone(),
+    use_hook(move || UseNotificationState {
+        inner: notification,
     })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseNotificationState {
-    inner: UseSharedState<NotificationItem>,
+    inner: Signal<NotificationItem>,
 }
 
 impl UseNotificationState {
@@ -42,15 +42,15 @@ impl UseNotificationState {
         self.inner.read().clone()
     }
 
-    pub fn handle_notification(&self, item: NotificationItem) {
-        let this = self.clone();
-        let inner = self.inner.clone();
+    pub fn handle_notification(&mut self, item: NotificationItem) {
+        let mut this = self.clone();
+        let mut inner = self.inner.clone();
         *inner.write() = item;
 
         gloo::timers::callback::Timeout::new(3000, move || this.clear()).forget();
     }
 
-    pub fn handle_error(&self, body: &str) {
+    pub fn handle_error(&mut self, body: &str) {
         self.handle_notification(NotificationItem {
             title: String::from("Error"),
             body: String::from(body),
@@ -61,7 +61,7 @@ impl UseNotificationState {
         });
     }
 
-    pub fn clear(&self) {
+    pub fn clear(&mut self) {
         let mut inner = self.inner.write();
         *inner = NotificationItem::default();
     }

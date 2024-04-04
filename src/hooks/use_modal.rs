@@ -2,12 +2,10 @@ use dioxus::prelude::*;
 
 use crate::services::matrix::matrix::AccountInfo;
 
-pub fn use_modal(cx: &ScopeState) -> &UseModalState {
-    let modal = use_shared_state::<ModalState>(cx).expect("Modal state not provided");
+pub fn use_modal() -> UseModalState {
+    let modal = consume_context::<Signal<ModalState>>();
 
-    cx.use_hook(move || UseModalState {
-        inner: modal.clone(),
-    })
+    use_hook(move || UseModalState { inner: modal })
 }
 
 #[derive(Clone)]
@@ -16,9 +14,9 @@ pub struct ModalState {
     pub account: Option<AccountInfo>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseModalState {
-    inner: UseSharedState<ModalState>,
+    inner: Signal<ModalState>,
 }
 
 impl UseModalState {
@@ -26,17 +24,17 @@ impl UseModalState {
         self.inner.read().clone()
     }
 
-    pub fn set_header(&self, account: Option<AccountInfo>) {
+    pub fn set_header(&mut self, account: Option<AccountInfo>) {
         let mut inner = self.inner.write();
         inner.account = account;
     }
 
-    pub fn show(&self) {
+    pub fn show(&mut self) {
         let mut inner = self.inner.write();
         inner.show = true;
     }
 
-    pub fn hide(&self) {
+    pub fn hide(&mut self) {
         let mut inner = self.inner.write();
         inner.show = false;
     }

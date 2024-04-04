@@ -22,46 +22,27 @@ use super::{
     use_thread::use_thread,
 };
 
-pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
-    let i18 = use_i18(cx);
-    let client = use_client(cx).get();
-    let notification = use_notification(cx);
-    let session = use_session(cx);
-    let room = use_room(cx);
-    let messages = use_messages(cx);
+pub fn use_listen_message() -> UseListenMessagesState {
+    let i18 = use_i18();
+    let client = use_client().get();
+    let mut notification = use_notification();
+    let session = use_session();
+    let room = use_room();
+    let mut messages = use_messages();
 
-    let handler_added = use_ref(cx, || false);
+    let mut handler_added = use_signal(|| false);
 
-    let key_common_error_user_id = translate!(i18, "chat.common.error.user_id");
-    let key_common_error_sync = translate!(i18, "chat.common.error.sync");
-    let key_listen_message_image = translate!(i18, "chat.listen.message.image");
-    let key_listen_message_file = translate!(i18, "chat.listen.message.file");
-    let key_listen_message_video = translate!(i18, "chat.listen.message.video");
-    let key_listen_message_html = translate!(i18, "chat.listen.message.html");
-    let key_listen_message_thread = translate!(i18, "chat.listen.message.thread");
+    let message_dispatch_id = consume_context::<Signal<MessageDispatchId>>();
+    let mut threading_to = use_thread();
+    let mut position = use_signal::<Option<usize>>(|| None);
 
-    let message_dispatch_id =
-        use_shared_state::<MessageDispatchId>(cx).expect("Unable to use MessageDispatchId");
-    let threading_to = use_thread(cx);
-    let position = use_ref::<Option<usize>>(cx, || None);
-
-    let task_sender = use_coroutine(cx, |mut rx: UnboundedReceiver<MessageEvent>| {
-        to_owned![
-            messages,
-            notification,
-            room,
-            threading_to,
-            session,
-            key_common_error_user_id,
-            position
-        ];
-
+    let task_sender = use_coroutine(|mut rx: UnboundedReceiver<MessageEvent>| {
         async move {
             while let Some(message_event) = rx.next().await {
                 let message_position_local = *position.read();
                 if let Some(message) = message_event.mgs {
                     let mut msgs = messages.get().clone();
-                    let mut plain_message = None;
+                    let mut plain_message: Option<String> = None;
 
                     let is_in_current_room =
                         message_event.room.room_id().as_str().eq(&room.get().id);
@@ -100,7 +81,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                 }
                             }
 
-                            plain_message = Some(key_listen_message_thread.as_str());
+                            plain_message = Some(translate!(i18, "chat.listen.message.thread"));
                         }
                         TimelineRelation::None(timeline_message) => {
                             // Position of a head thread timeline
@@ -123,11 +104,11 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                         }
                                     } else {
                                         plain_message = Some(message_to_plain_content(
-                                            &timeline_message.body,
-                                            &key_listen_message_image,
-                                            &key_listen_message_file,
-                                            &key_listen_message_video,
-                                            &key_listen_message_html,
+                                            &timeline_message.body.clone(),
+                                            &translate!(i18, "chat.listen.message.image"),
+                                            &translate!(i18, "chat.listen.message.file"),
+                                            &translate!(i18, "chat.listen.message.video"),
+                                            &translate!(i18, "chat.listen.message.html"),
                                         ));
                                     }
                                 }
@@ -142,11 +123,11 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                 };
                             } else {
                                 plain_message = Some(message_to_plain_content(
-                                    &timeline_message.event.body,
-                                    &key_listen_message_image,
-                                    &key_listen_message_file,
-                                    &key_listen_message_video,
-                                    &key_listen_message_html,
+                                    &timeline_message.event.body.clone(),
+                                    &translate!(i18, "chat.listen.message.image"),
+                                    &translate!(i18, "chat.listen.message.file"),
+                                    &translate!(i18, "chat.listen.message.video"),
+                                    &translate!(i18, "chat.listen.message.html"),
                                 ));
                             }
                         }
@@ -155,7 +136,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                                 msgs.push(message);
                             }
 
-                            plain_message = Some(key_listen_message_thread.as_str());
+                            plain_message = Some(translate!(i18, "chat.listen.message.thread"));
                         }
                     };
 
@@ -196,7 +177,8 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
                             let mut name = String::from("Unknown name room");
 
                             let Some(session_data) = session.get() else {
-                                notification.handle_error(&key_common_error_user_id);
+                                notification
+                                    .handle_error(&translate!(i18, "chat.common.error.user_id"));
                                 return;
                             };
 
@@ -235,41 +217,36 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
     .clone();
 
     let task_replacer = use_coroutine(
-        cx,
-        |mut rx: UnboundedReceiver<OriginalSyncRoomMessageEvent>| {
-            to_owned![messages, message_dispatch_id, position];
+        |mut rx: UnboundedReceiver<OriginalSyncRoomMessageEvent>| async move {
+            while let Some(ev) = rx.next().await {
+                let back_messages = messages.get().clone();
+                let value = &message_dispatch_id.read().value;
+                position.set(None);
 
-            async move {
-                while let Some(ev) = rx.next().await {
-                    let back_messages = messages.get().clone();
-                    let value = &message_dispatch_id.read().value;
-                    position.set(None);
-
-                    let to_find: Option<(String, Option<String>)> =
-                        value.iter().find_map(|(uuid, event_id)| {
-                            event_id.clone().and_then(|id| {
-                                if ev.event_id == id {
-                                    Some((uuid.clone(), event_id.clone()))
-                                } else {
-                                    None
-                                }
-                            })
-                        });
-
-                    if let Some((uuid, _)) = to_find {
-                        position.set(back_messages.iter().position(|m| match m {
-                            TimelineRelation::None(relation) => relation.event_id == uuid,
-                            TimelineRelation::Reply(relation) => relation.event.event_id == uuid,
-                            TimelineRelation::CustomThread(relation) => {
-                                relation.thread.iter().any(|rm| rm.event_id == uuid)
+                let to_find: Option<(String, Option<String>)> =
+                    value.iter().find_map(|(uuid, event_id)| {
+                        event_id.clone().and_then(|id| {
+                            if ev.event_id == id {
+                                Some((uuid.clone(), event_id.clone()))
+                            } else {
+                                None
                             }
-                            TimelineRelation::Thread(relation) => {
-                                relation.thread.iter().any(|rm| rm.event_id == uuid)
-                            }
-                        }));
+                        })
+                    });
 
-                        info!("position {:?}", position.read());
-                    }
+                if let Some((uuid, _)) = to_find {
+                    position.set(back_messages.iter().position(|m| match m {
+                        TimelineRelation::None(relation) => relation.event_id == uuid,
+                        TimelineRelation::Reply(relation) => relation.event.event_id == uuid,
+                        TimelineRelation::CustomThread(relation) => {
+                            relation.thread.iter().any(|rm| rm.event_id == uuid)
+                        }
+                        TimelineRelation::Thread(relation) => {
+                            relation.thread.iter().any(|rm| rm.event_id == uuid)
+                        }
+                    }));
+
+                    info!("position {:?}", position.read());
                 }
             }
         },
@@ -278,17 +255,7 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
     // After logging is mandatory to perform a client sync,
     // since the chat needs sync to listen for new messages
     // this coroutine is necesary
-    use_coroutine(cx, |_: UnboundedReceiver<String>| {
-        to_owned![
-            client,
-            handler_added,
-            task_sender,
-            task_replacer,
-            session,
-            notification,
-            key_common_error_user_id
-        ];
-
+    use_coroutine(|_: UnboundedReceiver<String>| {
         async move {
             let me = session.get().ok_or(ListenMessageError::SessionNotFound)?;
 
@@ -373,14 +340,14 @@ pub fn use_listen_message(cx: &ScopeState) -> &UseListenMessagesState {
         }
         .unwrap_or_else(move |e: ListenMessageError| {
             let message = match e {
-                ListenMessageError::FailedSync => key_common_error_sync,
-                ListenMessageError::SessionNotFound => key_common_error_user_id,
+                ListenMessageError::FailedSync => translate!(i18, "chat.common.error.sync"),
+                ListenMessageError::SessionNotFound => translate!(i18, "chat.common.error.user_id"),
             };
             notification.handle_error(&message);
         })
     });
 
-    cx.use_hook(move || UseListenMessagesState {})
+    use_hook(move || UseListenMessagesState {})
 }
 
 pub enum ListenMessageError {
@@ -388,25 +355,25 @@ pub enum ListenMessageError {
     SessionNotFound,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseListenMessagesState {}
 
 impl UseListenMessagesState {
     pub fn initialize(&self) {}
 }
 
-pub fn message_to_plain_content<'a>(
-    content: &'a TimelineMessageType,
-    key_image: &'a str,
-    key_file: &'a str,
-    key_video: &'a str,
-    key_html: &'a str,
-) -> &'a str {
+pub fn message_to_plain_content(
+    content: &TimelineMessageType,
+    key_image: &str,
+    key_file: &str,
+    key_video: &str,
+    key_html: &str,
+) -> String {
     match &content {
-        TimelineMessageType::Image(_) => key_image,
-        TimelineMessageType::Text(t) => t,
-        TimelineMessageType::File(_) => key_file,
-        TimelineMessageType::Video(_) => key_video,
-        TimelineMessageType::Html(_) => key_html,
+        TimelineMessageType::Image(_) => key_image.to_owned(),
+        TimelineMessageType::Text(t) => t.to_owned(),
+        TimelineMessageType::File(_) => key_file.to_owned(),
+        TimelineMessageType::Video(_) => key_video.to_owned(),
+        TimelineMessageType::Html(_) => key_html.to_owned(),
     }
 }

@@ -84,28 +84,27 @@ impl LoginInfoBuilder {
     }
 }
 
-pub fn use_auth(cx: &ScopeState) -> &UseAuthState {
-    let logged_in = use_shared_state::<LoggedIn>(cx).expect("Unable to use LoggedIn");
-    let login_cache =
-        use_shared_state::<Option<CacheLogin>>(cx).expect("Unable to read login cache");
+pub fn use_auth() -> UseAuthState {
+    let logged_in = consume_context::<Signal<LoggedIn>>();
+    let login_cache = consume_context::<Signal<Option<CacheLogin>>>();
 
-    let auth_info = use_ref::<LoginInfoBuilder>(cx, || LoginInfoBuilder::new());
-    let error = use_state(cx, || None);
+    let auth_info = use_signal::<LoginInfoBuilder>(|| LoginInfoBuilder::new());
+    let error = use_signal(|| None);
 
-    cx.use_hook(move || UseAuthState {
-        data: auth_info.clone(),
+    use_hook(move || UseAuthState {
+        data: auth_info,
         error: error.clone(),
-        logged_in: logged_in.clone(),
-        login_cache: login_cache.clone(),
+        logged_in: logged_in,
+        login_cache: login_cache,
     })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseAuthState {
-    data: UseRef<LoginInfoBuilder>,
-    error: UseState<Option<AuthError>>,
-    logged_in: UseSharedState<LoggedIn>,
-    login_cache: UseSharedState<Option<CacheLogin>>,
+    data: Signal<LoginInfoBuilder>,
+    error: Signal<Option<AuthError>>,
+    logged_in: Signal<LoggedIn>,
+    login_cache: Signal<Option<CacheLogin>>,
 }
 
 #[derive(Clone, Debug)]
@@ -116,7 +115,7 @@ pub struct UseAuth {
 }
 
 impl UseAuthState {
-    pub async fn set_server(&self, homeserver: &str) -> Result<(), AuthError> {
+    pub async fn set_server(&mut self, homeserver: &str) -> Result<(), AuthError> {
         let server_parsed =
             if homeserver.starts_with("http://") || homeserver.starts_with("https://") {
                 Url::parse(&homeserver)
@@ -164,7 +163,7 @@ impl UseAuthState {
         Ok(())
     }
 
-    pub fn set_username(&self, username: &str, parse: bool) {
+    pub fn set_username(&mut self, username: &str, parse: bool) {
         let mut username_parse = username.trim().to_string();
 
         if parse {
@@ -193,13 +192,13 @@ impl UseAuthState {
         });
     }
 
-    pub fn set_password(&self, password: &str) {
+    pub fn set_password(&mut self, password: &str) {
         self.data.with_mut(|l| {
             l.password(password.trim());
         });
     }
 
-    pub fn set_login_cache(&self, data: CacheLogin) {
+    pub fn set_login_cache(&mut self, data: CacheLogin) {
         *self.login_cache.write() = Some(data)
     }
 
@@ -210,12 +209,12 @@ impl UseAuthState {
     pub fn get(&self) -> UseAuth {
         UseAuth {
             data: self.data.read().clone(),
-            error: self.error.get().clone(),
+            error: self.error.read().clone(),
             logged_in: self.logged_in.read().clone(),
         }
     }
 
-    pub fn reset(&self) {
+    pub fn reset(&mut self) {
         self.data.set(LoginInfoBuilder::new());
         self.error.set(None);
 
@@ -245,16 +244,23 @@ impl UseAuthState {
         self.logged_in.read().clone()
     }
 
-    pub fn set_logged_in(&self, option: bool) {
+    pub fn set_logged_in(&mut self, option: bool) {
         *self.logged_in.write() = LoggedIn(option);
     }
 
-    pub async fn logout(&self, client: &UseClientState) -> Result<(), LogoutError> {
-        client
-            .get()
-            .logout()
-            .await
-            .map_err(|_| LogoutError::Failed)?;
+    pub async fn logout(
+        &mut self,
+        client: &mut UseClientState,
+        is_guest: bool,
+    ) -> Result<(), LogoutError> {
+        if !is_guest {
+            client
+                .get()
+                .logout()
+                .await
+                .map_err(|_| LogoutError::Failed)?;
+        }
+
         <LocalStorage as gloo::storage::Storage>::delete("session_file");
 
         client
