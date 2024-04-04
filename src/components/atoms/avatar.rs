@@ -1,12 +1,12 @@
 use dioxus::prelude::*;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum Variant {
     Round,
     SemiRound,
 }
 
-#[derive(PartialEq, Props)]
+#[derive(PartialEq, Props, Clone)]
 pub struct AvatarProps {
     name: String,
     size: u8,
@@ -16,39 +16,36 @@ pub struct AvatarProps {
     variant: Variant,
 }
 
-pub fn Avatar(cx: Scope<AvatarProps>) -> Element {
-    let size_avatar = format!("--avatar-size: {}px;", cx.props.size);
+pub fn Avatar(props: AvatarProps) -> Element {
+    let size_avatar = format!("--avatar-size: {}px;", props.size);
     let avatar_style = format!("{}", size_avatar);
 
-    let variant = match cx.props.variant {
+    let variant = match props.variant {
         Variant::Round => "avatar--round",
         Variant::SemiRound => "avatar--semi-round",
     };
 
-    cx.render(rsx! {
-      match &cx.props.uri {
-          Some(uri)=> rsx!(
-            img {
-              class: "avatar {variant}",
-              style: "{avatar_style}",
-              src: "{uri}"
-            }
-          ),
-          None=>{
-            let initial: Vec<char> = cx.props.name.chars().collect();
-            let initial = initial[0].to_uppercase();
-
-            rsx!(
-              div{
-                class: "avatar {variant}",
-                style: "{avatar_style}",
-                span{
-                  class: "avatar--initial",
-                  "{initial}"
+    rsx! {
+        match &props.uri {
+            Some(uri) => rsx!(
+                img {
+                    class: "avatar {variant}",
+                    style: "{avatar_style}",
+                    src: "{uri}"
                 }
-              }
-            )
-          }
+            ),
+            None => {
+                let initial: Vec<char> = props.name.chars().collect();
+                let initial = initial[0].to_uppercase();
+        
+                rsx!(
+                    div{
+                        class: "avatar {variant}",
+                        style: "{avatar_style}",
+                        span{ class: "avatar--initial", "{initial}" }
+                    }
+                )
+            }
         }
-    })
+    }
 }

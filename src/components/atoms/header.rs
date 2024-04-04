@@ -4,36 +4,33 @@ use crate::components::atoms::{header_main::HeaderCallOptions, ArrowLeft, Icon};
 
 use super::header_main::HeaderEvent;
 
-#[derive(Props)]
-pub struct HeaderProps<'a> {
-    avatar_element: Option<Element<'a>>,
-    text: &'a str,
-    on_event: EventHandler<'a, HeaderEvent>,
+#[derive(PartialEq, Props, Clone)]
+pub struct HeaderProps {
+    avatar_element: Option<Element>,
+    menu: Option<Element>,
+    text: String,
+    on_event: EventHandler<HeaderEvent>,
 }
 
-pub fn Header<'a>(cx: Scope<'a, HeaderProps<'a>>) -> Element<'a> {
-    cx.render(rsx!(
-        nav {
-          class: "nav",
-          button {
-            class: "nav__cta",
-            onclick: move |_| {cx.props.on_event.call(HeaderEvent { value: HeaderCallOptions::CLOSE })},
-            Icon {
-              stroke: "var(--text-1)",
-              icon: ArrowLeft,
-              height: 24,
-              width: 24
+pub fn Header(props: HeaderProps) -> Element {
+    rsx!(
+        nav { class: "nav",
+            div { class: "nav-wrapper",
+                button {
+                    class: "nav__cta",
+                    onclick: move |_| {
+                        props
+                            .on_event
+                            .call(HeaderEvent {
+                                value: HeaderCallOptions::CLOSE,
+                            })
+                    },
+                    Icon { stroke: "var(--text-1)", icon: ArrowLeft, height: 24, width: 24 }
+                }
+                { props.avatar_element.map(|e| rsx!({e})) },
+                span { class: "nav__title", "{props.text}" }
             }
-          }
-          if let Some(element) = &cx.props.avatar_element {
-            rsx!(
-              element
-            )
-          }
-          span {
-            class: "nav__title",
-            "{cx.props.text}"
-          }
-      }
-    ))
+            { props.menu.map(|e| rsx!({e})) }
+        }
+    )
 }

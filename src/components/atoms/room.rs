@@ -10,40 +10,35 @@ pub struct RoomItem {
     pub is_direct: bool,
 }
 
-#[derive(Props)]
-pub struct RoomViewProps<'a> {
-    displayname: &'a str,
+#[derive(PartialEq, Props, Clone)]
+pub struct RoomViewProps {
+    displayname: String,
     #[props(!optional)]
     avatar_uri: Option<String>,
-    description: Option<&'a str>,
-    on_click: EventHandler<'a, MouseEvent>,
+    description: Option<String>,
+    #[props(default = false)]
+    wrap: bool,
+    on_click: EventHandler<MouseEvent>,
 }
 
-pub fn RoomView<'a>(cx: Scope<'a, RoomViewProps<'a>>) -> Element<'a> {
-    let description = cx.props.description.unwrap_or("");
+pub fn RoomView(props: RoomViewProps) -> Element {
+    let description = props.description.unwrap_or("".to_owned());
+    let room_view_wrap = if props.wrap { "room-view--wrap" } else { "" };
 
-    cx.render(rsx! {
-      div {
-        class: "room-view fade-in",
-        onclick: move |event| cx.props.on_click.call(event),
+    rsx! {
+        div {
+            class: "room-view {room_view_wrap} fade-in",
+            onclick: move |event| props.on_click.call(event),
 
-        Avatar {
-          name: String::from(cx.props.displayname),
-          size: 60,
-          uri: cx.props.avatar_uri.clone()
-        }
-        article {
-          p {
-            class: "room-view__title",
-            "{cx.props.displayname}"
-          }
-          p {
-            class: "room-view__message",
-            span {
-              "{description}"
+            Avatar {
+                name: props.displayname.clone(),
+                size: 60,
+                uri: props.avatar_uri.clone()
             }
-          }
+            article {
+                p { class: "room-view__title", "{props.displayname}" }
+                p { class: "room-view__message", span { "{description}" } }
+            }
         }
-      }
-    })
+    }
 }
