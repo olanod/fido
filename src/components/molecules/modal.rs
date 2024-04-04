@@ -8,10 +8,10 @@ pub struct ModalForm {
     pub value: RoomType,
 }
 
-#[derive(Props)]
-pub struct ModalProps<'a> {
-    on_click: EventHandler<'a, ModalForm>,
-    on_close: EventHandler<'a, MouseEvent>,
+#[derive(PartialEq, Props, Clone)]
+pub struct ModalProps {
+    on_click: EventHandler<ModalForm>,
+    on_close: EventHandler<MouseEvent>,
 }
 
 pub enum RoomType {
@@ -20,17 +20,17 @@ pub enum RoomType {
     CHANNEL,
 }
 
-pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
-    let i18 = use_i18(cx);
-    let modal = use_modal(cx);
+pub fn Modal(props: ModalProps) -> Element {
+    let i18 = use_i18();
+    let modal = use_modal();
 
-    cx.render(rsx! {
+    rsx! {
         section {
             class: "modal",
             div {
                 class: "modal__cta--hide",
                 onclick: move |event| {
-                    cx.props.on_close.call(event)
+                    props.on_close.call(event)
                 },
             }
             div {
@@ -40,28 +40,26 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                     div {
                         class: "modal__user",
                         if let Some(account) = modal.get().account {
-                            rsx!(
-                                Avatar {
-                                    name: account.name.clone(),
-                                    size: 42,
-                                    uri: None
+                            Avatar {
+                                name: account.name.clone(),
+                                size: 42,
+                                uri: None
+                            }
+                            div {
+                                p {
+                                    class: "modal__user__title",
+                                    "{account.name}, " {translate!(i18, "modal.title")}
                                 }
-                                div {
-                                    p {
-                                        class: "modal__user__title",
-                                        "{account.name}, " translate!(i18, "modal.title")
-                                    }
-                                    p {
-                                        class: "modal__user__subtitle",
-                                        translate!(i18, "modal.subtitle")
-                                    }
+                                p {
+                                    class: "modal__user__subtitle",
+                                    {translate!(i18, "modal.subtitle")}
                                 }
-                            )
+                            }
                         }
                     }
                     button {
                         class: "modal__cta--close",
-                        onclick: move |event| {cx.props.on_close.call(event)},
+                        onclick: move |event| {props.on_close.call(event)},
                         Icon {
                             stroke: "var(--icon-subdued)",
                             icon: Close
@@ -73,7 +71,7 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                     button {
                         class: "modal__cta__wrapper",
                         onclick: move |_| {
-                            cx.props.on_click.call(ModalForm { value: RoomType::CHAT })
+                            props.on_click.call(ModalForm { value: RoomType::CHAT })
                         },
                         Icon {
                             stroke: "var(--text-1)",
@@ -81,13 +79,13 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                         }
                         span {
                             class: "modal__cta__title",
-                            translate!(i18, "modal.options.dm")
+                            {translate!(i18, "modal.options.dm")}
                         }
                     }
                     button {
                         class: "modal__cta__wrapper",
                         onclick: move |_| {
-                            cx.props.on_click.call(ModalForm { value: RoomType::GROUP })
+                            props.on_click.call(ModalForm { value: RoomType::GROUP })
                         },
                         Icon {
                             stroke: "var(--text-1)",
@@ -95,13 +93,13 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                         }
                         span {
                             class: "modal__cta__title",
-                            translate!(i18, "modal.options.group")
+                            {translate!(i18, "modal.options.group")}
                         }
                     }
                     button {
                         class: "modal__cta__wrapper",
                         onclick: move |_| {
-                            cx.props.on_click.call(ModalForm { value: RoomType::CHANNEL })
+                            props.on_click.call(ModalForm { value: RoomType::CHANNEL })
                         },
                         Icon {
                             stroke: "var(--text-1)",
@@ -109,11 +107,11 @@ pub fn Modal<'a>(cx: Scope<'a, ModalProps<'a>>) -> Element<'a> {
                         }
                         span {
                             class: "modal__cta__title",
-                            translate!(i18, "modal.options.channel")
+                            {translate!(i18, "modal.options.channel")}
                         }
                     }
                 }
             }
         }
-    })
+    }
 }
