@@ -2,18 +2,15 @@ use dioxus::prelude::*;
 
 use crate::services::matrix::matrix::TimelineThread;
 
-pub fn use_thread(cx: &ScopeState) -> &UseThreadState {
-    let replying_to =
-        use_shared_state::<Option<TimelineThread>>(cx).expect("Unable to read TimelineThread");
+pub fn use_thread() -> UseThreadState {
+    let replying_to = consume_context::<Signal<Option<TimelineThread>>>();
 
-    cx.use_hook(move || UseThreadState {
-        inner: replying_to.clone(),
-    })
+    use_hook(move || UseThreadState { inner: replying_to })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseThreadState {
-    inner: UseSharedState<Option<TimelineThread>>,
+    inner: Signal<Option<TimelineThread>>,
 }
 
 impl UseThreadState {
@@ -21,7 +18,7 @@ impl UseThreadState {
         self.inner.read().clone()
     }
 
-    pub fn set(&self, replying_to: Option<TimelineThread>) {
+    pub fn set(&mut self, replying_to: Option<TimelineThread>) {
         let mut inner = self.inner.write();
         *inner = replying_to;
     }

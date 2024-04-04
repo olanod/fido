@@ -9,17 +9,15 @@ pub struct RoomsList {
     pub joined: Vec<RoomItem>,
 }
 
-pub fn use_rooms(cx: &ScopeState) -> &UseRoomsListState {
-    let rooms_list = use_shared_state::<RoomsList>(cx).expect("Unable to use RoomsList");
+pub fn use_rooms() -> UseRoomsListState {
+    let rooms_list = consume_context::<Signal<RoomsList>>();
 
-    cx.use_hook(move || UseRoomsListState {
-        inner: rooms_list.clone(),
-    })
+    use_hook(move || UseRoomsListState { inner: rooms_list })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseRoomsListState {
-    inner: UseSharedState<RoomsList>,
+    inner: Signal<RoomsList>,
 }
 
 impl UseRoomsListState {
@@ -34,7 +32,7 @@ impl UseRoomsListState {
     pub fn get_public(&self) -> Vec<RoomItem> {
         self.inner.read().public.clone()
     }
-    
+
     pub fn get_joined(&self) -> Vec<RoomItem> {
         self.inner.read().joined.clone()
     }
@@ -63,7 +61,7 @@ impl UseRoomsListState {
         Ok(position)
     }
 
-    pub fn remove_invited(&self, id: &str) -> Result<RoomItem, String> {
+    pub fn remove_invited(&mut self, id: &str) -> Result<RoomItem, String> {
         let position = self.find_invited(id)?;
         let room = self.inner.write().invited.remove(position);
 
@@ -71,7 +69,7 @@ impl UseRoomsListState {
         Ok(room)
     }
 
-    pub fn remove_joined(&self, id: &str) -> Result<RoomItem, String> {
+    pub fn remove_joined(&mut self, id: &str) -> Result<RoomItem, String> {
         let position = self.find_joined(id)?;
         let room = self.inner.write().joined.remove(position);
 
@@ -79,7 +77,7 @@ impl UseRoomsListState {
         Ok(room)
     }
 
-    pub fn push_invited(&self, room: RoomItem) {
+    pub fn push_invited(&mut self, room: RoomItem) {
         let Err(_) = self.find_invited(&room.id) else {
             return;
         };
@@ -88,32 +86,32 @@ impl UseRoomsListState {
         inner.invited.push(room)
     }
 
-    pub fn push_joined(&self, room: RoomItem) {
+    pub fn push_joined(&mut self, room: RoomItem) {
         let mut inner = self.inner.write();
         inner.joined.push(room)
     }
 
-    pub fn set(&self, room: RoomsList) {
+    pub fn set(&mut self, room: RoomsList) {
         let mut inner = self.inner.write();
         *inner = room;
     }
 
-    pub fn set_invited(&self, rooms: Vec<RoomItem>) {
+    pub fn set_invited(&mut self, rooms: Vec<RoomItem>) {
         let mut inner = self.inner.write();
         inner.invited = rooms;
     }
 
-    pub fn set_public(&self, rooms: Vec<RoomItem>) {
+    pub fn set_public(&mut self, rooms: Vec<RoomItem>) {
         let inner = &mut self.inner.write();
         inner.public = rooms;
     }
 
-    pub fn set_joined(&self, rooms: Vec<RoomItem>) {
+    pub fn set_joined(&mut self, rooms: Vec<RoomItem>) {
         let mut inner = self.inner.write();
         inner.joined = rooms;
     }
 
-    pub fn default(&self) {
+    pub fn default(&mut self) {
         self.set(RoomsList::default())
     }
 }

@@ -20,17 +20,15 @@ pub enum AttachError {
     UnknownContent,
 }
 
-pub fn use_attach(cx: &ScopeState) -> &UseAttachState {
-    let attach = use_shared_state::<Option<AttachFile>>(cx).expect("Attach file not provided");
+pub fn use_attach() -> UseAttachState {
+    let attach = consume_context::<Signal<Option<AttachFile>>>();
 
-    cx.use_hook(move || UseAttachState {
-        inner: attach.clone(),
-    })
+    use_hook(move || UseAttachState { inner: attach })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseAttachState {
-    inner: UseSharedState<Option<AttachFile>>,
+    inner: Signal<Option<AttachFile>>,
 }
 
 impl UseAttachState {
@@ -38,7 +36,7 @@ impl UseAttachState {
         self.inner.read().as_ref().cloned()
     }
 
-    pub fn set(&self, value: Option<AttachFile>) {
+    pub fn set(&mut self, value: Option<AttachFile>) {
         let mut inner = self.inner.write();
         *inner = value;
     }
@@ -51,7 +49,7 @@ impl UseAttachState {
         }
     }
 
-    pub fn reset(&self) {
+    pub fn reset(&mut self) {
         let element = GetElement::<web_sys::HtmlInputElement>::get_element_by_id("input_file");
 
         element.set_files(None);
