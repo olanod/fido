@@ -1,24 +1,13 @@
 use dioxus::prelude::*;
 
-#[derive(PartialEq, Props)]
-pub struct TextProps<'a> {
-    body: &'a String,
+#[derive(PartialEq, Props, Clone)]
+pub struct TextProps {
+    body: String,
     is_reply: bool,
 }
 
-pub fn TextMessage<'a>(cx: Scope<'a, TextProps<'a>>) -> Element<'a> {
-    let message_reply = if cx.props.is_reply {
-        "message-reply__content--text"
-    } else {
-        ""
-    };
-
-    render!(rsx!(
-      p {
-        class: "{message_reply}",
-        span {
-          "{cx.props.body}"
-        }
-      }
-    ))
+pub fn TextMessage(props: TextProps) -> Element {
+    rsx!(
+        p { class: if props.is_reply { "message-reply__content--text" }, span { "{props.body}" } }
+    )
 }
