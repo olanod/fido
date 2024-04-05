@@ -5,7 +5,6 @@ use dioxus_std::{i18n::*, translate};
 use futures_util::TryFutureExt;
 use gloo::storage::errors::StorageError;
 use gloo::storage::LocalStorage;
-use log::LevelFilter;
 
 use std::str::FromStr;
 use unic_langid::LanguageIdentifier;
@@ -24,9 +23,7 @@ use chat::services::matrix::matrix::*;
 use chat::MatrixClientState;
 
 fn main() {
-    dioxus_logger::init(LevelFilter::Info).expect("failed to init logger");
     wasm_logger::init(wasm_logger::Config::default());
-    console_error_panic_hook::set_once();
     launch(App);
 }
 
