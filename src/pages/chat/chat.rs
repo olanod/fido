@@ -24,38 +24,32 @@ pub struct MessageEvent {
     pub mgs: Option<TimelineRelation>,
 }
 
-#[inline_props]
-pub fn Chat(cx: Scope) -> Element {
-    let modal = use_modal(cx);
-    let navigator = use_navigator(cx);
+#[component]
+pub fn Chat() -> Element {
+    let mut modal = use_modal();
+    let navigator = use_navigator();
 
-    use_listen_message(cx);
-    use_listen_invitation(cx);
+    use_listen_message();
+    use_listen_invitation();
 
-    render! {
+    rsx! {
         if modal.get().show {
-            rsx!(
-                Modal {
-                    on_click: move |event: ModalForm| {
-                        match event.value {
-                            RoomType::CHAT => {
-                                modal.hide();
-                                navigator.push(Route::RoomNew {});
-                            },
-                            RoomType::GROUP => {
-                                modal.hide();
-                                navigator.push(Route::RoomGroup {});
-                            },
-                            RoomType::CHANNEL => {
-                                modal.hide()
-                            },
+            Modal {
+                on_click: move |event: ModalForm| {
+                    match event.value {
+                        RoomType::CHAT => {
+                            modal.hide();
+                            navigator.push(Route::RoomNew {});
                         }
-                    },
-                    on_close:move |_|{
-                        modal.hide()
+                        RoomType::GROUP => {
+                            modal.hide();
+                            navigator.push(Route::RoomGroup {});
+                        }
+                        RoomType::CHANNEL => modal.hide(),
                     }
-                }
-            )
+                },
+                on_close: move |_| { modal.hide() }
+            }
         }
         Outlet::<Route> {}
     }
