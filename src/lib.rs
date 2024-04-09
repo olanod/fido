@@ -51,6 +51,7 @@ pub mod pages {
     pub mod profile;
     pub mod route;
     pub mod signup;
+    pub mod welcome;
 }
 
 #[derive(Clone)]
