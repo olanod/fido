@@ -18,66 +18,54 @@ pub struct TitleHeaderMain {
     pub title: String,
 }
 
-pub fn IndexMenu(cx: Scope) -> Element {
-    use_shared_state_provider::<CurrentRoom>(cx, || CurrentRoom::default());
-    use_shared_state_provider::<TitleHeaderMain>(cx, || TitleHeaderMain {
-        title: String::from("Chats"),
+pub fn IndexMenu() -> Element {
+    use_context_provider::<Signal<CurrentRoom>>(|| Signal::new(CurrentRoom::default()));
+    use_context_provider::<Signal<TitleHeaderMain>>(|| {
+        Signal::new(TitleHeaderMain {
+            title: String::from("Chats"),
+        })
     });
 
-    let modal = use_modal(cx);
-    let show_menu = use_ref(cx, || false);
-    let client = use_client(cx);
+    let mut modal = use_modal();
+    let client = use_client();
 
-    let profile = use_state::<AccountInfo>(cx, || AccountInfo {
+    let mut show_menu = use_signal(|| false);
+    let mut profile = use_signal::<AccountInfo>(|| AccountInfo {
         name: String::from(""),
         avatar_uri: None,
     });
 
-    use_coroutine(cx, |_: UnboundedReceiver<bool>| {
-        to_owned![client, profile];
+    use_coroutine(|_: UnboundedReceiver<()>| async move {
+        let data = account(&client.get()).await;
 
-        async move {
-            let data = account(&client.get()).await;
-
-            profile.set(data);
-        }
+        profile.set(data);
     });
 
-    let header_event = move |evt: HeaderEvent| {
-        to_owned![show_menu, modal];
-
-        match evt.value {
-            HeaderCallOptions::CLOSE => {
-                let current_value = *show_menu.read();
-                show_menu.set(!current_value);
-            }
-            HeaderCallOptions::EDIT => {
-                modal.set_header(Some(profile.get().clone()));
-                modal.show();
-            }
+    let header_event = move |evt: HeaderEvent| match evt.value {
+        HeaderCallOptions::CLOSE => {
+            let current_value = *show_menu.read();
+            show_menu.set(!current_value);
+        }
+        HeaderCallOptions::EDIT => {
+            modal.set_header(Some(profile()));
+            modal.show();
         }
     };
 
-    cx.render(rsx!(
+    rsx!(
         article {
-            rsx!(
-                HeaderMain{
-                    on_event: header_event
-                }
-            )
+            HeaderMain { on_event: header_event }
 
             if *show_menu.read() {
-                rsx!(
-                    Menu {
-                        on_click:move |_|{
-                            let current_value = *show_menu.read();
-                            show_menu.set(!current_value);
-                        }
+                Menu {
+                    on_click: move |_| {
+                        let current_value = *show_menu.read();
+                        show_menu.set(!current_value);
                     }
-                )
+                }
             }
 
             Outlet::<Route> {}
         }
-    ))
+    )
 }
