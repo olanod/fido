@@ -1,9 +1,10 @@
 use dioxus::prelude::*;
-use dioxus_std::{i18n::use_i18, translate};
+use dioxus_std::i18n::*;
+use dioxus_std::translate;
 
 use crate::components::atoms::{FileDownload, Icon, Layers, Reply};
 
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum MenuOption {
     Download,
     Reply,
@@ -12,25 +13,24 @@ pub enum MenuOption {
     CreateThread,
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct MenuEvent {
     pub option: MenuOption,
 }
 
-#[derive(Props)]
-pub struct HoverMenuProps<'a> {
+#[derive(PartialEq, Props, Clone)]
+pub struct HoverMenuProps {
     options: Vec<MenuOption>,
-    on_click: EventHandler<'a, MenuEvent>,
+    on_click: EventHandler<MenuEvent>,
 }
 
-pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
-    let i18 = use_i18(cx);
+pub fn HoverMenu(props: HoverMenuProps) -> Element {
+    let i18 = use_i18();
 
-    cx.render(rsx!(
-        section {
-            class: "hover-menu",
+    rsx!(
+        section { class: "hover-menu",
             ul {
-                for option in &cx.props.options {
+                for option in &props.options {
                     match option {
                         MenuOption::Reply => {
                             rsx!(
@@ -38,7 +38,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                     button {
                                         class: "hover-menu__option",
                                         onclick: move |_| {
-                                            cx.props.on_click.call(MenuEvent {option: MenuOption::Reply })
+                                            props.on_click.call(MenuEvent {option: MenuOption::Reply })
                                         },
                                         Icon {
                                             stroke: "var(--text-1)",
@@ -46,7 +46,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                         }
                                         span {
                                             class: "hover-menu__option__title",
-                                            translate!(i18, "chat.menu.reply")
+                                            {translate!(i18, "chat.menu.reply")}
                                         }
                                     }
                                 }
@@ -58,7 +58,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                     button {
                                         class: "hover-menu__option",
                                         onclick: move |_| {
-                                            cx.props.on_click.call(MenuEvent {option: MenuOption::ShowThread })
+                                            props.on_click.call(MenuEvent {option: MenuOption::ShowThread })
                                         },
                                         Icon {
                                             stroke: "var(--text-1)",
@@ -66,7 +66,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                         }
                                         span {
                                             class: "hover-menu__option__title",
-                                            translate!(i18, "chat.menu.see")
+                                            {translate!(i18, "chat.menu.see")}
                                         }
                                     }
                                 }
@@ -78,7 +78,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                     button {
                                         class: "hover-menu__option",
                                         onclick: move |_| {
-                                            cx.props.on_click.call(MenuEvent {option: MenuOption::CreateThread })
+                                            props.on_click.call(MenuEvent {option: MenuOption::CreateThread })
                                         },
                                         Icon {
                                             stroke: "var(--text-1)",
@@ -86,7 +86,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                         }
                                         span {
                                             class: "hover-menu__option__title",
-                                            translate!(i18, "chat.menu.create")
+                                            {translate!(i18, "chat.menu.create")}
                                         }
                                     }
                                 }
@@ -98,7 +98,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                     button {
                                         class: "hover-menu__option",
                                         onclick: move |_| {
-                                            cx.props.on_click.call(MenuEvent {option: MenuOption::Download })
+                                            props.on_click.call(MenuEvent {option: MenuOption::Download })
                                         },
                                         Icon {
                                             stroke: "var(--text-1)",
@@ -106,7 +106,7 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                                         }
                                         span {
                                             class: "hover-menu__option__title",
-                                            translate!(i18, "chat.menu.download")
+                                            {translate!(i18, "chat.menu.download")}
                                         }
                                     }
                                 }
@@ -119,5 +119,5 @@ pub fn HoverMenu<'a>(cx: Scope<'a, HoverMenuProps<'a>>) -> Element<'a> {
                 }
             }
         }
-    ))
+    )
 }

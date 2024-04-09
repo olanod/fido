@@ -5,58 +5,46 @@ use crate::{
 };
 use dioxus::prelude::*;
 
-#[derive(PartialEq, Props)]
-pub struct VideoProps<'a> {
-    body: &'a FileContent,
+#[derive(PartialEq, Props, Clone)]
+pub struct VideoProps {
+    body: FileContent,
     is_reply: bool,
 }
 
-pub fn VideoMessage<'a>(cx: Scope<'a, VideoProps<'a>>) -> Element<'a> {
-    let message__content__video = if cx.props.is_reply {
+pub fn VideoMessage(props: VideoProps) -> Element {
+    let message__content__video = if props.is_reply {
         "message__content__video--is-replying message-reply__content--video"
     } else {
         "message__content__video--not-replying"
     };
 
-    render!(if !cx.props.is_reply {
-        match cx.props.body.source.as_ref() {
-            Some(source) => match source {
-                ImageType::URL(url) => {
-                    rsx!(video {
-                        class: "{message__content__video}",
-                        src: "{url}",
-                        controls: true,
-                        autoplay: false
-                    })
+    if !props.is_reply {
+        match props.body.source {
+            Some(ImageType::URL(url)) => rsx!(
+                video {
+                    class: "{message__content__video}",
+                    src: "{url}",
+                    controls: true,
+                    autoplay: false
                 }
-                ImageType::Media(content) => {
-                    let url = vec_to_url(content.to_vec());
+            ),
 
-                    match url {
-                        Ok(url) => rsx!(video {
+            Some(ImageType::Media(content)) => {
+                match vec_to_url(content.to_vec()) {
+                    Ok(url) => rsx!(
+                        video {
                             class: "{message__content__video}",
                             src: "{url}",
                             controls: true,
                             autoplay: false
-                        }),
-                        Err(_) => rsx!(
-                            strong {
-                                "Unable to read file"
-                            }
-                        ),
-                    }
+                        }
+                    ),
+                    Err(_) => rsx!( strong { "Unable to read file" } ),
                 }
-            },
-            None => rsx!(
-                strong {
-                    "File Not Found"
-                }
-            ),
+            }
+            None => rsx!( strong { "File Not Found" } ),
         }
     } else {
-        rsx!(File {
-            body: cx.props.body.clone(),
-            is_reply: cx.props.is_reply,
-        })
-    })
+        rsx!( File { body: props.body.clone(), is_reply: props.is_reply } )
+    }
 }

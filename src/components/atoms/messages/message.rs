@@ -38,113 +38,91 @@ pub struct Message {
     pub thread: Option<ThreadPreview>,
 }
 
-#[derive(Props)]
-pub struct MessageViewProps<'a> {
+#[derive(PartialEq, Props, Clone)]
+pub struct MessageViewProps {
     pub message: Message,
     pub is_replying: bool,
-    on_event: EventHandler<'a, MenuEvent>,
+    on_event: EventHandler<MenuEvent>,
 }
 
 pub type Messages = Vec<TimelineRelation>;
 
-pub fn MessageView<'a>(cx: Scope<'a, MessageViewProps<'a>>) -> Element<'a> {
-    let hover_menu_options = use_ref::<Vec<MenuOption>>(cx, || match cx.props.message.thread {
+pub fn MessageView(props: MessageViewProps) -> Element {
+    let hover_menu_options = use_signal::<Vec<MenuOption>>(|| match props.message.thread {
         Some(_) => vec![MenuOption::ShowThread, MenuOption::Reply],
         None => vec![MenuOption::CreateThread, MenuOption::Reply],
     });
 
-    let message_container = match cx.props.message.origin {
+    let message_container = match props.message.origin {
         EventOrigin::ME => "message-container",
         EventOrigin::OTHER => "",
     };
 
-    let dropdown_left = match cx.props.message.origin {
+    let dropdown_left = match props.message.origin {
         EventOrigin::ME => "",
         EventOrigin::OTHER => "dropdown--left",
     };
 
-    let message_class = if !cx.props.is_replying {
+    let message_class = if !props.is_replying {
         "message-view"
     } else {
         "message-view--replying"
     };
 
     let content = Content {
-        content: cx.props.message.content.clone(),
-        is_reply: cx.props.is_replying,
-        thread: cx.props.message.thread.clone(),
+        content: props.message.content.clone(),
+        is_reply: props.is_replying,
+        thread: props.message.thread.clone(),
     };
 
-    render!(rsx! {
-      div {
-        class: "dropdown {dropdown_left}",
-        div {
-          class: "{message_class} {message_container}",
-          // Header content (Avatar)
-          match &cx.props.message.origin {
-            EventOrigin::ME => None,
-            EventOrigin::OTHER => render!(
-              rsx!(
-                Avatar {
-                  name: cx.props.message.display_name.clone(),
-                  size: 36,
-                  uri: cx.props.message.avatar_uri.clone()
-                }
-              )
-            )
-          }
-          article {
-            class: "message-wrapper",
-            // Name sender content
-            match cx.props.message.origin {
-              EventOrigin::OTHER =>
-              render!(
-                rsx!(
-                  section {
-                    class: "message__header",
-                    span {
-                      class: "message__sender",
-                      "{cx.props.message.display_name}"
+    rsx! {
+        div { class: "dropdown {dropdown_left}",
+            div { class: "{message_class} {message_container}",
+                // Header content (Avatar)
+                match &props.message.origin {
+                    EventOrigin::ME => None,
+                    EventOrigin::OTHER => rsx!(
+                        Avatar {
+                            name: props.message.display_name.clone(),
+                            size: 36,
+                            uri: props.message.avatar_uri.clone()
+                        }
+                    )
+                },
+                article { class: "message-wrapper",
+                    // Name sender content
+                    match props.message.origin {
+                        EventOrigin::OTHER => rsx!(
+                            section { class: "message__header",
+                                span { class: "message__sender", "{props.message.display_name}"}
+                            }
+                        ),
+                        _ => None
+                    },
+                    {
+                        props.message.reply.as_ref().map(|reply| rsx!(
+                            MessageReply{
+                                message: reply.clone(),
+                                is_replying_for_me: matches!(props.message.origin, EventOrigin::ME)
+                            }
+                        ))
+                    },
+
+                    div { class: "message__container__content",
+                        ContentMessage { message: content.clone() }
+                        span { class: "message__time", "{props.message.time}" }
                     }
-                  }
-                )
-              ),
-              _ => None
-            }
-
-            cx.props.message.reply.as_ref().map(|reply| render!(
-              rsx!(
-                MessageReply{
-                  message: reply.clone(),
-                  is_replying_for_me: matches!(cx.props.message.origin, EventOrigin::ME)
                 }
-              )
-            ))
-
-            div {
-              class: "message__container__content",
-              ContentMessage {
-                message: content.clone()
-              }
-
-              span {
-                class: "message__time",
-                "{cx.props.message.time}"
-              }
             }
-          }
-        }
 
-        if !cx.props.is_replying {
-          rsx!(
-            HoverMenu {
-              options: hover_menu_options.read().deref().to_vec(),
-              on_click: move |event: MenuEvent| {
-                cx.props.on_event.call(event);
-              }
+            if !props.is_replying {
+                HoverMenu {
+                    options: hover_menu_options.read().deref().to_vec(),
+                    on_click: move |event: MenuEvent| {
+                        props.on_event.call(event);
+                    }
+                }
             }
-          )
         }
-      }
-    })
+    }
 }

@@ -15,21 +15,21 @@ pub struct Content {
     pub thread: Option<ThreadPreview>,
 }
 
-#[derive(PartialEq, Props)]
+#[derive(PartialEq, Props, Clone)]
 pub struct ContentMessageProps {
     message: Content,
 }
 
-pub fn ContentMessage(cx: Scope<ContentMessageProps>) -> Element {
-    render!(rsx!(
+pub fn ContentMessage(props: ContentMessageProps) -> Element {
+    rsx!(
         div {
             class: "message__content",
-            match &cx.props.message.content {
+            match props.message.content {
                 TimelineMessageType::Text(t) => {
                   rsx!(
                     TextMessage {
                       body: t,
-                      is_reply: cx.props.message.is_reply
+                      is_reply: props.message.is_reply
                     }
                   )
                 },
@@ -37,7 +37,7 @@ pub fn ContentMessage(cx: Scope<ContentMessageProps>) -> Element {
                   rsx!(
                     ImageMessage {
                       body: i,
-                      is_reply: cx.props.message.is_reply
+                      is_reply: props.message.is_reply
                     }
                   )
                 },
@@ -46,8 +46,8 @@ pub fn ContentMessage(cx: Scope<ContentMessageProps>) -> Element {
                     div {
                       class: "message__content__file",
                       File {
-                        body: file.clone(),
-                        is_reply: cx.props.message.is_reply
+                        body: file,
+                        is_reply: props.message.is_reply
                       }
                     }
                   )
@@ -56,7 +56,7 @@ pub fn ContentMessage(cx: Scope<ContentMessageProps>) -> Element {
                     rsx!(
                       VideoMessage {
                         body: video,
-                        is_reply: cx.props.message.is_reply
+                        is_reply: props.message.is_reply
                       }
                     )
                 }
@@ -64,22 +64,19 @@ pub fn ContentMessage(cx: Scope<ContentMessageProps>) -> Element {
                   rsx!(
                     HtmlMessage {
                       body: t,
-                      is_reply: cx.props.message.is_reply
+                      is_reply: props.message.is_reply
                     }
                   )
                 }
             }
 
             // Thread replies
-            if let Some(thread) = &cx.props.message.thread {
+            if let Some(thread) = &props.message.thread {
               // hover_menu_options.set(vec![MenuOption::ShowThread, MenuOption::Reply]);
-              rsx!(
                 ThreadMessage {
-                  body: thread
+                  body: thread.clone()
                 }
-              )
             }
         }
-
-    ))
+    )
 }
