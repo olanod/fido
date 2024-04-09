@@ -1,26 +1,20 @@
 use dioxus::prelude::*;
 
-#[derive(Props)]
-pub struct ButtonProps<'a> {
-    title: &'a str,
-    body: &'a str,
-    on_click: EventHandler<'a, MouseEvent>,
+#[derive(PartialEq, Props, Clone)]
+pub struct ButtonProps {
+    title: String,
+    body: String,
+    on_click: EventHandler<MouseEvent>,
 }
 
-pub fn Notification<'a>(cx: Scope<'a, ButtonProps<'a>>) -> Element<'a> {
-    cx.render(rsx!(
+pub fn Notification(props: ButtonProps) -> Element {
+    rsx!(
         button {
-          class: "notification",
-          onclick: move |event| cx.props.on_click.call(event),
-          h3 {
-            class: "notification__title",
-            "{cx.props.title}"
-        }
+            class: "notification",
+            onclick: move |event| props.on_click.call(event),
+            h3 { class: "notification__title", "{props.title}" }
 
-        p {
-            class: "notification__body",
-            "{cx.props.body}"
-          }
+            p { class: "notification__body", "{props.body}" }
         }
-    ))
+    )
 }
