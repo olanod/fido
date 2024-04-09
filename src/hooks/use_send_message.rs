@@ -11,8 +11,8 @@ use std::time::{Duration, UNIX_EPOCH};
 use uuid::Uuid;
 
 use crate::{
-    components::organisms::chat::utils::handle_command,
-    hooks::factory::message_factory::MessageFactory,
+    components::organisms::chat::utils::handle_command::{self, Command},
+    hooks::{factory::message_factory::MessageFactory, use_public::PublicState},
     pages::chat::chat::MessageItem,
     services::matrix::matrix::{send_message, TimelineMessageType, TimelineRelation},
 };
@@ -23,6 +23,7 @@ use super::{
     use_init_app::MessageDispatchId,
     use_messages::use_messages,
     use_notification::use_notification,
+    use_public::use_public,
     use_reply::use_reply,
     use_session::use_session,
     use_thread::{use_thread, UseThreadState},
@@ -51,6 +52,7 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
     let messages = use_messages(cx);
     let session = use_session(cx);
     let replying_to = use_reply(cx);
+    let public = use_public(cx);
     let threading_to = use_thread(cx);
     let message_factory = use_message_factory(cx);
 
@@ -85,32 +87,35 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
             messages,
             session,
             message_dispatch_id,
-            message_factory
+            message_factory,
+            public
         ];
 
         async move {
             while let Some(message_item) = rx.next().await {
                 if message_item.msg.starts_with('!') {
-                    let Err(error) = handle_command(&message_item, &client.get()).await else {
-                        return;
-                    };
+                    match handle_command::handle_command(&message_item, &client.get()).await {
+                        Ok(Command::Join(_)) => {}
+                        Ok(Command::PublicRooms) => public.set(PublicState { show: true }),
+                        Err(error) => {
+                            let message = match error {
+                                handle_command::CommandError::RoomIdNotFound => {
+                                    &key_commands_join_errors_room_not_found
+                                }
+                                handle_command::CommandError::ActionNotFound => {
+                                    &key_commands_join_errors_action_not_found
+                                }
+                                handle_command::CommandError::InvalidRoomId => {
+                                    &key_commands_join_errors_invalid_room
+                                }
+                                handle_command::CommandError::RequestFailed => {
+                                    &key_commands_join_errors_request_failed
+                                }
+                            };
 
-                    let message = match error {
-                        handle_command::CommandError::RoomIdNotFound => {
-                            &key_commands_join_errors_room_not_found
+                            notification.handle_error(message);
                         }
-                        handle_command::CommandError::ActionNotFound => {
-                            &key_commands_join_errors_action_not_found
-                        }
-                        handle_command::CommandError::InvalidRoomId => {
-                            &key_commands_join_errors_invalid_room
-                        }
-                        handle_command::CommandError::RequestFailed => {
-                            &key_commands_join_errors_request_failed
-                        }
-                    };
-
-                    notification.handle_error(message)
+                    }
                 } else {
                     let mut back_messages = messages.get();
                     let uuid = Uuid::new_v4().to_string();
