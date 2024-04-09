@@ -8,17 +8,22 @@ use web_sys::HtmlElement;
 use crate::{
     components::{
         atoms::{
-            helper::HelperData, input::InputType, message::Messages, room::RoomItem, Helper, MessageInput, Space, SpaceSkeleton
+            helper::HelperData, input::InputType, message::Messages, room::RoomItem, Helper,
+            MessageInput, Space, SpaceSkeleton,
         },
         molecules::{
             rooms::{CurrentRoom, FormRoomEvent},
             RoomsList,
         },
         organisms::{
-            chat::{utils::handle_command::{self, Command}, ActiveRoom, PreviewRoom, PublicRooms},
+            chat::{
+                utils::handle_command::{self, Command},
+                ActiveRoom, PreviewRoom, PublicRooms,
+            },
             main::TitleHeaderMain,
         },
-    }, hooks::{
+    },
+    hooks::{
         use_client::use_client,
         use_messages::use_messages,
         use_notification::use_notification,
@@ -27,9 +32,11 @@ use crate::{
         use_room_preview::{use_room_preview, PreviewRoom},
         use_rooms::{use_rooms, RoomsList},
         use_session::use_session,
-    }, pages::chat::chat::MessageItem, services::matrix::matrix::{
+    },
+    pages::chat::chat::MessageItem,
+    services::matrix::matrix::{
         invited_rooms, list_rooms_and_spaces, public_rooms_and_spaces, Conversations,
-    }
+    },
 };
 
 pub enum ChatListError {
@@ -184,132 +191,132 @@ pub fn ChatList() -> Element {
     };
 
     rsx! {
-    div {
-        class: "chat-list-wrapper",
-        onmounted: move |event| {
-            event
-                .data
-                .downcast::<web_sys::Element>()
-                .and_then(|element| element.clone().dyn_into::<web_sys::HtmlElement>().ok())
-                .map(|html_element| {
-                    chat_list_wrapper_ref.set(Some(Box::new(html_element.clone())))
-                });
-        },
-        section { class: "chat-list options",
-            div { class: "chat-list__spaces",
-                if !spaces().is_empty() {
-                    ul { class: "chat-list__wrapper",
-                        Space {
-                            text: translate!(i18, "chat.list.home"),
-                            uri: None,
-                            on_click: move |_| {
-                                rooms_list.set_joined(rooms().clone());
-                                rooms_filtered.set(rooms().clone());
-                                selected_space.set(translate!(i18, "chat.list.home"));
-                                title_header.write().title = translate!(i18, "chat.list.home");
-                                if !rooms().iter().any(|r| { room.get().id.eq(&r.id) }) {
-                                    room.default()
-                                }
-                            }
-                        }
-
-                        for (space , value) in spaces.read().clone().into_iter() {
+        div {
+            class: "chat-list-wrapper",
+            onmounted: move |event| {
+                event
+                    .data
+                    .downcast::<web_sys::Element>()
+                    .and_then(|element| element.clone().dyn_into::<web_sys::HtmlElement>().ok())
+                    .map(|html_element| {
+                        chat_list_wrapper_ref.set(Some(Box::new(html_element.clone())))
+                    });
+            },
+            section { class: "chat-list options",
+                div { class: "chat-list__spaces",
+                    if !spaces().is_empty() {
+                        ul { class: "chat-list__wrapper",
                             Space {
-                                text: "{space.name}",
-                                uri: space.avatar_uri.clone(),
+                                text: translate!(i18, "chat.list.home"),
+                                uri: None,
                                 on_click: move |_| {
-                                    rooms_list.set_joined(value.clone());
-                                    rooms_filtered.set(value.clone());
-                                    selected_space.set(space.name.clone());
-                                    title_header.write().title = space.name.clone();
-                                    if !value.iter().any(|r| { room.get().id.eq(&r.id) }) {
+                                    rooms_list.set_joined(rooms().clone());
+                                    rooms_filtered.set(rooms().clone());
+                                    selected_space.set(translate!(i18, "chat.list.home"));
+                                    title_header.write().title = translate!(i18, "chat.list.home");
+                                    if !rooms().iter().any(|r| { room.get().id.eq(&r.id) }) {
                                         room.default()
                                     }
                                 }
                             }
-                        }
-                    }
-                } else if is_loading() {
-                    ul { class: "chat-list__wrapper",
-                        {(0..5).map(|_| {
-                            rsx!(
-                                SpaceSkeleton {
-                                    size: 50
+
+                            for (space , value) in spaces.read().clone().into_iter() {
+                                Space {
+                                    text: "{space.name}",
+                                    uri: space.avatar_uri.clone(),
+                                    on_click: move |_| {
+                                        rooms_list.set_joined(value.clone());
+                                        rooms_filtered.set(value.clone());
+                                        selected_space.set(space.name.clone());
+                                        title_header.write().title = space.name.clone();
+                                        if !value.iter().any(|r| { room.get().id.eq(&r.id) }) {
+                                            room.default()
+                                        }
+                                    }
                                 }
-                            )
-                        })}
-                    }
-                } else {
-                    div {}
-                }
-            }
-        }
-
-            div {
-                class: "chat-list__rooms",
-                onclick: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Left) },
-                MessageInput {
-                    message: "{pattern}",
-                    placeholder: translate!(i18, "chat.list.search"),
-                    itype: InputType::Search,
-                    error: None,
-                    on_input: move |event: FormEvent| {
-                        pattern.set(event.value().clone());
-                        let default_rooms = all_rooms().iter().cloned().collect::<Vec<_>>();
-                        if !event.value().is_empty() {
-                            let x = default_rooms
-                                .iter()
-                                .filter(|r| {
-                                    r.name.to_lowercase().contains(&event.value().to_lowercase())
-                                })
-                                .cloned()
-                                .collect::<Vec<_>>();
-                            rooms_filtered.set(x);
-                        } else {
-                            rooms_filtered.set(rooms_list.get_joined().clone())
+                            }
                         }
-                    },
-                    on_keypress: move |_| {},
-                    on_click: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Right) }
-                }
-                if !rooms_list.get_invited().is_empty() {
-                    h2 { class: "header__title", {translate!(i18, "chat.list.invitate")} }
-
-                    RoomsList {
-                        rooms: rooms_list.get_invited().clone(),
-                        is_loading: is_loading(),
-                        on_submit: on_click_invitation
+                    } else if is_loading() {
+                        ul { class: "chat-list__wrapper",
+                            {(0..5).map(|_| {
+                                rsx!(
+                                    SpaceSkeleton {
+                                        size: 50
+                                    }
+                                )
+                            })}
+                        }
+                    } else {
+                        div {}
                     }
                 }
 
-                h2 { class: "header__title", {translate!(i18, "chat.list.rooms")} }
-                RoomsList { rooms: rooms_list.get_joined(), is_loading: is_loading(), on_submit: on_click_room }
-            }
-            div {
-                class: "chat-list__content",
-                onclick: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Right) },
-                if public.get().show {
-                    section { class: "chat-list__active-room",
-                        PublicRooms { on_back: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Left) } }
+                div {
+                    class: "chat-list__rooms",
+                    onclick: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Left) },
+                    MessageInput {
+                        message: "{pattern}",
+                        placeholder: translate!(i18, "chat.list.search"),
+                        itype: InputType::Search,
+                        error: None,
+                        on_input: move |event: FormEvent| {
+                            pattern.set(event.value().clone());
+                            let default_rooms = all_rooms().iter().cloned().collect::<Vec<_>>();
+                            if !event.value().is_empty() {
+                                let x = default_rooms
+                                    .iter()
+                                    .filter(|r| {
+                                        r.name.to_lowercase().contains(&event.value().to_lowercase())
+                                    })
+                                    .cloned()
+                                    .collect::<Vec<_>>();
+                                rooms_filtered.set(x);
+                            } else {
+                                rooms_filtered.set(rooms_list.get_joined().clone())
+                            }
+                        },
+                        on_keypress: move |_| {},
+                        on_click: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Right) }
                     }
-                } else if !preview.get().is_none() {
-                    section { class: "chat-list__active-room",
-                        PreviewRoom { on_back: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Left) } }
+                    if !rooms_list.get_invited().is_empty() {
+                        h2 { class: "header__title", {translate!(i18, "chat.list.invitate")} }
+
+                        RoomsList {
+                            rooms: rooms_list.get_invited().clone(),
+                            is_loading: is_loading(),
+                            on_submit: on_click_invitation
+                        }
                     }
-                } else if !room.get().name.is_empty() {
-                    section { class: "chat-list__active-room",
-                        ActiveRoom { on_back: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Left) } }
-                    }
-                } else {
-                    section { class: "chat-list__static",
-                        Helper {
-                            helper: HelperData {
-                                title: translate!(i18, "chat.helpers.rooms.title"),
-                                description: translate!(i18, "chat.helpers.rooms.description"),
-                                subtitle: translate!(i18, "chat.helpers.rooms.subtitle"),
-                                example: String::from("!rooms"),
-                            },
-                            on_click: on_click_helper
+
+                    h2 { class: "header__title", {translate!(i18, "chat.list.rooms")} }
+                    RoomsList { rooms: rooms_list.get_joined(), is_loading: is_loading(), on_submit: on_click_room }
+                }
+                div {
+                    class: "chat-list__content",
+                    onclick: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Right) },
+                    if public.get().show {
+                        section { class: "chat-list__active-room",
+                            PublicRooms { on_back: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Left) } }
+                        }
+                    } else if !preview.get().is_none() {
+                        section { class: "chat-list__active-room",
+                            PreviewRoom { on_back: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Left) } }
+                        }
+                    } else if !room.get().name.is_empty() {
+                        section { class: "chat-list__active-room",
+                            ActiveRoom { on_back: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Left) } }
+                        }
+                    } else {
+                        section { class: "chat-list__static",
+                            Helper {
+                                helper: HelperData {
+                                    title: translate!(i18, "chat.helpers.rooms.title"),
+                                    description: translate!(i18, "chat.helpers.rooms.description"),
+                                    subtitle: translate!(i18, "chat.helpers.rooms.subtitle"),
+                                    example: String::from("!rooms"),
+                                },
+                                on_click: on_click_helper
+                            }
                         }
                     }
                 }
