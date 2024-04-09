@@ -13,6 +13,8 @@ use ruma::api::client::uiaa::AuthType;
 
 use super::use_auth::CacheLogin;
 use super::use_notification::NotificationItem;
+use super::use_public::PublicState;
+use super::use_room_preview::PreviewRoom;
 use super::use_rooms::RoomsList;
 use super::use_send_attach::SendAttachStatus;
 use super::use_session::UserSession;

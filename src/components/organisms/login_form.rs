@@ -128,17 +128,6 @@ pub fn LoginForm(props: LoginFormProps) -> Element {
                                     {translate!(i18, "onboard.guest.cta")}
                                 }
                             }
-                            p {
-                                class: "login-form__cta--another",
-                                translate!(i18, "onboard.guest.description")
-                                button {
-                                    class: "login-form__form__text login__form__text--color button button--tertiary",
-                                    onclick: move |_| {
-                                        cx.props.on_handle.call(FormLoginEvent::Guest)
-                                    },
-                                    translate!(i18, "onboard.guest.cta")
-                                }
-                            }
                         ),
                         BeforeSession::Signup => rsx!(
                             {translate!(i18, "onboard.login.description")}
@@ -181,39 +170,7 @@ pub fn LoginForm(props: LoginFormProps) -> Element {
                                 {translate!(i18, "onboard.signup.cta")},
                             }
                             }
-                            p {
-                                class: "login-form__cta--another",
-                                translate!(i18, "onboard.guest.description")
-                                button {
-                                    class: "login-form__form__text login__form__text--color button button--tertiary",
-                                    onclick: move |_| {
-                                        cx.props.on_handle.call(FormLoginEvent::Guest)
-                                    },
-                                    translate!(i18, "onboard.guest.cta")
-                                }
-                            }
                         ),
-                        BeforeSession::Guest => rsx!(
-                            translate!(i18, "onboard.login.description")
-                            button {
-                                class: "login-form__form__text login__form__text--color button button--tertiary",
-                                onclick: move |_| {
-                                        cx.props.on_handle.call(FormLoginEvent::Login)
-                                },
-                                translate!(i18, "onboard.login.cta"),
-                            }
-                            p {
-                                class: "login-form__cta--another",
-                                translate!(i18, "onboard.signup.description")
-                            button {
-                                class: "login-form__form__text login__form__text--color button button--tertiary",
-                                onclick: move |_| {
-                                        cx.props.on_handle.call(FormLoginEvent::CreateAccount)
-                                },
-                                translate!(i18, "onboard.signup.cta"),
-                            }
-                            }
-                        )
                     }
                 }
             }

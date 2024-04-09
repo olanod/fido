@@ -4,6 +4,7 @@ use dioxus::prelude::*;
 pub enum Variant {
     Primary,
     Secondary,
+    Tertiary,
 }
 
 #[derive(PartialEq, Props, Clone)]
@@ -22,6 +23,7 @@ pub fn Button(props: ButtonProps) -> Element {
     let variant = match props.variant {
         Variant::Primary => "button--primary",
         Variant::Secondary => "button--secondary",
+        Variant::Tertiary => "button--tertiary",
     };
 
     let disabled = if props.disabled {

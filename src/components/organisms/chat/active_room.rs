@@ -1,12 +1,13 @@
 use dioxus::prelude::*;
 use dioxus_router::prelude::use_navigator;
 use dioxus_std::{i18n::use_i18, translate};
+use futures::TryFutureExt;
 
 use crate::{
     components::{
         atoms::{
             header_main::{HeaderCallOptions, HeaderEvent},
-            Avatar, Close, Header, Icon,
+            ArrowDownCircle, ArrowUpCircle, Avatar, Close, Exit, Header, Icon,
         },
         molecules::{input_message::FormMessageEvent, rooms::CurrentRoom, InputMessage, List},
     },
@@ -14,14 +15,16 @@ use crate::{
         use_chat::{use_chat, UseChat},
         use_client::use_client,
         use_messages::use_messages,
+        use_notification::use_notification,
         use_reply::use_reply,
         use_room::use_room,
+        use_rooms::use_rooms,
         use_send_attach::use_send_attach,
         use_send_message::use_send_message,
         use_thread::use_thread,
     },
     pages::{chat::chat::MessageItem, route::Route},
-    services::matrix::matrix::{Attachment, AttachmentStream},
+    services::matrix::matrix::{leave_room, Attachment, AttachmentStream, LeaveRoomError},
 };
 
 #[derive(PartialEq, Props, Clone)]
