@@ -261,9 +261,8 @@ pub fn ChatList() -> Element {
                         error: None,
                         on_input: move |event: FormEvent| {
                             pattern.set(event.value().clone());
-                            let default_rooms = all_rooms().iter().cloned().collect::<Vec<_>>();
                             if !event.value().is_empty() {
-                                let filter = default_rooms
+                                let filter = all_rooms()
                                     .iter()
                                     .filter(|r| {
                                         r.name.to_lowercase().contains(&event.value().to_lowercase())
@@ -272,7 +271,7 @@ pub fn ChatList() -> Element {
                                     .collect::<Vec<_>>();
                                 rooms_filtered.set(filter);
                             } else {
-                                rooms_filtered.set(rooms_list.get_joined().clone())
+                                rooms_filtered.set(rooms_list.get_joined())
                             }
                         },
                         on_keypress: move |_| {},
@@ -285,12 +284,13 @@ pub fn ChatList() -> Element {
                                 class: "chat-list__item",
                                 h2 { class: "header__title header__title--sticky", {translate!(i18, "chat.list.invitate")} }
                                 RoomsList {
-                                    rooms: rooms_list.get_invited().clone(),
+                                    rooms: rooms_list.get_invited(),
                                     is_loading: is_loading(),
                                     on_submit: on_click_invitation
                                 }
                            }
                         }
+
                         div {
                             class: "chat-list__item",
                             h2 { class: "header__title header__title--sticky", {translate!(i18, "chat.list.rooms")} }
