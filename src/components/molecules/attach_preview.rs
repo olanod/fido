@@ -8,75 +8,56 @@ use crate::{
     services::matrix::matrix::FileContent,
 };
 
-#[derive(Props)]
-pub struct AttachPreviewProps<'a> {
-    on_event: EventHandler<'a, HeaderCallOptions>,
+#[derive(PartialEq, Props, Clone)]
+pub struct AttachPreviewProps {
+    on_event: EventHandler<HeaderCallOptions>,
 }
 
-pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
-    let i18 = use_i18(cx);
-    let attach = use_attach(cx);
+pub fn AttachPreview(props: AttachPreviewProps) -> Element {
+    let i18 = use_i18();
+    let attach = use_attach();
 
-    let key_attach_preview_cta_cancel = translate!(i18, "chat.attach_preview.cta.cancel");
+    let on_handle_card = move |_| props.on_event.call(HeaderCallOptions::CLOSE);
 
-    let on_handle_card = move |_| cx.props.on_event.call(HeaderCallOptions::CLOSE);
-
-    cx.render(rsx!(if let Some(file) = attach.get() {
-        match file.content_type.type_() {
+    match attach.get() {
+        Some(file) => match file.content_type.type_() {
             mime::IMAGE => {
-                if let Ok(file) = attach.get_file() {
-                    rsx!(
-                        article {
-                            class: "attach__wrapper--image",
-                            img {
-                                class: "attach__content--image",
-                                src: "{file.deref()}"
-                            }
+                rsx!(
+                    article {
+                        class: "attach__wrapper--image",
+                        img {
+                            class: "attach__content--image",
+                            src: "{file.preview_url.deref()}"
                         }
+                    }
 
-                        Card {
-                            file: "{file.deref()}",
-                            on_click: on_handle_card
-                        }
-                    )
-                } else {
-                    rsx!(
-                        div {
-                            translate!(i18, "chat.attach_preview.not_found")
-                        }
-                    )
-                }
+                    Card {
+                        file: "{file.preview_url.deref()}",
+                        on_click: on_handle_card
+                    }
+                )
             }
             mime::VIDEO => {
-                if let Ok(file) = attach.get_file() {
-                    rsx!(
-                        article {
-                            class: "attach__wrapper--video",
-                            video {
-                                class: "attach__content--video",
-                                src: "{file.deref()}",
-                                controls: true,
-                                autoplay: true
-                            }
-                            div {
-                                class: "attach__cta--video",
-                                Button {
-                                    text: "{key_attach_preview_cta_cancel}",
-                                    variant: &Variant::Secondary,
-                                    status: None,
-                                    on_click: on_handle_card
-                                }
-                            }
+                rsx!(
+                    article {
+                        class: "attach__wrapper--video",
+                        video {
+                            class: "attach__content--video",
+                            src: "{file.preview_url.deref()}",
+                            controls: true,
+                            autoplay: true
                         }
-
-                    )
-                } else {
-                    rsx!(
                         div {
-                            translate!(i18, "chat.attach_preview.not_found")
+                            class: "attach__cta--video",
+                            Button {
+                                text: translate!(i18, "chat.attach_preview.cta.cancel"),
+                                variant: Variant::Secondary,
+                                status: None,
+                                on_click: on_handle_card
+                            }
                         }
-                    )
-                }
+                    }
+                )
             }
             _ => {
                 rsx!(
@@ -86,7 +67,7 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
                             class: "attach__content--file",
                             h2 {
                                 class: "attach__title--file",
-                                translate!(i18, "chat.attach_preview.title")
+                                {translate!(i18, "chat.attach_preview.title")}
                             }
                             div {
                                 class: "attach__spacer",
@@ -102,8 +83,8 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
                                 div {
                                     class: "attach__spacer",
                                     Button {
-                                        text: "{key_attach_preview_cta_cancel}",
-                                        variant: &Variant::Secondary,
+                                        text: translate!(i18, "chat.attach_preview.cta.cancel"),
+                                        variant: Variant::Secondary,
                                         status: None,
                                         on_click: on_handle_card
                                     }
@@ -113,6 +94,13 @@ pub fn AttachPreview<'a>(cx: Scope<'a, AttachPreviewProps<'a>>) -> Element<'a> {
                     }
                 )
             }
+        },
+        None => {
+            rsx!(
+                div {
+                    {translate!(i18, "chat.attach_preview.not_found")}
+                }
+            )
         }
-    }))
+    }
 }

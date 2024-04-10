@@ -20,6 +20,7 @@ use super::use_send_attach::SendAttachStatus;
 use super::use_session::UserSession;
 use super::{use_attach::AttachFile, use_modal::ModalState};
 
+#[derive(Clone)]
 pub enum BeforeSession {
     Login,
     Signup,
@@ -31,37 +32,43 @@ pub struct MessageDispatchId {
     pub value: HashMap<String, Option<String>>,
 }
 
-pub fn use_init_app(cx: &ScopeState) {
-    use_shared_state_provider::<LoggedIn>(cx, || LoggedIn(false));
-    use_shared_state_provider::<MatrixClientState>(cx, || MatrixClientState { client: None });
-    use_shared_state_provider::<ModalState>(cx, || ModalState {
-        show: false,
-        account: None,
+pub fn use_init_app() {
+    use_context_provider::<Signal<LoggedIn>>(|| Signal::new(LoggedIn(false)));
+    use_context_provider::<Signal<MatrixClientState>>(|| {
+        Signal::new(MatrixClientState { client: None })
+    });
+    use_context_provider::<Signal<ModalState>>(|| {
+        Signal::new(ModalState {
+            show: false,
+            account: None,
+        })
     });
 
     // Temporarily moved here because Route has an unexpected
     // change when we push a ChatRoom from a different nest route
 
-    use_shared_state_provider::<CurrentRoom>(cx, || CurrentRoom::default());
-    use_shared_state_provider::<PreviewRoom>(cx, || PreviewRoom::default());
-    use_shared_state_provider::<RoomsList>(cx, || RoomsList::default());
-    use_shared_state_provider::<Messages>(cx, || Vec::new());
-    use_shared_state_provider::<Option<AttachFile>>(cx, || None);
-    use_shared_state_provider::<Option<ReplyingTo>>(cx, || None);
-    use_shared_state_provider::<NotificationItem>(cx, || NotificationItem::default());
+    use_context_provider::<Signal<CurrentRoom>>(|| Signal::new(CurrentRoom::default()));
+    use_context_provider::<Signal<PreviewRoom>>(|| Signal::new(PreviewRoom::default()));
+    use_context_provider::<Signal<RoomsList>>(|| Signal::new(RoomsList::default()));
+    use_context_provider::<Signal<Messages>>(|| Signal::new(Vec::new()));
+    use_context_provider::<Signal<Option<AttachFile>>>(|| Signal::new(None));
+    use_context_provider::<Signal<Option<ReplyingTo>>>(|| Signal::new(None));
+    use_context_provider::<Signal<NotificationItem>>(|| Signal::new(NotificationItem::default()));
 
-    use_shared_state_provider::<Option<SasVerification>>(cx, || None);
-    use_shared_state_provider::<Option<TimelineThread>>(cx, || None);
+    use_context_provider::<Signal<Option<SasVerification>>>(|| Signal::new(None));
+    use_context_provider::<Signal<Option<TimelineThread>>>(|| Signal::new(None));
 
-    use_shared_state_provider::<BeforeSession>(cx, || BeforeSession::Guest);
-    use_shared_state_provider::<Option<CacheLogin>>(cx, || None);
-    use_shared_state_provider::<Vec<AuthType>>(cx, || vec![]);
+    use_context_provider::<Signal<BeforeSession>>(|| Signal::new(BeforeSession::Guest));
+    use_context_provider::<Signal<Option<CacheLogin>>>(|| Signal::new(None));
+    use_context_provider::<Signal<Vec<AuthType>>>(|| Signal::new(vec![]));
 
-    use_shared_state_provider::<Option<UserSession>>(cx, || None);
+    use_context_provider::<Signal<Option<UserSession>>>(|| Signal::new(None));
 
-    use_shared_state_provider::<MessageDispatchId>(cx, || MessageDispatchId {
-        value: HashMap::new(),
+    use_context_provider::<Signal<MessageDispatchId>>(|| {
+        Signal::new(MessageDispatchId {
+            value: HashMap::new(),
+        })
     });
-    use_shared_state_provider(cx, || SendAttachStatus::Loading(0));
-    use_shared_state_provider::<PublicState>(cx, || PublicState::default());
+    use_context_provider::<Signal<SendAttachStatus>>(|| Signal::new(SendAttachStatus::Loading(0)));
+    use_context_provider::<Signal<PublicState>>(|| Signal::new(PublicState::default()));
 }

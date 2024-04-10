@@ -5,58 +5,56 @@ use crate::{
     utils::get_element::GetElement,
 };
 
-pub enum AttachType<'a> {
+#[derive(PartialEq, Debug, Clone)]
+pub enum AttachType {
     Button,
-    Avatar(Element<'a>),
+    Avatar(Element),
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct AttachEvent {
     pub value: Vec<u8>,
 }
 
-#[derive(Props)]
-pub struct AttachProps<'a> {
+#[derive(PartialEq, Props, Clone)]
+pub struct AttachProps {
     #[props(default = AttachType::Button)]
-    atype: AttachType<'a>,
-    on_click: EventHandler<'a, Event<FormData>>,
+    atype: AttachType,
+    on_click: EventHandler<Event<FormData>>,
 }
 
-pub fn Attach<'a>(cx: Scope<'a, AttachProps<'a>>) -> Element<'a> {
+pub fn Attach(props: AttachProps) -> Element {
     let on_handle_attach = move |_| {
         let element = GetElement::<web_sys::HtmlInputElement>::get_element_by_id("input_file");
 
         element.click();
     };
 
-    cx.render(rsx!(
-        match &cx.props.atype {
-            AttachType::Button =>
-                rsx!(
-                    button {
-                        class: "attach attach--button",
-                        onclick: on_handle_attach,
-                        Icon {
-                            stroke: "var(--icon-white)",
-                            icon: Attachment
-                        }
+    rsx!(
+        match &props.atype {
+            AttachType::Button => rsx!(
+                button {
+                    class: "attach attach--button",
+                    onclick: on_handle_attach,
+                    Icon {
+                        stroke: "var(--icon-white)",
+                        icon: Attachment
                     }
-                ),
-            AttachType::Avatar(element) =>
-                rsx!(
-                    button {
-                        class: "attach attach--avatar",
-                        onclick: on_handle_attach,
-                        element
-                    }
-                ),
-        }
-
+                }
+            ),
+            AttachType::Avatar(element) => rsx!(
+                button {
+                    class: "attach attach--avatar",
+                    onclick: on_handle_attach,
+                    {element}
+                }
+            ),
+        },
         input {
             r#type: "file",
             id: "input_file",
             class: "attach__input",
-            oninput: move |event| cx.props.on_click.call(event)
+            oninput: move |event| props.on_click.call(event)
         }
-    ))
+    )
 }

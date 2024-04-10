@@ -4,8 +4,8 @@ use dioxus_router::prelude::*;
 use super::{page_not_found::PageNotFound, profile::profile::Profile, profile::verify::Verify};
 
 use crate::{
-    pages::chat::chat::Chat, pages::chat::chat_list::ChatList,
-    pages::chat::room::group::RoomGroup, pages::chat::room::new::RoomNew,
+    pages::chat::chat::Chat, pages::chat::chat_list::ChatList, pages::chat::room::group::RoomGroup,
+    pages::chat::room::new::RoomNew,
 };
 
 use crate::components::organisms::IndexMenu;
@@ -28,8 +28,6 @@ pub enum Route {
         RoomNew {},
         #[route("/group")]
         RoomGroup {},
-        // #[layout(Room)] 
-        // #[end_layout]
     #[end_layout]
     #[route("/:..route")]
     PageNotFound { route: Vec<String> },

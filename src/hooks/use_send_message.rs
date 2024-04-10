@@ -45,16 +45,16 @@ pub enum MessageStatus {
     None,
 }
 
-pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
-    let i18 = use_i18(cx);
-    let client = use_client(cx);
-    let notification = use_notification(cx);
-    let messages = use_messages(cx);
-    let session = use_session(cx);
-    let replying_to = use_reply(cx);
-    let public = use_public(cx);
-    let threading_to = use_thread(cx);
-    let message_factory = use_message_factory(cx);
+pub fn use_send_message() -> UseSendMessageState {
+    let i18 = use_i18();
+    let client = use_client();
+    let mut notification = use_notification();
+    let mut messages = use_messages();
+    let session = use_session();
+    let mut replying_to = use_reply();
+    let mut public = use_public();
+    let mut threading_to = use_thread();
+    let message_factory = use_message_factory();
 
     let key_common_error_thread_id = translate!(i18, "chat.common.error.thread_id");
     let key_common_error_event_id = translate!(i18, "chat.common.error.event_id");
@@ -73,24 +73,11 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
     let key_commands_join_errors_request_failed =
         translate!(i18, "chat.commands.join.errors.request_failed");
 
-    let message_dispatch_id =
-        use_shared_state::<MessageDispatchId>(cx).expect("Unable to use MessageDispatchId");
+    let mut message_dispatch_id = consume_context::<Signal<MessageDispatchId>>();
 
-    let value = use_ref::<MessageStatus>(cx, || MessageStatus::None);
+    let value = use_signal::<MessageStatus>(|| MessageStatus::None);
 
-    let task_push = use_coroutine(cx, |mut rx: UnboundedReceiver<MessageItem>| {
-        to_owned![
-            client,
-            replying_to,
-            threading_to,
-            notification,
-            messages,
-            session,
-            message_dispatch_id,
-            message_factory,
-            public
-        ];
-
+    let task_push = use_coroutine(|mut rx: UnboundedReceiver<MessageItem>| {
         async move {
             while let Some(message_item) = rx.next().await {
                 if message_item.msg.starts_with('!') {
@@ -209,16 +196,16 @@ pub fn use_send_message(cx: &ScopeState) -> &UseSendMessageState {
         }
     });
 
-    cx.use_hook(move || UseSendMessageState {
+    use_hook(move || UseSendMessageState {
         inner: task_push.clone(),
         value: value.clone(),
     })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseSendMessageState {
     inner: Coroutine<MessageItem>,
-    value: UseRef<MessageStatus>,
+    value: Signal<MessageStatus>,
 }
 
 impl UseSendMessageState {

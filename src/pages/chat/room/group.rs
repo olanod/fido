@@ -49,97 +49,41 @@ pub enum CreateRoomError {
     ServerError,
 }
 
-pub fn RoomGroup(cx: Scope) -> Element {
-    use_shared_state_provider::<SelectedProfiles>(cx, || SelectedProfiles { profiles: vec![] });
-    use_shared_state_provider::<Option<AttachFile>>(cx, || None);
+pub fn RoomGroup() -> Element {
+    use_context_provider::<Signal<SelectedProfiles>>(|| {
+        Signal::new(SelectedProfiles { profiles: vec![] })
+    });
+    use_context_provider::<Signal<Option<AttachFile>>>(|| Signal::new(None));
 
-    let i18 = use_i18(cx);
+    let i18 = use_i18();
 
-    let key_common_error_user_id = translate!(i18, "chat.common.error.user_id");
-    let key_common_error_server = translate!(i18, "chat.common.error.server");
-    let key_group_error_not_found = translate!(i18, "group.error.not_found");
-    let key_group_error_profile = translate!(i18, "group.error.profile");
+    let navigation = use_navigator();
+    let client = use_client();
+    let mut attach = use_attach();
+    let mut notification = use_notification();
+    let mut room = use_room();
+    let session = use_session();
 
-    let key_group_title = "group-title";
-    let key_group_select_label = "group-select-label";
-    let key_group_select_placeholder = "group-select-placeholder";
-    let key_group_select_cta = "group-select-cta";
+    let mut selected_users = consume_context::<Signal<SelectedProfiles>>();
 
-    let key_group_meta_label = "group-meta-label";
-    let key_group_meta_placeholder = "group-meta-placeholder";
-    let key_group_meta_members_title = "group-meta-members-title";
-    let key_group_meta_cta_back = "group-meta-cta-back";
-    let key_group_meta_cta_create = "group-meta-cta-create";
+    let mut user_id = use_signal::<String>(|| String::from(""));
+    let mut users = use_signal::<Vec<Profile>>(|| vec![]);
 
-    let key_input_message_unknown_content = translate!(i18, "chat.input_message.unknown_content");
-    let key_input_message_file_type = translate!(i18, "chat.input_message.file_type");
-    let key_input_message_not_found = translate!(i18, "chat.input_message.not_found");
+    let error = use_signal::<Option<String>>(|| None);
 
-    let key_chat_guest_signup_description = translate!(i18, "chat.guest.signup.description");
-    let key_chat_guest_signup_cta = translate!(i18, "chat.guest.signup.cta");
+    let mut handle_complete_group = use_signal::<bool>(|| false);
+    let mut group_name = use_signal::<String>(|| String::from(""));
+    let mut status = use_signal::<CreationStatus>(|| CreationStatus::Start);
 
-    let i18n_map = HashMap::from([
-        (key_group_title, translate!(i18, "group.title")),
-        (
-            key_group_select_label,
-            translate!(i18, "group.select.label"),
-        ),
-        (
-            key_group_select_placeholder,
-            translate!(i18, "group.select.placeholder"),
-        ),
-        (key_group_select_cta, translate!(i18, "group.select.cta")),
-        (key_group_meta_label, translate!(i18, "group.meta.label")),
-        (
-            key_group_meta_placeholder,
-            translate!(i18, "group.meta.placeholder"),
-        ),
-        (
-            key_group_meta_members_title,
-            translate!(i18, "group.meta.members.title"),
-        ),
-        (
-            key_group_meta_cta_back,
-            translate!(i18, "group.meta.cta.back"),
-        ),
-        (
-            key_group_meta_cta_create,
-            translate!(i18, "group.meta.cta.create"),
-        ),
-    ]);
+    let task_search_user = use_coroutine(|mut rx: UnboundedReceiver<String>| async move {
+        while let Some(id) = rx.next().await {
+            let element = users.read().clone().into_iter().find(|u| u.id.eq(&id));
 
-    let navigation = use_navigator(cx);
-    let client = use_client(cx);
-    let attach = use_attach(cx);
-    let notification = use_notification(cx);
-    let room = use_room(cx);
-    let session = use_session(cx);
-
-    let selected_users =
-        use_shared_state::<SelectedProfiles>(cx).expect("Unable to use SelectedProfile");
-
-    let user_id = use_state::<String>(cx, || String::from(""));
-    let users = use_ref::<Vec<Profile>>(cx, || vec![]);
-
-    let error = use_state::<Option<String>>(cx, || None);
-
-    let handle_complete_group = use_ref::<bool>(cx, || false);
-    let group_name = use_state::<String>(cx, || String::from(""));
-    let status = use_state::<CreationStatus>(cx, || CreationStatus::Start);
-
-    let task_search_user = use_coroutine(cx, |mut rx: UnboundedReceiver<String>| {
-        to_owned![client, users, notification, key_group_error_not_found];
-
-        async move {
-            while let Some(id) = rx.next().await {
-                let element = users.read().clone().into_iter().find(|u| u.id.eq(&id));
-
-                if let None = element {
-                    match find_user_by_id(&id, &client.get()).await {
-                        Ok(profile) => users.with_mut(|user| user.push(profile)),
-                        Err(_) => {
-                            notification.handle_error(&key_group_error_not_found);
-                        }
+            if let None = element {
+                match find_user_by_id(&id, &client.get()).await {
+                    Ok(profile) => users.with_mut(|user| user.push(profile)),
+                    Err(_) => {
+                        notification.handle_error(&translate!(i18, "group.error.not_found"));
                     }
                 }
             }
@@ -147,24 +91,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
     });
 
     let on_handle_create = move |_| {
-        cx.spawn({
-            to_owned![
-                client,
-                selected_users,
-                attach,
-                group_name,
-                navigation,
-                key_common_error_user_id,
-                key_group_error_profile,
-                key_group_error_not_found,
-                key_common_error_server,
-                notification,
-                status,
-                room
-            ];
-
-            let status_error = status.clone();
-
+        spawn({
             async move {
                 status.set(CreationStatus::Creating);
                 let users = selected_users
@@ -176,7 +103,7 @@ pub fn RoomGroup(cx: Scope) -> Element {
                     .collect::<Vec<OwnedUserId>>();
 
                 let avatar = attach.get().map(|file| file.data);
-                let name = group_name.get().clone();
+                let name = group_name();
 
                 let room_meta =
                     create_room(&client.get(), false, &users, Some(name.clone()), avatar)
@@ -209,30 +136,22 @@ pub fn RoomGroup(cx: Scope) -> Element {
             }
             .unwrap_or_else(move |e: CreateRoomError| {
                 let message_error = match e {
-                    CreateRoomError::InvalidUserId => &key_common_error_user_id,
-                    CreateRoomError::UserNotFound => &key_group_error_profile,
-                    CreateRoomError::InvalidUsername => &key_group_error_not_found,
-                    CreateRoomError::ServerError => &key_common_error_server,
+                    CreateRoomError::InvalidUserId => translate!(i18, "chat.common.error.user_id"),
+                    CreateRoomError::UserNotFound => translate!(i18, "chat.common.error.server"),
+                    CreateRoomError::InvalidUsername => translate!(i18, "group.error.not_found"),
+                    CreateRoomError::ServerError => translate!(i18, "group.error.profile"),
                 };
 
-                status_error.set(CreationStatus::Error(e));
+                status.set(CreationStatus::Error(e));
                 notification.handle_error(&message_error);
             })
-        })
+        });
     };
 
     let on_handle_attach = move |event: Event<FormData>| {
-        cx.spawn({
-            to_owned![
-                attach,
-                notification,
-                key_input_message_not_found,
-                key_input_message_file_type,
-                key_input_message_unknown_content
-            ];
-
+        spawn({
             async move {
-                let files = &event.files.clone().ok_or(AttachError::NotFound)?;
+                let files = &event.files().ok_or(AttachError::NotFound)?;
                 let fs = files.files();
 
                 let existing_file = fs.get(0).ok_or(AttachError::NotFound)?;
@@ -269,9 +188,9 @@ pub fn RoomGroup(cx: Scope) -> Element {
             }
             .unwrap_or_else(move |e: AttachError| {
                 let message_error = match e {
-                    AttachError::NotFound => key_input_message_not_found,
-                    AttachError::UncoverType => key_input_message_file_type,
-                    AttachError::UnknownContent => key_input_message_unknown_content,
+                    AttachError::NotFound => translate!(i18, "chat.input_message.not_found"),
+                    AttachError::UncoverType => translate!(i18, "chat.input_message.file_type"),
+                    AttachError::UnknownContent => translate!(i18, "chat.input_message.not_found"),
                 };
 
                 notification.handle_error(&message_error);
@@ -279,249 +198,215 @@ pub fn RoomGroup(cx: Scope) -> Element {
         });
     };
 
-    render! {
-        Header {
-            text: "{i18n_get_key_value(&i18n_map, key_group_title)}",
-            on_event: move |_|{
-                navigation.go_back()
+    let element = if let Ok(file) = attach.get_file() {
+        rsx!( img { class: "group__attach", src: "{file.deref()}" } )
+    } else {
+        rsx!(
+            Avatar {
+                name: if !group_name().is_empty() { String::from(group_name()) } else { String::from("X") },
+                size: 80,
+                uri: None
             }
+        )
+    };
+
+    rsx! {
+        Header {
+            text: translate!(i18, "group.title"),
+            on_event: move |_| { navigation.go_back() }
         }
         if *handle_complete_group.read() {
-            let element = if let Ok(file) = attach.get_file()  {
-                render!(rsx!(
-                    img {
-                        class: "group__attach",
-                        src: "{file.deref()}"
-                    }
-                ))
-            } else {
-                render!(rsx! (
-                    Avatar{
-                        name: if !group_name.get().is_empty() { String::from(group_name.get()) } else { String::from("X") },
-                        size: 80,
-                        uri: None
-                    }
-                ))
-            };
+            Attach { atype: AttachType::Avatar(element), on_click: on_handle_attach }
 
-            rsx!(
-                Attach{
-                    atype: AttachType::Avatar(element),
-                    on_click: on_handle_attach
-                }
-
-                MessageInput{
-                    message: "{group_name.get()}",
-                    placeholder: "{i18n_get_key_value(&i18n_map, key_group_meta_placeholder)}",
-                    label: "{i18n_get_key_value(&i18n_map, key_group_meta_label)}",
-                    error: error.get().as_ref(),
-                    on_input: move |event: Event<FormData>| {
-                        group_name.set(event.value.clone());
-                    },
-                    on_keypress: move |_| {
-                    },
-                    on_click: move |_| {
-
-                    },
-                }
-                p {
-                    class: "group__title",
-                    "{i18n_get_key_value(&i18n_map, key_group_meta_members_title)}"
-                }
+            MessageInput {
+                message: "{group_name()}",
+                placeholder: translate!(i18, "group.meta.placeholder"),
+                label: translate!(i18, "group.meta.label"),
+                error: error(),
+                on_input: move |event: Event<FormData>| {
+                    group_name.set(event.value());
+                },
+                on_keypress: move |_| {},
+                on_click: move |_| {}
+            }
+            p { class: "group__title",
+                {translate!(i18, "group.meta.members.title")}
+            }
+            {
                 users.read().deref().into_iter().map(|u| {
                     selected_users.read().profiles.clone().into_iter().position(|selected_p| selected_p.eq(&u.id)).map(|position| {
-                        render!(
-                            rsx!(
-                                div {
-                                    class: "group__users",
-                                    RoomView {
-                                        displayname: "{u.displayname.clone()}",
-                                        avatar_uri: None,
-                                        description: "",
-                                        on_click: move |_| {
-
-                                        }
-                                    }
-                                    button {
-                                        class: "group__cta--close",
-                                        onclick: move |_| {
-                                            selected_users.write().profiles.remove(position);
-                                        },
-                                        Icon {
-                                            stroke: "var(--icon-subdued)",
-                                            icon: Close
-                                        }
+                        rsx!(
+                            div {
+                                class: "group__users",
+                                RoomView {
+                                    displayname: "{u.displayname.clone()}",
+                                    avatar_uri: None,
+                                    description: "",
+                                    on_click: move |_| {}
+                                }
+                                button {
+                                    class: "group__cta--close",
+                                    onclick: move |_| {
+                                        selected_users.write().profiles.remove(position);
+                                    },
+                                    Icon {
+                                        stroke: "var(--icon-subdued)",
+                                        icon: Close
                                     }
                                 }
-                            )
+                            }
                         )
                     }).flatten()
                 })
-                if !matches!(status.get(), CreationStatus::Start) {
-                    rsx!(
-                        match status.get() {
-                            CreationStatus::Creating => {
-                                render!(rsx! {
-                                    div {
-                                        class: "room-new__status-container",
-                                        p {
-                                            class: "room-new__status__description",
-                                            translate!(i18, "group.status.creating")
-                                        }
-                                    }
-                                })
-                            },
-                            CreationStatus::Ok => {
-                                render!(rsx! {
-                                    div {
-                                        class: "room-new__status-container",
-                                        p {
-                                            class: "room-new__status__description",
-                                            translate!(i18, "group.status.created")
-                                        }
-                                    }
-                                })
-                            },
-                            CreationStatus::Error(CreateRoomError::ServerError) => {
-                                let cta_back = translate!(i18, "group.status.error.cta.back");
-                                let cta_try = translate!(i18, "group.status.error.cta.try");
-                                render!(rsx! {
-                                    div {
-                                        class: "room-new__status-container",
-                                        h3 {
-                                            class: "room-new__status__title",
-                                            translate!(i18, "group.status.error.title")
-                                        }
-                                        p {
-                                            class: "room-new__status__description",
-                                            translate!(i18, "group.status.error.description")
-                                        }
-                                        div {
-                                            class: "row room-new__status-cta",
-                                            Button{
-                                                text: "{cta_back}",
-                                                variant: &Variant::Secondary,
-                                                on_click: move |_| {
-                                                    navigation.go_back()
-                                                },
-                                                status: None
-                                            }
-                                            Button{
-                                                text: "{cta_try}",
-                                                on_click: on_handle_create,
-                                                status: None
-                                            }
-                                        }
-                                    }
-                                })
-                            },
-                            _ => None
+            }
+            if !matches!(*status.read(), CreationStatus::Start) {
+                match *status.read() {
+                    CreationStatus::Creating => {
+                        rsx! {
+                            div {
+                                class: "room-new__status-container",
+                                p {
+                                    class: "room-new__status__description",
+                                    {translate!(i18, "group.status.creating")}
+                                }
+                            }
                         }
-                    )
+                    },
+                    CreationStatus::Ok => {
+                        rsx! {
+                            div {
+                                class: "room-new__status-container",
+                                p {
+                                    class: "room-new__status__description",
+                                    {translate!(i18, "group.status.created")}
+                                }
+                            }
+                        }
+                    },
+                    CreationStatus::Error(CreateRoomError::ServerError) => {
+                        let cta_back = translate!(i18, "group.status.error.cta.back");
+                        let cta_try = translate!(i18, "group.status.error.cta.try");
+                        rsx! {
+                            div {
+                                class: "room-new__status-container",
+                                h3 {
+                                    class: "room-new__status__title",
+                                    {translate!(i18, "group.status.error.title")}
+                                }
+                                p {
+                                    class: "room-new__status__description",
+                                    {translate!(i18, "group.status.error.description")}
+                                }
+                                div {
+                                    class: "row room-new__status-cta",
+                                    Button{
+                                        text: "{cta_back}",
+                                        variant: Variant::Secondary,
+                                        on_click: move |_| {
+                                            navigation.go_back()
+                                        },
+                                        status: None
+                                    }
+                                    Button{
+                                        text: "{cta_try}",
+                                        on_click: on_handle_create,
+                                        status: None
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    _ => None
+                }
+            } else {
+                if session.is_guest() {
+                    Guest {
+                        description: translate!(i18, "chat.guest.signup.description"),
+                        cta: translate!(i18, "chat.guest.signup.cta"),
+                        on_click: move |_| {}
+                    }
                 } else {
-                    if session.is_guest() {
-                        rsx!(
-                            Guest {
-                                description: "{key_chat_guest_signup_description}",
-                                cta: "{key_chat_guest_signup_cta}",
+                    div { class: "group__cta__wrapper row",
+                        Button {
+                            text: translate!(i18, "group.meta.cta.back"),
+                            status: None,
+                            variant: Variant::Secondary,
+                            on_click: move |_| {}
+                        }
+                        Button {
+                            text: translate!(i18, "group.meta.cta.create"),
+                            status: None,
+                            disabled: group_name().is_empty(),
+                            on_click: on_handle_create
+                        }
+                    }
+                }
+            }
+        } else {
+
+            MessageInput {
+                message: "{user_id}",
+                placeholder: translate!(i18, "group.select.placeholder"),
+                label: translate!(i18, "group.select.label"),
+                error: error(),
+                on_input: move |event: Event<FormData>| {
+                    user_id.set(event.value().clone());
+                },
+                on_keypress: move |event: KeyboardEvent| {
+                    if event.code() == keyboard_types::Code::Enter && !user_id().is_empty() {
+                        task_search_user.send(user_id())
+                    }
+                },
+                on_click: move |_| { task_search_user.send(user_id()) }
+            }
+            form {
+                class: "group__form",
+                onchange: move |event| {
+                    let values = event.values().clone().into_keys().collect::<Vec<String>>();
+                    let profiles = selected_users.read().deref().profiles.clone();
+                    if !values.eq(&profiles) {
+                        *selected_users
+                            .write() = SelectedProfiles {
+                            profiles: event
+                                .values()
+                                .keys()
+                                .into_iter()
+                                .map(|v| v.clone())
+                                .collect::<Vec<String>>(),
+                        };
+                    }
+                },
+                {users.read().deref().iter().map(|u| {
+                    let checked = if let Some(_) = selected_users.read().profiles.clone().into_iter().find(|selected_p| selected_p.eq(&u.id)) { true } else { false } ;
+                    rsx!(
+                        label {
+                            key: "{u.id}",
+                            class: "group__checked-users",
+                            input {
+                                r#type: "checkbox",
+                                id: "{u.id}",
+                                name: "{u.id}",
+                                checked: checked
+                            }
+                            RoomView {
+                                displayname: "{u.displayname.clone()}",
+                                avatar_uri: u.avatar_uri.clone(),
+                                description: "",
                                 on_click: move |_| {}
                             }
-                        )
-                    } else {
-                        rsx!(
-                            div {
-                                class: "group__cta__wrapper row",
-                                Button {
-                                    text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_back)}",
-                                    status: None,
-                                    variant: &Variant::Secondary,
-                                    on_click: move |_| {
-                                        handle_complete_group.set(false)
-                                    }
-                                }
-                                Button {
-                                    text: "{i18n_get_key_value(&i18n_map, key_group_meta_cta_create)}",
-                                    status: None,
-                                    disabled: group_name.get().len() == 0,
-                                    on_click: on_handle_create
-                                }
-                            }
-                        )
-                    }
-                }
-            )
-        } else {
-            rsx!(
-                MessageInput{
-                    message: "{user_id.get()}",
-                    placeholder: "{i18n_get_key_value(&i18n_map, key_group_select_placeholder)}",
-                    label: "{i18n_get_key_value(&i18n_map, key_group_select_label)}",
-                    error: error.get().as_ref(),
-                    on_input: move |event: Event<FormData>| {
-                        user_id.set(event.value.clone());
-                    },
-                    on_keypress: move |event: KeyboardEvent| {
-                        if event.code() == keyboard_types::Code::Enter && !user_id.get().is_empty() {
-                            let id = user_id.get();
-                            task_search_user.send(id.to_string())
                         }
-                    },
-                    on_click: move |_| {
-                        let id = user_id.get();
-                        task_search_user.send(id.to_string())
-                    },
+                    )
+                })}
+            }
+
+            div { class: "group__cta__wrapper",
+                Button {
+                    text: translate!(i18, "group.select.cta"),
+                    disabled: selected_users.read().profiles.is_empty(),
+                    status: None,
+                    on_click: move |_| { handle_complete_group.set(true) }
                 }
-                form {
-                    class: "group__form",
-                    onchange: move |event| {
-                        let values = event.values.clone().into_keys().collect::<Vec<String>>();
-                        let profiles = selected_users.read().deref().profiles.clone();
-
-                        if !values.eq(&profiles) {
-                            *selected_users.write() = SelectedProfiles {
-                                profiles: event.values.keys().into_iter().map(|v| v.clone()).collect::<Vec<String>>()
-                            };
-                        }
-                    },
-                    users.read().deref().iter().map(|u| {
-                        let checked = if let Some(_) = selected_users.read().profiles.clone().into_iter().find(|selected_p| selected_p.eq(&u.id)) { true } else { false } ;
-
-                        rsx!(
-                            label {
-                                key: "{u.id}",
-                                class: "group__checked-users",
-                                input {
-                                    r#type: "checkbox",
-                                    id: "{u.id}",
-                                    name: "{u.id}",
-                                    checked: checked
-                                }
-                                RoomView {
-                                    displayname: "{u.displayname.clone()}",
-                                    avatar_uri: u.avatar_uri.clone(),
-                                    description: "",
-                                    on_click: move |_| {
-
-                                    }
-                                }
-                            }
-                        )
-                    })
-                }
-
-                div {
-                    class: "group__cta__wrapper",
-                    Button {
-                        text: "{i18n_get_key_value(&i18n_map, key_group_select_cta)}",
-                        disabled: selected_users.read().profiles.is_empty(),
-                        status: None,
-                        on_click: move |_| {
-                            handle_complete_group.set(true)
-                        }
-                    }
-                }
-            )
+            }
         }
-
     }
 }

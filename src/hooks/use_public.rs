@@ -5,17 +5,17 @@ pub struct PublicState {
     pub show: bool,
 }
 
-pub fn use_public(cx: &ScopeState) -> &UsePublicState {
-    let public_state = use_shared_state::<PublicState>(cx).expect("Unable to use PublicState");
+pub fn use_public() -> UsePublicState {
+    let public_state = consume_context::<Signal<PublicState>>();
 
-    cx.use_hook(move || UsePublicState {
-        inner: public_state.clone(),
+    use_hook(move || UsePublicState {
+        inner: public_state,
     })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UsePublicState {
-    inner: UseSharedState<PublicState>,
+    inner: Signal<PublicState>,
 }
 
 impl UsePublicState {
@@ -23,12 +23,12 @@ impl UsePublicState {
         self.inner.read().clone()
     }
 
-    pub fn set(&self, room: PublicState) {
+    pub fn set(&mut self, room: PublicState) {
         let mut inner = self.inner.write();
         *inner = room;
     }
 
-    pub fn default(&self) {
+    pub fn default(&mut self) {
         self.set(PublicState::default())
     }
 }

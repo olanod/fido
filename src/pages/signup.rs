@@ -26,110 +26,24 @@ use crate::{
     },
     pages::login::LoggedInStatus,
     services::matrix::matrix::{login, prepare_register, register},
-    utils::i18n_get_key_value::i18n_get_key_value,
 };
 
-pub fn Signup(cx: Scope) -> Element {
-    let i18 = use_i18(cx);
+pub fn Signup() -> Element {
+    let i18 = use_i18();
 
-    // homeserver
-    let key_signup_chat_homeserver_message = "signup-chat-homeserver-message";
-    let key_signup_chat_homeserver_description = "signup-chat-homeserver-description";
-    let key_signup_chat_homeserver_placeholder = "signup-chat-homeserver-placeholder";
-    let key_signup_chat_homeserver_cta = "signup-chat-homeserver-cta";
+    let mut client = use_client();
+    let mut auth = use_auth();
+    let mut session = use_session();
 
-    // credentials
-    let key_signup_chat_credentials_title = "signup-chat-credentials-title";
-    let key_signup_chat_credentials_description = "signup-chat-credentials-description";
-    let key_signup_chat_credentials_username_message = "signup-chat-credentials-username-message";
-    let key_signup_chat_credentials_username_placeholder =
-        "signup-chat-credentials-username-placeholder";
-    let key_signup_chat_credentials_password_message = "signup-chat-credentials-password-message";
-    let key_signup_chat_credentials_password_placeholder =
-        "signup-chat-credentials-password-placeholder";
-    let key_signup_chat_credentials_cta = "signup-chat-credentials-cta";
+    let mut homeserver = use_signal(|| String::from(""));
+    let mut username = use_signal(|| String::from(""));
+    let mut password = use_signal(|| String::from(""));
+    let mut error = use_signal(|| None);
 
-    // captcha
-    let key_signup_chat_captcha_title = "signup-chat-captcha-title";
-    let key_signup_chat_captcha_description = "signup-chat-captcha-description";
-    let key_signup_chat_captcha_cta = "signup-chat-captcha-cta";
+    let mut before_session = consume_context::<Signal<BeforeSession>>();
 
-    let i18n_map = HashMap::from([
-        // homeserver
-        (
-            key_signup_chat_homeserver_message,
-            translate!(i18, "signup.chat_steps.homeserver.message"),
-        ),
-        (
-            key_signup_chat_homeserver_description,
-            translate!(i18, "signup.chat_steps.homeserver.description"),
-        ),
-        (
-            key_signup_chat_homeserver_placeholder,
-            translate!(i18, "signup.chat_steps.homeserver.placeholder"),
-        ),
-        (
-            key_signup_chat_homeserver_cta,
-            translate!(i18, "signup.chat_steps.homeserver.cta"),
-        ),
-        (
-            key_signup_chat_credentials_title,
-            translate!(i18, "signup.chat_steps.credentials.title"),
-        ),
-        // credentials
-        (
-            key_signup_chat_credentials_description,
-            translate!(i18, "signup.chat_steps.credentials.description"),
-        ),
-        (
-            key_signup_chat_credentials_username_message,
-            translate!(i18, "signup.chat_steps.credentials.username.message"),
-        ),
-        (
-            key_signup_chat_credentials_username_placeholder,
-            translate!(i18, "signup.chat_steps.credentials.username.placeholder"),
-        ),
-        (
-            key_signup_chat_credentials_password_message,
-            translate!(i18, "signup.chat_steps.credentials.password.message"),
-        ),
-        (
-            key_signup_chat_credentials_password_placeholder,
-            translate!(i18, "signup.chat_steps.credentials.password.placeholder"),
-        ),
-        (
-            key_signup_chat_credentials_cta,
-            translate!(i18, "signup.chat_steps.credentials.cta"),
-        ),
-        // captcha
-        (
-            key_signup_chat_captcha_title,
-            translate!(i18, "signup.chat_steps.captcha.title"),
-        ),
-        (
-            key_signup_chat_captcha_description,
-            translate!(i18, "signup.chat_steps.captcha.description"),
-        ),
-        (
-            key_signup_chat_captcha_cta,
-            translate!(i18, "signup.chat_steps.captcha.cta"),
-        ),
-    ]);
-
-    let client = use_client(cx);
-    let auth = use_auth(cx);
-    let session = use_session(cx);
-
-    let homeserver = use_state(cx, || String::from(""));
-    let username = use_state(cx, || String::from(""));
-    let password = use_state(cx, || String::from(""));
-    let error = use_state(cx, || None);
-
-    let before_session =
-        use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
-
-    let flows = use_ref::<Vec<AuthType>>(cx, || vec![]);
-    let session_ref = use_ref::<Option<String>>(cx, || None);
+    let mut flows = use_signal::<Vec<AuthType>>(|| vec![]);
+    let mut session_ref = use_signal::<Option<String>>(|| None);
 
     #[wasm_bindgen]
     extern "C" {
@@ -137,67 +51,52 @@ pub fn Signup(cx: Scope) -> Element {
         fn onloadCallback();
     }
 
-    let on_update_homeserver = move || {
-        cx.spawn({
-            to_owned![homeserver, auth];
-
+    let mut on_update_homeserver = move || {
+        spawn({
             async move {
-                if let Err(e) = auth.set_server(homeserver.get()).await {
+                if let Err(e) = auth.set_server(&homeserver()).await {
                     log::warn!("Failed to set server: {e:?}");
-                } 
+                }
             }
-        })
+        });
     };
 
     let on_handle_clear = move || {
-        cx.spawn({
-            to_owned![homeserver, username, password, auth];
-
+        spawn({
             async move {
-                reset_login_info(&auth, &homeserver, &username, &password);
+                reset_login_info(&mut auth, &mut homeserver, &mut username, &mut password);
             }
-        })
+        });
     };
 
-    let is_loading_loggedin = use_ref::<LoggedInStatus>(cx, || LoggedInStatus::Start);
+    let mut is_loading_loggedin = use_signal::<LoggedInStatus>(|| LoggedInStatus::Start);
 
-    let on_handle_login = move || {
-        auth.set_username(username.get(), false);
-        auth.set_password(password.get());
+    let mut on_handle_error = move |e: SignupError| {
+        let message_error = match e {
+            SignupError::Unknown => translate!(i18, "signup.errors.unknown"),
+            SignupError::Server => translate!(i18, "signup.errors.server"),
+            SignupError::FlowNotFound => translate!(i18, "signup.errors.flow_not_found"),
+            SignupError::RegisterFailed => translate!(i18, "signup.errors.register_failed"),
+            SignupError::LoginFailed => translate!(i18, "signup.errors.login_failed"),
+            SignupError::SyncFailed => translate!(i18, "chat.common.error.sync"),
+            SignupError::SessionFile => translate!(i18, "chat.common.error.persist"),
+            SignupError::UnsupportedFlow => translate!(i18, "signup.errors.unsupported_flow"),
+            SignupError::KeyRecaptcha | SignupError::SetSiteKey => {
+                translate!(i18, "signup.errors.key_recaptcha")
+            }
+        };
+        reset_login_info(&mut auth, &mut homeserver, &mut username, &mut password);
 
-        cx.spawn({
-            to_owned![
-                auth,
-                username,
-                password,
-                error,
-                flows,
-                session_ref,
-                homeserver,
-                i18
-            ];
+        error.set(Some(message_error));
+    };
 
-            let auth_error = auth.clone();
-            let homeserver_error = homeserver.clone();
-            let username_error = username.clone();
-            let password_error = password.clone();
+    let mut on_handle_login = move || {
+        auth.set_username(&username(), false);
+        auth.set_password(&password());
 
-            let key_presignup_error_unknown = translate!(i18, "signup.errors.unknown");
-            let key_presignup_error_unsupported_flow =
-                translate!(i18, "signup.errors.unsupported_flow");
-            let key_presignup_error_key_recaptcha = translate!(i18, "signup.errors.key_recaptcha");
-            let key_presignup_error_server = translate!(i18, "signup.errors.server");
-            let key_presignup_error_flow_not_found =
-                translate!(i18, "signup.errors.flow_not_found");
-            let key_presignup_error_register_failed =
-                translate!(i18, "signup.errors.register_failed");
-            let key_presignup_error_login_failed = translate!(i18, "signup.errors.login_failed");
-
-            let key_chat_common_error_persist = translate!(i18, "chat.common.error.persist");
-            let key_chat_common_error_sync = translate!(i18, "chat.common.error.sync");
-
+        spawn({
             async move {
-                let info = auth.clone().build().map_err(|_| SignupError::Server)?;
+                let info = auth.build().map_err(|_| SignupError::Server)?;
 
                 let response =
                     prepare_register(info.server.as_str(), &info.username, &info.password).await;
@@ -207,13 +106,13 @@ pub fn Signup(cx: Scope) -> Element {
                 )))) = response
                 {
                     flow_error(
-                        &auth,
-                        &homeserver,
-                        &username,
-                        &password,
-                        &session_ref,
+                        &mut auth,
+                        &mut homeserver,
+                        &mut username,
+                        &mut password,
+                        &mut session_ref,
                         &f_error,
-                        &flows,
+                        &mut flows,
                     )?;
                 } else {
                     return Err(SignupError::Unknown);
@@ -222,63 +121,12 @@ pub fn Signup(cx: Scope) -> Element {
                 info!("response {response:?}");
                 Ok::<(), SignupError>(())
             }
-            .unwrap_or_else(move |e: SignupError| {
-                let message_error = match e {
-                    SignupError::Unknown => key_presignup_error_unknown,
-                    SignupError::UnsupportedFlow => key_presignup_error_unsupported_flow,
-                    SignupError::KeyRecaptcha => key_presignup_error_key_recaptcha,
-                    SignupError::Server => key_presignup_error_server,
-                    SignupError::FlowNotFound => key_presignup_error_flow_not_found,
-                    SignupError::RegisterFailed => key_presignup_error_register_failed,
-                    SignupError::LoginFailed => key_presignup_error_login_failed,
-                    SignupError::SyncFailed => key_chat_common_error_sync,
-                    SignupError::SessionFile => key_chat_common_error_persist,
-                    SignupError::SetSiteKey => key_presignup_error_key_recaptcha,
-                };
-                reset_login_info(
-                    &auth_error,
-                    &homeserver_error,
-                    &username_error,
-                    &password_error,
-                );
-
-                error.set(Some(message_error))
-            })
-        })
+            .unwrap_or_else(on_handle_error)
+        });
     };
 
-    let on_handle_captcha = move || {
-        cx.spawn({
-            to_owned![
-                auth,
-                client,
-                session_ref,
-                is_loading_loggedin,
-                before_session,
-                session,
-                homeserver,
-                username,
-                password,
-                error,
-                i18
-            ];
-
-            let auth_error = auth.clone();
-            let homeserver_error = homeserver.clone();
-            let username_error = username.clone();
-            let password_error = password.clone();
-
-            let key_signup_error_unknown = translate!(i18, "signup.errors.unknown");
-            let key_signup_error_unsupported_flow =
-                translate!(i18, "signup.errors.unsupported_flow");
-            let key_signup_error_key_recaptcha = translate!(i18, "signup.errors.key_recaptcha");
-            let key_signup_error_server = translate!(i18, "signup.errors.server");
-            let key_signup_error_flow_not_found = translate!(i18, "signup.errors.flow_not_found");
-            let key_signup_error_register_failed = translate!(i18, "signup.errors.register_failed");
-            let key_signup_error_login_failed = translate!(i18, "signup.errors.login_failed");
-            let key_chat_common_error_persist = translate!(i18, "chat.common.error.persist");
-            let key_chat_common_error_sync = translate!(i18, "chat.common.error.sync");
-
+    let mut on_handle_captcha = move || {
+        spawn({
             async move {
                 let token = <LocalStorage as gloo::storage::Storage>::get::<String>("recaptcha")
                     .map_err(|_| SignupError::KeyRecaptcha)?;
@@ -329,61 +177,42 @@ pub fn Signup(cx: Scope) -> Element {
 
                 Ok::<(), SignupError>(())
             }
-            .unwrap_or_else(move |e: SignupError| {
-                let message_error = match e {
-                    SignupError::Unknown => key_signup_error_unknown,
-                    SignupError::UnsupportedFlow => key_signup_error_unsupported_flow,
-                    SignupError::KeyRecaptcha => key_signup_error_key_recaptcha,
-                    SignupError::Server => key_signup_error_server,
-                    SignupError::FlowNotFound => key_signup_error_flow_not_found,
-                    SignupError::RegisterFailed => key_signup_error_register_failed,
-                    SignupError::LoginFailed => key_signup_error_login_failed,
-                    SignupError::SyncFailed => key_chat_common_error_sync,
-                    SignupError::SessionFile => key_chat_common_error_persist,
-                    SignupError::SetSiteKey => key_signup_error_key_recaptcha,
-                };
-                reset_login_info(
-                    &auth_error,
-                    &homeserver_error,
-                    &username_error,
-                    &password_error,
-                );
-
-                error.set(Some(message_error));
-            })
-        })
+            .unwrap_or_else(on_handle_error)
+        });
     };
 
-    render!(
-        div {
-            class: "page--clamp",
+    let mut on_action_form = move |event: FormLoginEvent, func: &mut dyn FnMut()| match event {
+        FormLoginEvent::FilledForm => func(),
+        FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
+        FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
+        FormLoginEvent::Guest => *before_session.write() = BeforeSession::Guest,
+        FormLoginEvent::ClearData => on_handle_clear(),
+    };
+
+    rsx!(
+        div { class: "page--clamp",
             if auth.get().data.server.is_none() {
-                rsx!(LoginForm {
-                    title: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_message)}",
-                    description: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_description)}",
-                    button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_cta)}",
+                LoginForm {
+                    title: translate!(i18, "signup.chat_steps.homeserver.message"),
+                    description: translate!(i18, "signup.chat_steps.homeserver.description"),
+                    button_text: translate!(i18, "signup.chat_steps.homeserver.cta"),
                     emoji: "🛰️",
                     status: None,
-                    error: error.get().as_ref(),
-                    on_handle: move |event: FormLoginEvent| match event {
-                        FormLoginEvent::FilledForm => on_update_homeserver(),
-                        FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
-                        FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
-                        FormLoginEvent::Guest => *before_session.write() = BeforeSession::Guest,
-                        FormLoginEvent::ClearData => on_handle_clear(),
+                    error: error(),
+                    on_handle: move |event: FormLoginEvent| {
+                        on_action_form(event, &mut on_update_homeserver)
                     },
-                    body: render!(rsx!(
+                    body: rsx!(
                         div {
                             MessageInput {
-                                message: "{homeserver.get()}",
-                                placeholder: "{i18n_get_key_value(&i18n_map, key_signup_chat_homeserver_placeholder)}",
+                                message: "{homeserver()}",
+                                placeholder: translate!(i18, "signup.chat_steps.homeserver.placeholder"),
                                 error: None,
                                 on_input: move |event: FormEvent| {
-                                    homeserver.set(event.value.clone())
+                                    homeserver.set(event.value().clone())
                                 },
                                 on_keypress: move |event: KeyboardEvent| {
-                                    info!("{:?}", event.code());
-                                    if event.code() == keyboard_types::Code::Enter && !homeserver.get().is_empty() {
+                                    if event.code() == keyboard_types::Code::Enter && ! homeserver().is_empty() {
                                         on_update_homeserver()
                                     }
                                 },
@@ -392,110 +221,93 @@ pub fn Signup(cx: Scope) -> Element {
                                 }
                             }
                         }
-                    ))
-                })
+                    )
+                }
             } else if auth.get().data.username.is_none() || auth.get().data.password.is_none() {
-                rsx!(LoginForm {
-                    title: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_title)}",
-                    description: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_description)}",
-                    button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_cta)}",
+                LoginForm {
+                    title: translate!(i18, "signup.chat_steps.credentials.title"),
+                    description: translate!(i18, "signup.chat_steps.credentials.description"),
+                    button_text: translate!(i18, "signup.chat_steps.homeserver.cta"),
                     emoji: "✍️",
                     status: None,
-                    error: error.get().as_ref(),
-                    on_handle: move |event: FormLoginEvent| match event {
-                        FormLoginEvent::FilledForm => on_handle_login(),
-                        FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
-                        FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
-                        FormLoginEvent::Guest => *before_session.write() = BeforeSession::Guest,
-                        FormLoginEvent::ClearData => on_handle_clear(),
+                    error: error(),
+                    on_handle: move |event: FormLoginEvent| {
+                        on_action_form(event, &mut on_handle_login)
                     },
-                    body: render!(rsx!(
+                    body: rsx!(
                         div {
                             MessageInput {
-                                message: "{username.get()}",
-                                placeholder: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_username_placeholder)}",
+                                message: "{username()}",
+                                placeholder: translate!(i18, "signup.chat_steps.credentials.username.placeholder"),
                                 error: None,
                                 on_input: move |event: FormEvent| {
-                                    username.set(event.value.clone())
+                                    username.set(event.value().clone());
                                 },
-                                on_keypress: move |event: KeyboardEvent| {
-                                    if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() {
-                                        auth.set_username(username.get(), false)
+                                on_keypress: move |event : KeyboardEvent| {
+                                    if event.code() == keyboard_types::Code::Enter && ! username().is_empty() {
+                                        auth.set_username(&username(), false);
                                     }
                                 },
                                 on_click: move |_| {
-                                    auth.set_username(username.get(), false)
+                                    auth.set_username(& username(),false);
                                 }
                             }
                         }
-
                         div {
                             MessageInput {
                                 itype: InputType::Password,
-                                message: "{password.get()}",
-                                placeholder: "{i18n_get_key_value(&i18n_map, key_signup_chat_credentials_password_placeholder)}",
+                                message: "{password()}",
+                                placeholder: translate!(i18, "signup.chat_steps.credentials.password.placeholder"),
                                 error: None,
-                                on_input: move |event: FormEvent| {
-                                    password.set(event.value.clone())
-                                },
+                                on_input: move |event: FormEvent| { password.set(event.value().clone()) },
                                 on_keypress: move |event: KeyboardEvent| {
-                                    if event.code() == keyboard_types::Code::Enter && !username.get().is_empty() && !password.get().is_empty() {
-                                        auth.set_password(password.get());
+                                    if event.code() == keyboard_types::Code::Enter && ! username().is_empty() && ! password().is_empty() {
+                                        auth.set_password(&password());
                                     }
                                 },
                                 on_click: move |_| {
-                                    auth.set_password(password.get());
+                                    auth.set_password(&password());
                                 }
                             }
                         }
-                    ))
-                })
-            } else if !flows.read().is_empty() {
-                let f = flows.read();
-                let flows = f.clone();
-
-                let mut element = rsx!(div {});
-
-                for flow in flows.iter() {
-                    let i18n_map = i18n_map.clone();
-                    element = match flow {
-                        AuthType::ReCaptcha => rsx!(
-                            div {
-                                onmounted: move |_| onloadCallback(),
-                                LoginForm {
-                                    title: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_title)}",
-                                    description: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_description)}",
-                                    button_text: "{i18n_get_key_value(&i18n_map, key_signup_chat_captcha_cta)}",
-                                    emoji: "✍️",
-                                    status: None,
-                                    error: error.get().as_ref(),
-                                    on_handle: move |event: FormLoginEvent| match event {
-                                        FormLoginEvent::FilledForm => on_handle_captcha(),
-                                        FormLoginEvent::Login => *before_session.write() = BeforeSession::Login,
-                                        FormLoginEvent::CreateAccount => *before_session.write() = BeforeSession::Signup,
-                                        FormLoginEvent::Guest => *before_session.write() = BeforeSession::Guest,
-                                        FormLoginEvent::ClearData => on_handle_clear()
-
-                                    },
-                                    body: render!(rsx!(div {
-                                        class: "signup__flow",
-                                        id: "recaptcha-container",
-                                    }))
-                                }
-                            }
-                        ),
-                        _ => rsx!(div {}),
-                    };
+                    )
                 }
+            } else if !flows.read().is_empty() {
+                {
+                    let f = flows.read();
+                    let flows = f.clone();
+                    let mut element = rsx!(div {});
 
-                element
-            } else {
-                rsx!(
-                    div {
-                        class: "column spinner-dual-ring--center",
-                        Spinner {}
+                    for flow in flows.iter() {
+                        element = match flow {
+                            AuthType::ReCaptcha => rsx!(
+                                div {
+                                    onmounted: move |_| onloadCallback(),
+                                    LoginForm {
+                                        title: translate!(i18, "signup.chat_steps.captcha.title"),
+                                        description: translate!(i18, "signup.chat_steps.captcha.description"),
+                                        button_text: translate!(i18, "signup.chat_steps.captcha.cta"),
+                                        emoji: "✍️",
+                                        status: None,
+                                        error: error(),
+                                        on_handle: move |event: FormLoginEvent| {
+                                            on_action_form(event, &mut on_handle_captcha)
+                                        },
+                                        body: rsx!(div {
+                                            class: "signup__flow",
+                                            id: "recaptcha-container",
+                                        })
+                                    }
+                                }
+                            ),
+                            _ => rsx!(div {}),
+                        };
                     }
-                )
+
+                    element
+                }
+            } else {
+                div { class: "column spinner-dual-ring--center", Spinner {} }
             }
         }
     )
@@ -515,13 +327,13 @@ pub enum SignupError {
 }
 
 fn flow_error(
-    auth: &UseAuthState,
-    homeserver: &UseState<String>,
-    username: &UseState<String>,
-    password: &UseState<String>,
-    session_ref: &UseRef<Option<String>>,
+    auth: &mut UseAuthState,
+    homeserver: &mut Signal<String>,
+    username: &mut Signal<String>,
+    password: &mut Signal<String>,
+    session_ref: &mut Signal<Option<String>>,
     f_error: &UiaaResponse,
-    flows: &UseRef<Vec<AuthType>>,
+    flows: &mut Signal<Vec<AuthType>>,
 ) -> Result<(), SignupError> {
     match f_error {
         uiaa::UiaaResponse::AuthResponse(uiaa_info) => {
@@ -556,21 +368,21 @@ fn flow_error(
             Ok(())
         }
         uiaa::UiaaResponse::MatrixError(_) => {
-            reset_login_info(&auth, &homeserver, &username, &password);
+            reset_login_info(auth, homeserver, username, password);
             return Err(SignupError::Server);
         }
         _ => {
-            reset_login_info(&auth, &homeserver, &username, &password);
+            reset_login_info(auth, homeserver, username, password);
             return Err(SignupError::Unknown);
         }
     }
 }
 
 fn reset_login_info(
-    auth: &UseAuthState,
-    homeserver: &UseState<String>,
-    username: &UseState<String>,
-    password: &UseState<String>,
+    auth: &mut UseAuthState,
+    homeserver: &mut Signal<String>,
+    username: &mut Signal<String>,
+    password: &mut Signal<String>,
 ) {
     homeserver.set(String::from(""));
     username.set(String::from(""));

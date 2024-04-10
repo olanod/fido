@@ -2,26 +2,23 @@ use dioxus::prelude::*;
 
 use crate::components::molecules::input_message::ReplyingTo;
 
-pub fn use_reply(cx: &ScopeState) -> &UseReplyState {
-    let replying_to =
-        use_shared_state::<Option<ReplyingTo>>(cx).expect("Unable to read replying_to");
+pub fn use_reply() -> UseReplyState {
+    let replying_to = consume_context::<Signal<Option<ReplyingTo>>>();
 
-    cx.use_hook(move || UseReplyState {
-        inner: replying_to.clone(),
-    })
+    use_hook(move || UseReplyState { inner: replying_to })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseReplyState {
-    inner: UseSharedState<Option<ReplyingTo>>,
+    inner: Signal<Option<ReplyingTo>>,
 }
 
 impl UseReplyState {
-    pub fn get(&self) -> Option<ReplyingTo> {
+    pub fn get(&mut self) -> Option<ReplyingTo> {
         self.inner.read().clone()
     }
 
-    pub fn set(&self, replying_to: Option<ReplyingTo>) {
+    pub fn set(&mut self, replying_to: Option<ReplyingTo>) {
         let mut inner = self.inner.write();
         *inner = replying_to;
     }

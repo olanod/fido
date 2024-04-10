@@ -11,15 +11,15 @@ use std::time::Duration;
 
 use crate::services::matrix::matrix::FullSession;
 
-pub fn use_session(cx: &ScopeState) -> &UseSessionState {
-    let user = use_shared_state::<Option<UserSession>>(cx).expect("Unable to use UserSession");
+pub fn use_session() -> UseSessionState {
+    let user = consume_context::<Signal<Option<UserSession>>>();
 
-    cx.use_hook(move || UseSessionState { data: user.clone() })
+    use_hook(move || UseSessionState { data: user })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseSessionState {
-    data: UseSharedState<Option<UserSession>>,
+    data: Signal<Option<UserSession>>,
 }
 
 #[derive(Clone, Debug)]
@@ -37,7 +37,7 @@ pub enum SessionError {
 }
 
 impl UseSessionState {
-    fn set(&self, data: UserSession) {
+    fn set(&mut self, data: UserSession) {
         *self.data.write() = Some(data);
     }
 
@@ -46,10 +46,10 @@ impl UseSessionState {
     }
 
     pub fn is_guest(&self) -> bool {
-        self.get().is_some_and(|s|s.is_guest)
+        self.get().is_some_and(|s| s.is_guest)
     }
 
-    pub async fn whoami(&self, client: Client) -> Result<UserSession, HttpError> {
+    pub async fn whoami(&mut self, client: Client) -> Result<UserSession, HttpError> {
         let user_id = client.user_id();
         let device_id = client.device_id();
 
@@ -77,12 +77,12 @@ impl UseSessionState {
             }
         };
 
-        Self::set(&self, data.clone());
+        Self::set(self, data.clone());
         Ok(data)
     }
 
     pub async fn sync(
-        &self,
+        &mut self,
         client: Client,
         initial_sync_token: Option<String>,
     ) -> Result<(), SessionError> {
@@ -110,7 +110,7 @@ impl UseSessionState {
 
         match client.sync_once(sync_settings.clone()).await {
             Ok(response) => {
-                Self::whoami(&self, client)
+                Self::whoami(self, client)
                     .await
                     .map_err(|_| SessionError::WhoamiFailed)?;
                 Self::persist_sync_token(&response.next_batch).await?;

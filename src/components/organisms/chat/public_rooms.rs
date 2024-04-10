@@ -25,31 +25,25 @@ pub enum PreviewRoomError {
     AcceptFailed,
 }
 
-#[derive(Props)]
-pub struct PublicRoomProps<'a> {
-    on_back: EventHandler<'a, ()>,
+#[derive(PartialEq, Props, Clone)]
+pub struct PublicRoomProps {
+    on_back: EventHandler<()>,
 }
-pub fn PublicRooms<'a>(cx: Scope<'a, PublicRoomProps<'a>>) -> Element<'a> {
-    let i18 = use_i18(cx);
-    let nav = use_navigator(cx);
-    let preview = use_room_preview(cx);
-    let rooms = use_rooms(cx);
-    let messages = use_messages(cx);
-    let public = use_public(cx);
+pub fn PublicRooms(props: PublicRoomProps) -> Element {
+    let i18 = use_i18();
+    let nav = use_navigator();
+    let mut preview = use_room_preview();
+    let rooms = use_rooms();
+    let mut messages = use_messages();
+    let mut public = use_public();
 
-    let key_public_title = translate!(i18, "chat.public.title");
-
-    let header_event = move |evt: HeaderEvent| {
-        to_owned![public];
-
-        match evt.value {
-            HeaderCallOptions::CLOSE => {
-                nav.push(Route::ChatList {});
-                public.default();
-                cx.props.on_back.call(())
-            }
-            _ => {}
+    let header_event = move |evt: HeaderEvent| match evt.value {
+        HeaderCallOptions::CLOSE => {
+            nav.push(Route::ChatList {});
+            public.default();
+            props.on_back.call(())
         }
+        _ => {}
     };
 
     let on_click_room = move |evt: FormRoomEvent| {
@@ -58,20 +52,15 @@ pub fn PublicRooms<'a>(cx: Scope<'a, PublicRoomProps<'a>>) -> Element<'a> {
         public.default();
     };
 
-    render!(rsx! {
-        div {
-            class: "active-room",
-            Header {
-                text: "{key_public_title}",
-                on_event: header_event
-            }
-
+    rsx! {
+        div { class: "active-room",
+            Header { text: translate!(i18, "chat.public.title"), on_event: header_event }
             RoomsList {
                 rooms: rooms.get_public().clone(),
                 is_loading: false,
                 on_submit: on_click_room,
-                wrap: true,
+                wrap: true
             }
         }
-    })
+    }
 }

@@ -33,46 +33,41 @@ pub enum PreviewRoomError {
     JoinFailed,
 }
 
-#[derive(Props)]
-pub struct PreviewRoomProps<'a> {
-    on_back: EventHandler<'a, ()>,
+#[derive(PartialEq, Props, Clone)]
+pub struct PreviewRoomProps {
+    on_back: EventHandler<()>,
 }
-pub fn PreviewRoom<'a>(cx: Scope<'a, PreviewRoomProps<'a>>) -> Element<'a> {
-    let i18 = use_i18(cx);
-    let nav = use_navigator(cx);
-    let preview = use_room_preview(cx);
-    let room = use_room(cx);
-    let rooms = use_rooms(cx);
-    let client = use_client(cx);
-    let notification = use_notification(cx);
+pub fn PreviewRoom(props: PreviewRoomProps) -> Element {
+    let i18 = use_i18();
+    let nav = use_navigator();
+    let mut preview = use_room_preview();
+    let mut room = use_room();
+    let mut rooms = use_rooms();
+    let client = use_client();
+    let mut notification = use_notification();
 
-    let key_chat_preview_invited_cta_accept = translate!(i18, "chat.preview.invited.cta.accept");
-    let key_chat_preview_invited_cta_reject = translate!(i18, "chat.preview.invited.cta.reject");
-    let key_chat_preview_join_cta_accept = translate!(i18, "chat.preview.join.cta.accept");
-    let key_chat_preview_join_cta_back = translate!(i18, "chat.preview.join.cta.back");
-
-    let header_event = move |evt: HeaderEvent| {
-        to_owned![preview];
-
-        match evt.value {
-            HeaderCallOptions::CLOSE => {
-                nav.push(Route::ChatList {});
-                preview.set(PreviewRoom::default());
-                cx.props.on_back.call(())
-            }
-            _ => {}
+    let header_event = move |evt: HeaderEvent| match evt.value {
+        HeaderCallOptions::CLOSE => {
+            nav.push(Route::ChatList {});
+            preview.set(PreviewRoom::default());
+            props.on_back.call(())
         }
+        _ => {}
+    };
+
+    let mut on_handle_error = move |e: PreviewRoomError| {
+        let message = match e {
+            PreviewRoomError::InvalidRoomId => translate!(i18, "chat.common.error.room_id"),
+            PreviewRoomError::InvitationNotFound => translate!(i18, "chat.preview_error_not_found"),
+            PreviewRoomError::AcceptFailed => translate!(i18, "chat.preview_error_accept"),
+            PreviewRoomError::JoinFailed => translate!(i18, "chat.preview_error_join"),
+        };
+
+        notification.handle_error(&message);
     };
 
     let on_handle_accept_invitation = move |r: Rc<CurrentRoom>| {
-        let key_chat_common_error_room_id = translate!(i18, "chat.common.error.room_id");
-        let key_chat_preview_error_not_found = translate!(i18, "chat.preview_error_not_found");
-        let key_chat_preview_error_accept = translate!(i18, "chat.preview_error_accept");
-        let key_chat_preview_error_join = translate!(i18, "chat.preview_error_join");
-
-        cx.spawn({
-            to_owned![preview, room, client, notification, rooms];
-
+        spawn({
             async move {
                 let room_id = RoomId::parse(&*r.id).map_err(|_| PreviewRoomError::InvalidRoomId)?;
                 let invitation = client
@@ -100,28 +95,12 @@ pub fn PreviewRoom<'a>(cx: Scope<'a, PreviewRoomProps<'a>>) -> Element<'a> {
 
                 Ok::<(), PreviewRoomError>(())
             }
-            .unwrap_or_else(move |e: PreviewRoomError| {
-                let message = match e {
-                    PreviewRoomError::InvalidRoomId => &key_chat_common_error_room_id,
-                    PreviewRoomError::InvitationNotFound => &key_chat_preview_error_not_found,
-                    PreviewRoomError::AcceptFailed => &key_chat_preview_error_accept,
-                    PreviewRoomError::JoinFailed => &key_chat_preview_error_join,
-                };
-
-                notification.handle_error(&message);
-            })
+            .unwrap_or_else(on_handle_error)
         })
     };
 
     let on_handle_reject_invitation = move |r: Rc<CurrentRoom>| {
-        let key_chat_common_error_room_id = translate!(i18, "chat.common.error.room_id");
-        let key_chat_preview_error_not_found = translate!(i18, "chat.preview_error_not_found");
-        let key_chat_preview_error_accept = translate!(i18, "chat.preview_error_accept");
-        let key_chat_preview_error_join = translate!(i18, "chat.preview_error_join");
-
-        cx.spawn({
-            to_owned![preview, room, client, notification, rooms];
-
+        spawn({
             async move {
                 let room_id = RoomId::parse(&*r.id).map_err(|_| PreviewRoomError::InvalidRoomId)?;
                 let invitation = client
@@ -143,27 +122,12 @@ pub fn PreviewRoom<'a>(cx: Scope<'a, PreviewRoomProps<'a>>) -> Element<'a> {
 
                 Ok::<(), PreviewRoomError>(())
             }
-            .unwrap_or_else(move |e: PreviewRoomError| {
-                let message = match e {
-                    PreviewRoomError::InvalidRoomId => &key_chat_common_error_room_id,
-                    PreviewRoomError::InvitationNotFound => &key_chat_preview_error_not_found,
-                    PreviewRoomError::AcceptFailed => &key_chat_preview_error_accept,
-                    PreviewRoomError::JoinFailed => &key_chat_preview_error_join,
-                };
-
-                notification.handle_error(&message);
-            })
+            .unwrap_or_else(on_handle_error)
         })
     };
 
     let on_handle_join = move |r: Rc<CurrentRoom>| {
-        let key_chat_common_error_room_id = translate!(i18, "chat.common.error.room_id");
-        let key_chat_preview_error_not_found = translate!(i18, "chat.preview_error_not_found");
-        let key_chat_preview_error_accept = translate!(i18, "chat.preview_error_accept");
-        let key_chat_preview_error_join = translate!(i18, "chat.preview_error_join");
-
-        cx.spawn({
-            to_owned![client, notification, room];
+        spawn({
             async move {
                 let room_id = RoomId::parse(&*r.id).map_err(|_| PreviewRoomError::InvalidRoomId)?;
 
@@ -179,33 +143,19 @@ pub fn PreviewRoom<'a>(cx: Scope<'a, PreviewRoomProps<'a>>) -> Element<'a> {
 
                 Ok::<(), PreviewRoomError>(())
             }
-            .unwrap_or_else(move |e: PreviewRoomError| {
-                let message = match e {
-                    PreviewRoomError::InvalidRoomId => &key_chat_common_error_room_id,
-                    PreviewRoomError::InvitationNotFound => &key_chat_preview_error_not_found,
-                    PreviewRoomError::AcceptFailed => &key_chat_preview_error_accept,
-                    PreviewRoomError::JoinFailed => &key_chat_preview_error_join,
-                };
-
-                notification.handle_error(&message);
-            })
-        })
+            .unwrap_or_else(on_handle_error)
+        });
     };
 
     let on_handle_back = move || {
-        cx.spawn({
-            to_owned![preview, room];
-
-            async move {
-                preview.default();
-                room.default();
-            }
-        })
+        spawn(async move {
+            preview.default();
+            room.default();
+        });
     };
 
-    render!(rsx! {
-        div {
-            class: "active-room",
+    rsx! {
+        div { class: "active-room",
             match preview.get() {
                 PreviewRoom::Invited(room) => {
                     let room = Rc::new(room);
@@ -214,53 +164,51 @@ pub fn PreviewRoom<'a>(cx: Scope<'a, PreviewRoomProps<'a>>) -> Element<'a> {
                     let room_action_accept = room.clone();
                     let room_action_reject = room.clone();
 
-                    render!(
-                        rsx!(
-                            Header {
-                                text: "{room_to_header.name.clone()}",
-                                avatar_element: render!(rsx!(
-                                    Avatar {
-                                        name: room_to_header.name.to_string(),
-                                        size: 32,
-                                        uri: room_to_header.avatar_uri.clone()
-                                    }
-                                )),
-                                on_event: header_event
-                            }
-
-                            section {
-                                class: "preview-room",
-                                h3 {
-                                    class: "preview-room__title",
-                                    translate!(i18, "chat.preview.invited.title") "{room.name.clone()}?"
-                                }
+                    rsx!(
+                        Header {
+                            text: "{room_to_header.name.clone()}",
+                            avatar_element: rsx!(
                                 Avatar {
-                                    name: room_to_avatar.name.to_string(),
+                                    name: room_to_header.name.to_string(),
                                     size: 32,
-                                    uri: room_to_avatar.avatar_uri.clone()
+                                    uri: room_to_header.avatar_uri.clone()
                                 }
-                                div {
-                                    class: "preview-room__content",
-                                    Button {
-                                        text: "{key_chat_preview_invited_cta_accept}",
-                                        on_click: move |_| {
-                                            on_handle_accept_invitation(room_action_accept.clone())
-                                        },
-                                        status: None
-                                    }
+                            ),
+                            on_event: header_event
+                        }
 
-                                    Button {
-                                        text: "{key_chat_preview_invited_cta_reject}",
-                                        variant: &Variant::Tertiary,
-                                        on_click: move |_| {
-                                            on_handle_reject_invitation(room_action_reject.clone())
-                                        },
-                                        status: None
-                                    }
-                                }
-
+                        section {
+                            class: "preview-room",
+                            h3 {
+                                class: "preview-room__title",
+                                {translate!(i18, "chat.preview.invited.title")} "{room.name.clone()}?"
                             }
-                        )
+                            Avatar {
+                                name: room_to_avatar.name.to_string(),
+                                size: 32,
+                                uri: room_to_avatar.avatar_uri.clone()
+                            }
+                            div {
+                                class: "preview-room__content",
+                                Button {
+                                    text: translate!(i18, "chat.preview.invited.cta.accept"),
+                                    on_click: move |_| {
+                                        on_handle_accept_invitation(room_action_accept.clone());
+                                    },
+                                    status: None
+                                }
+
+                                Button {
+                                    text: translate!(i18, "chat.preview.invited.cta.reject"),
+                                    variant: Variant::Tertiary,
+                                    on_click: move |_| {
+                                        on_handle_reject_invitation(room_action_reject.clone());
+                                    },
+                                    status: None
+                                }
+                            }
+
+                        }
                     )
                 }
                 PreviewRoom::Joining(room) => {
@@ -268,69 +216,65 @@ pub fn PreviewRoom<'a>(cx: Scope<'a, PreviewRoomProps<'a>>) -> Element<'a> {
                     let room_to_header = room.clone();
                     let room_action_join = room.clone();
 
-                    render!(
-                        rsx!(
-                            Header {
-                                text: "{room_to_header.name.clone()}",
-                                avatar_element: render!(rsx!(
-                                    Avatar {
-                                        name: room_to_header.name.to_string(),
-                                        size: 32,
-                                        uri: room_to_header.avatar_uri.clone()
-                                    }
-                                )),
-                                on_event: header_event
-                            }
-
-                            section {
-                                class: "preview-room",
-                                h3 {
-                                    class: "preview-room__title",
-                                    translate!(i18, "chat.preview.join.title")
+                    rsx!(
+                        Header {
+                            text: "{room_to_header.name.clone()}",
+                            avatar_element: rsx!(
+                                Avatar {
+                                    name: room_to_header.name.to_string(),
+                                    size: 32,
+                                    uri: room_to_header.avatar_uri.clone()
                                 }
-                                div {
-                                    class: "preview-room__content",
-                                    Button {
-                                        text: "{key_chat_preview_join_cta_accept}",
-                                        on_click: move |_| {
-                                            on_handle_join(room_action_join.clone())
-                                        },
-                                        status: None
-                                    }
+                            ),
+                            on_event: header_event
+                        }
 
-                                    Button {
-                                        text: "{key_chat_preview_join_cta_back}",
-                                        variant: &Variant::Tertiary,
-                                        on_click: move |_| {
-                                            on_handle_back()
-                                        },
-                                        status: None
-                                    }
+                        section {
+                            class: "preview-room",
+                            h3 {
+                                class: "preview-room__title",
+                                {translate!(i18, "chat.preview.join.title")}
+                            }
+                            div {
+                                class: "preview-room__content",
+                                Button {
+                                    text: translate!(i18, "chat.preview.join.cta.accept"),
+                                    on_click: move |_| {
+                                        on_handle_join(room_action_join.clone());
+                                    },
+                                    status: None
                                 }
 
+                                Button {
+                                    text: translate!(i18, "chat.preview.join.cta.back"),
+                                    variant: Variant::Tertiary,
+                                    on_click: move |_| {
+                                        on_handle_back()
+                                    },
+                                    status: None
+                                }
                             }
-                        )
+
+                        }
                     )
                 }
                 PreviewRoom::Creating(room) => {
-                   render!(
                     rsx!(
                         Header {
                             text: "{room.name.clone()}",
-                            avatar_element: render!(rsx!(
+                            avatar_element: rsx!(
                                 Avatar {
                                     name: room.name.to_string(),
                                     size: 32,
                                     uri: room.avatar_uri.clone()
                                 }
-                            )),
+                            ),
                             on_event: header_event
                         }
                     )
-                   )
                 }
                 _ => None
             }
         }
-    })
+    }
 }

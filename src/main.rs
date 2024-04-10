@@ -25,7 +25,7 @@ use chat::MatrixClientState;
 
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());
-    dioxus_web::launch(App);
+    launch(App);
 }
 
 static EN_US: &str = include_str!("./locales/en-US.json");
@@ -37,7 +37,7 @@ pub enum MainError {
     SyncFailed,
 }
 
-fn App(cx: Scope) -> Element {
+fn App() -> Element {
     if let Some(static_login_form) = window()?.document()?.get_element_by_id("static-login-form") {
         if let Some(parent) = static_login_form.parent_node() {
             let _ = parent.remove_child(&static_login_form);
@@ -62,34 +62,26 @@ fn App(cx: Scope) -> Element {
 
     let fallback_language: LanguageIdentifier = selected_language.clone();
 
-    use_init_i18n(cx, selected_language, fallback_language, || {
+    use_init_i18n(selected_language, fallback_language, || {
         let en_us = Language::from_str(EN_US).expect("can't get EN_US language");
         let es_es = Language::from_str(ES_ES).expect("can't get ES_ES language");
         vec![en_us, es_es]
     });
 
-    use_init_app(cx);
+    use_init_app();
 
-    let client = use_client(cx);
-    let auth = use_auth(cx);
-    let session = use_session(cx);
-    let notification = use_notification(cx);
-    let i18 = use_i18(cx);
+    let mut client = use_client();
+    let mut auth = use_auth();
+    let mut session = use_session();
+    let mut notification = use_notification();
+    let i18 = use_i18();
 
-    let matrix_client =
-        use_shared_state::<MatrixClientState>(cx).expect("Unable to use matrix client");
-    let before_session =
-        use_shared_state::<BeforeSession>(cx).expect("Unable to use before session");
+    let matrix_client = consume_context::<Signal<MatrixClientState>>();
+    let before_session = consume_context::<Signal<BeforeSession>>();
 
-    let key_chat_common_error_sync = translate!(i18, "chat.common.error.sync");
-    let key_chat_common_error_default_server = translate!(i18, "chat.common.error.default_server");
-    let key_main_error_restore = translate!(i18, "main.errors.restore");
+    let mut restoring_session = use_signal::<bool>(|| true);
 
-    let restoring_session = use_ref::<bool>(cx, || true);
-
-    use_coroutine(cx, |_: UnboundedReceiver<MatrixClientState>| {
-        to_owned![client, auth, restoring_session, session, notification];
-
+    use_coroutine(|_: UnboundedReceiver<MatrixClientState>| {
         async move {
             let serialized_session: Result<String, StorageError> =
                 <LocalStorage as gloo::storage::Storage>::get("session_file");
@@ -124,93 +116,75 @@ fn App(cx: Scope) -> Element {
         }
         .unwrap_or_else(move |e: MainError| {
             let message = match e {
-                MainError::DefaultServer => &key_chat_common_error_default_server,
-                MainError::RestoreFailed => &key_main_error_restore,
-                MainError::SyncFailed => &key_chat_common_error_sync,
+                MainError::DefaultServer => translate!(i18, "chat.common.error.default_server"),
+                MainError::RestoreFailed => translate!(i18, "main.errors.restore"),
+                MainError::SyncFailed => translate!(i18, "chat.common.error.sync"),
             };
             notification.handle_error(&message);
         })
     });
 
-    render! {
+    rsx! {
         if notification.get().show {
-            rsx!(
-                Notification {
-                    title: "{notification.get().title}",
-                    body: "{notification.get().body}",
-                    on_click: move |_| {
-                       match notification.get().handle.value {
-                            NotificationType::Click => {
-
-                            },
-                            NotificationType::AcceptSas(_, _) => {
-                                cx.spawn({
-                                    async move {
-                                        todo!()
-                                    }
-                                });
-                            }
-                            NotificationType::None => {
-
-                            }
-                       }
+            Notification {
+                title: "{notification.get().title}",
+                body: "{notification.get().body}",
+                on_click: move |_| {
+                    match notification.get().handle.value {
+                        NotificationType::Click => {}
+                        NotificationType::AcceptSas(_, _) => {}
+                        NotificationType::None => {}
                     }
                 }
-            )
+            }
         }
-        rsx!(
-            match &matrix_client.read().client {
-                Some(_) => {
-                    rsx!(div {
-                        class: "page",
-                        if auth.is_logged_in().0 {
-                            rsx!(
-                                section {
-                                    class: "chat",
-                                    Router::<Route> {}
-                                }
-                            )
-                        } else if *restoring_session.read() {
-                            let key_main_loading_title = translate!(
+
+        match &matrix_client.read().client {
+            Some(_) => {
+                rsx!(div {
+                    class: "page",
+                    if auth.is_logged_in().0 {
+                        section {
+                            class: "chat",
+                            Router::<Route> {}
+                        }
+                    } else if restoring_session() {
+                        LoadingStatus {
+                            text: translate!(
                                 i18,
                                 "main.loading.title"
-                            );
-                            rsx!(
-                                LoadingStatus {
-                                    text: "{key_main_loading_title}",
+                            ),
+                        }
+                    } else {
+                        match *before_session.read() {
+                            BeforeSession::Login => rsx!(
+                                section {
+                                    class: "login",
+                                    Login {}
+                                }
+                            ),
+                            BeforeSession::Signup => rsx!(
+                                section {
+                                    class: "login",
+                                    Signup {}
+                                }
+                            ),
+                            BeforeSession::Guest => rsx!(
+                                section {
+                                    class: "login",
+                                    Welcome {}
                                 }
                             )
-                        } else {
-                            match *before_session.read() {
-                                BeforeSession::Login => rsx!(
-                                    section {
-                                        class: "login",
-                                        Login {}
-                                    }
-                                ),
-                                BeforeSession::Signup => rsx!(
-                                    section {
-                                        class: "login",
-                                        Signup {}
-                                    }
-                                ),
-                                BeforeSession::Guest => rsx!(
-                                    section {
-                                        class: "login",
-                                        Welcome {}
-                                    }
-                                )
-                            }
                         }
-                    })
-                }
-                None => rsx!(
-                    div {
-                        class: "spinner-dual-ring--center",
-                        Spinner {}
                     }
-                ),
+                })
             }
-        )
+            None => rsx!(
+                div {
+                    class: "spinner-dual-ring--center",
+                    Spinner {}
+                }
+            ),
+        }
     }
 }

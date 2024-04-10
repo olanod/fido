@@ -1,48 +1,48 @@
 use dioxus::prelude::*;
 
-pub trait IconShape {
+pub trait IconShape: PartialEq {
     fn view_box(&self) -> String;
-    fn child_elements(&self) -> LazyNodes;
+    fn child_elements(&self) -> Element;
 }
 
-#[derive(Props)]
-pub struct IconProps<'a, T: IconShape> {
+#[derive(PartialEq, Clone, Props)]
+pub struct IconProps<T: IconShape + 'static> {
     #[props(default = 20)]
     pub height: u32,
     #[props(default = 20)]
     pub width: u32,
-    #[props(default = "none")]
-    pub fill: &'a str,
-    #[props(default = "none")]
-    pub stroke: &'a str,
-    #[props(default = "2")]
-    pub stroke_width: &'a str,
-    #[props(default = "")]
-    pub class: &'a str,
+    #[props(default = "none".to_string())]
+    pub fill: String,
+    #[props(default = "none".to_string())]
+    pub stroke: String,
+    #[props(default = "2".to_string())]
+    pub stroke_width: String,
+    #[props(default = "".to_string())]
+    pub class: String,
     pub icon: T,
 }
 
-pub fn Icon<'a, T: IconShape>(cx: Scope<'a, IconProps<'a, T>>) -> Element<'a> {
+pub fn Icon<T: IconShape + 'static>(props: IconProps<T>) -> Element {
     let icon_style = format!(
         r#"
         width: 100%;
         max-width: {}px;
     "#,
-        cx.props.width
+        props.width
     );
 
-    cx.render(rsx! {
+    rsx! {
         svg {
             style: "{icon_style}",
-            stroke: cx.props.stroke,
-            stroke_width: cx.props.stroke_width,
-            class: format_args!("{}", cx.props.class),
-            height: format_args!("{}", cx.props.height),
-            fill: format_args!("{}", cx.props.fill),
-            view_box: format_args!("{}", cx.props.icon.view_box()),
+            stroke: props.stroke,
+            stroke_width: props.stroke_width,
+            class: format_args!("{}", props.class),
+            height: format_args!("{}", props.height),
+            fill: format_args!("{}", props.fill),
+            view_box: format_args!("{}", props.icon.view_box()),
             stroke_linecap: "round",
             stroke_linejoin: "round",
-            cx.props.icon.child_elements()
+            {props.icon.child_elements()}
         }
-    })
+    }
 }

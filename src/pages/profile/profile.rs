@@ -1,8 +1,7 @@
 use dioxus::prelude::*;
 use dioxus_router::prelude::use_navigator;
 use dioxus_std::{i18n::use_i18, translate};
-use log::info;
-use std::{collections::HashMap, ops::Deref};
+use std::ops::Deref;
 
 use crate::{
     components::atoms::{attach::AttachType, Attach, Avatar, Button, MessageInput, Spinner},
@@ -12,10 +11,7 @@ use crate::{
         use_notification::use_notification,
     },
     pages::route::Route,
-    utils::{
-        i18n_get_key_value::i18n_get_key_value,
-        matrix::{mxc_to_thumbnail_uri, ImageMethod, ImageSize},
-    },
+    utils::matrix::{mxc_to_thumbnail_uri, ImageMethod, ImageSize},
 };
 
 use futures_util::TryFutureExt;
@@ -48,73 +44,26 @@ pub enum ProfileError {
     ServerError,
 }
 
-pub fn Profile(cx: Scope) -> Element {
-    let i18 = use_i18(cx);
+pub fn Profile() -> Element {
+    let i18 = use_i18();
 
-    let key_common_error_user_id = translate!(i18, "chat.common.error.user_id");
-    let key_common_error_device_id = translate!(i18, "chat.common.error.device_id");
-    let key_common_error_server = translate!(i18, "chat.common.error.server");
+    use_context_provider::<Signal<Option<AttachFile>>>(|| Signal::new(None));
 
-    let key_management_info_cta = translate!(i18, "profile.management.info.cta");
+    let client = use_client();
+    let navigator = use_navigator();
+    let mut attach = use_attach();
+    let mut notification = use_notification();
 
-    let key_profile_error_not_found = translate!(i18, "profile.error.not_found");
-    let key_profile_error_profile = translate!(i18, "profile.error.profile");
-
-    let key_input_message_unknown_content = translate!(i18, "chat.input_message.unknown_content");
-    let key_input_message_file_type = translate!(i18, "chat.input_message.file_type");
-    let key_input_message_not_found = translate!(i18, "chat.input_message.not_found");
-
-    let key_username_label = "username-label";
-    let key_username_placeholder = "username-placeholder";
-    let key_username_cta_update = "username-cta_update";
-    let key_management_title = "management-title";
-    let key_management_deactivate_label = "management-deactivate-label";
-    let key_management_deactivate_cta_deactivate = "management-deactivate-cta_deactivate";
-
-    let i18n_map = HashMap::from([
-        (
-            key_username_label,
-            translate!(i18, "profile.username.label"),
-        ),
-        (
-            key_username_placeholder,
-            translate!(i18, "profile.username.placeholder"),
-        ),
-        (
-            key_username_cta_update,
-            translate!(i18, "profile.username.cta_update"),
-        ),
-        (
-            key_management_title,
-            translate!(i18, "profile.management.title"),
-        ),
-        (
-            key_management_deactivate_label,
-            translate!(i18, "profile.management.deactivate.label"),
-        ),
-        (
-            key_management_deactivate_cta_deactivate,
-            translate!(i18, "profile.management.deactivate.cta_deactivate"),
-        ),
-    ]);
-
-    use_shared_state_provider::<Option<AttachFile>>(cx, || None);
-
-    let client = use_client(cx);
-    let attach = use_attach(cx);
-    let navigator = use_navigator(cx);
-    let notification = use_notification(cx);
-
-    let original_profile = use_ref::<Profile>(cx, || Profile {
+    let mut original_profile = use_signal::<Profile>(|| Profile {
         displayname: String::from(""),
         avatar: None,
     });
-    let current_profile = use_ref::<Profile>(cx, || Profile {
+    let mut current_profile = use_signal::<Profile>(|| Profile {
         displayname: String::from(""),
         avatar: None,
     });
-    let is_loading_profile = use_ref::<bool>(cx, || true);
-    let advanced_info = use_ref::<AdvancedInfo>(cx, || AdvancedInfo {
+    let mut is_loading_profile = use_signal::<bool>(|| true);
+    let mut advanced_info = use_signal::<AdvancedInfo>(|| AdvancedInfo {
         homeserver: String::from(""),
         user_id: String::from(""),
         session: SessionStatus {
@@ -123,16 +72,7 @@ pub fn Profile(cx: Scope) -> Element {
         },
     });
 
-    use_coroutine(cx, |mut _rx: UnboundedReceiver<String>| {
-        to_owned![
-            client,
-            original_profile,
-            current_profile,
-            is_loading_profile,
-            advanced_info,
-            notification
-        ];
-
+    use_coroutine(|mut _rx: UnboundedReceiver<String>| {
         async move {
             let client = client.get();
 
@@ -183,29 +123,21 @@ pub fn Profile(cx: Scope) -> Element {
         }
         .unwrap_or_else(move |e: ProfileError| {
             let message = match e {
-                ProfileError::InvalidUserId => &key_common_error_user_id,
-                ProfileError::UserNotFound => &key_profile_error_not_found,
-                ProfileError::InvalidUsername => &key_profile_error_profile,
-                ProfileError::ServerError => &key_common_error_server,
-                ProfileError::InvalidDeviceId => &key_common_error_device_id,
+                ProfileError::UserNotFound => translate!(i18, "profile.error.not_found"),
+                ProfileError::InvalidUsername => translate!(i18, "profile.error.profile"),
+                ProfileError::InvalidUserId => translate!(i18, "chat.common.error.user_id"),
+                ProfileError::ServerError => translate!(i18, "chat.common.error.device_id"),
+                ProfileError::InvalidDeviceId => translate!(i18, "chat.common.error.server"),
             };
 
-            notification.handle_error(message);
+            notification.handle_error(&message);
         })
     });
 
     let on_handle_attach = move |event: Event<FormData>| {
-        cx.spawn({
-            to_owned![
-                attach,
-                notification,
-                key_input_message_not_found,
-                key_input_message_file_type,
-                key_input_message_unknown_content
-            ];
-
+        spawn({
             async move {
-                let files = &event.files.clone().ok_or(AttachError::NotFound)?;
+                let files = &event.files().ok_or(AttachError::NotFound)?;
                 let fs = files.files();
 
                 let existing_file = fs.get(0).ok_or(AttachError::NotFound)?;
@@ -242,9 +174,11 @@ pub fn Profile(cx: Scope) -> Element {
             }
             .unwrap_or_else(move |e: AttachError| {
                 let message_error = match e {
-                    AttachError::NotFound => key_input_message_not_found,
-                    AttachError::UncoverType => key_input_message_file_type,
-                    AttachError::UnknownContent => key_input_message_unknown_content,
+                    AttachError::NotFound => translate!(i18, "chat.input_message.not_found"),
+                    AttachError::UncoverType => translate!(i18, "chat.input_message.file_type"),
+                    AttachError::UnknownContent => {
+                        translate!(i18, "chat.input_message.unknown_content")
+                    }
                 };
 
                 notification.handle_error(&message_error);
@@ -255,36 +189,30 @@ pub fn Profile(cx: Scope) -> Element {
     let displayname = current_profile.read().deref().displayname.clone();
     let avatar = current_profile.read().avatar.clone();
 
-    render! {
+    rsx! {
         if *is_loading_profile.read() {
-            rsx!(
-                div {
-                    class: "spinner-dual-ring--center",
-                    Spinner {}
-                }
-            )
+
+            div { class: "spinner-dual-ring--center", Spinner {} }
         } else {
-            let element = if let Ok(file) = attach.get_file()  {
-                render!(rsx!(
+            {let element = if let Ok(file) = attach.get_file()  {
+                rsx!(
                     img {
                         class: "profile__attach",
                         src: "{file.deref()}"
                     }
-                ))
+                )
             } else {
-                render!(
-                    rsx!(
-                        Avatar {
-                          name: displayname,
-                          size: 80,
-                          uri: avatar
-                        }
-                    )
+                rsx!(
+                    Avatar {
+                        name: displayname,
+                        size: 80,
+                        uri: avatar
+                    }
                 )
             };
-
+            
             let message = current_profile.read().deref().displayname.clone();
-
+            
             rsx!(
                 section {
                     Attach {
@@ -295,127 +223,125 @@ pub fn Profile(cx: Scope) -> Element {
                         class: "profile__input",
                         MessageInput{
                             message: "{message}",
-                            placeholder: "{i18n_get_key_value(&i18n_map, key_username_placeholder)}",
-                            label: "{i18n_get_key_value(&i18n_map, key_username_label)}",
+                            placeholder: translate!(i18, "profile.username.placeholder"),
+                            label: translate!(i18, "profile.username.label"),
                             error: None,
                             on_input: move |event: Event<FormData>| {
-                                current_profile.with_mut(|p| p.displayname = event.value.clone() );
+                                current_profile.with_mut(|p| p.displayname = event.value().clone() );
                             },
                             on_keypress: move |_| {
                             },
                             on_click: move |_| {
-
+            
                             },
                         }
                     }
                     div {
                         class: "profile__cta",
                         Button {
-                            text: "{i18n_get_key_value(&i18n_map, key_username_cta_update)}",
+                            text: translate!(i18, "profile.username.cta_update"),
                             status: None,
                             on_click: move |_| {
-                                cx.spawn({
-                                    to_owned![client, original_profile, current_profile, attach];
-
+                                spawn({
                                     async move {
                                         if !original_profile.read().displayname.eq(&current_profile.read().displayname) {
                                             let x = client.get().account().set_display_name(Some(current_profile.read().displayname.as_str())).await;
-                                            info!("{x:?}");
+                                            log::info!("{x:?}");
                                             match x {
                                                 Ok(_)=> {}
                                                 Err(_)=> {}
                                             }
                                         }
-
+            
                                         if let Some(y) = attach.get() {
                                             let x = client.get().account().upload_avatar(&mime::IMAGE_PNG, &y.data).await;
-                                            info!("{x:?}");
+                                            log::info!("{x:?}");
                                             match x {
                                                 Ok(url)=> {
                                                     let x = client.get().account().set_avatar_url(Some(&url)).await;
-                                                    info!("{x:?}");
+                                                    log::info!("{x:?}");
                                                 }
                                                 Err(_)=> {}
                                             }
                                         }
                                     }
-                                })
+                                });
                             }
                         }
                     }
                 }
-
+            
                 section {
                     class: "profile__section",
                     h2 {
                         class: "profile__title",
-                        translate!(i18, "profile.management.info.subtitle")
+                        {translate!(i18, "profile.management.info.subtitle")}
                     }
-
+            
                     h4 {
                         class: "profile__subtitle",
-                        translate!(i18, "profile.management.info.label_1")
+                        {translate!(i18, "profile.management.info.label_1")}
                     }
-
+            
                     p {
                         class: "profile__content",
                         "{advanced_info.read().homeserver.deref()}"
                     }
-
+            
                     h4 {
                         class: "profile__subtitle",
-                        translate!(i18, "profile.management.info.label_2")
+                        {translate!(i18, "profile.management.info.label_2")}
                     }
-
+            
                     p {
                         class: "profile__content",
                         "{advanced_info.read().user_id}"
                     }
-
+            
                     h4 {
                         class: "profile__subtitle",
-                        translate!(i18, "profile.management.info.label_3")
+                        {translate!(i18, "profile.management.info.label_3")}
                     }
-
+            
                     p {
                         class: "profile__content",
                         "{advanced_info.read().session.device_id}"
                     }
                     if !advanced_info.read().session.is_verified {
-                        rsx!(
+            
                             div {
                                 class: "profile__cta",
                                 Button {
-                                    text: "{key_management_info_cta}",
+                                    text: translate!(i18, "profile.management.info.cta"),
                                     status: None,
                                     on_click: move |_| {
                                         navigator.push(Route::Verify { id: String::from("fidoid") });
                                     }
                                 }
                             }
-                        )
+            
                     }
                 }
-
+            
                 section {
                     class: "profile__section",
                     h2 {
-                        "{i18n_get_key_value(&i18n_map, key_management_title)}"
+                        {translate!(i18, "profile.management.title")}
                     }
-
+            
                     p {
                         class: "profile__content",
-                        "{i18n_get_key_value(&i18n_map, key_management_deactivate_label)}"
+                        {translate!(i18, "profile.management.deactivate.label")}
                     }
                     div {
                         class: "profile__cta",
                         Button {
-                            text: "{i18n_get_key_value(&i18n_map, key_management_deactivate_cta_deactivate)}",
+                            text: translate!(i18, "profile.management.deactivate.cta_deactivate"),
                             status: None,
                             on_click: move |_| {
-                                // cx.spawn({
+                                // spawn({
                                 //     to_owned!(client);
-
+            
                                 //     async move {
                                 //         client.accoutn
                                 //     }
@@ -424,7 +350,7 @@ pub fn Profile(cx: Scope) -> Element {
                         }
                     }
                 }
-            )
+            )}
         }
     }
 }

@@ -7,17 +7,15 @@ use crate::{
     services::matrix::matrix::create_client, utils::get_homeserver::Homeserver, MatrixClientState,
 };
 
-pub fn use_client(cx: &ScopeState) -> &UseClientState {
-    let matrix = use_shared_state::<MatrixClientState>(cx).expect("Matrix client not provided");
+pub fn use_client() -> UseClientState {
+    let matrix = consume_context::<Signal<MatrixClientState>>();
 
-    cx.use_hook(move || UseClientState {
-        inner: matrix.clone(),
-    })
+    use_hook(move || UseClientState { inner: matrix })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseClientState {
-    inner: UseSharedState<MatrixClientState>,
+    inner: Signal<MatrixClientState>,
 }
 
 impl UseClientState {
@@ -30,12 +28,12 @@ impl UseClientState {
             .expect("Client not provided")
     }
 
-    pub fn set(&self, client: MatrixClientState) {
+    pub fn set(&mut self, client: MatrixClientState) {
         let mut inner = self.inner.write();
         *inner = client;
     }
 
-    pub async fn default(&self) -> Result<(), ClientError> {
+    pub async fn default(&mut self) -> Result<(), ClientError> {
         let homeserver = Homeserver::new().map_err(|_| ClientError::InvalidUrl)?;
 
         let c = match create_client(&homeserver.get_base_url()).await {

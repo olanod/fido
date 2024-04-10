@@ -20,17 +20,17 @@ impl PreviewRoom {
     }
 }
 
-pub fn use_room_preview(cx: &ScopeState) -> &UseRoomState {
-    let preview_room = use_shared_state::<PreviewRoom>(cx).expect("Unable to use PreviewRoom");
+pub fn use_room_preview() -> UseRoomState {
+    let preview_room = consume_context::<Signal<PreviewRoom>>();
 
-    cx.use_hook(move || UseRoomState {
-        inner: preview_room.clone(),
+    use_hook(move || UseRoomState {
+        inner: preview_room,
     })
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseRoomState {
-    inner: UseSharedState<PreviewRoom>,
+    inner: Signal<PreviewRoom>,
 }
 
 impl UseRoomState {
@@ -38,12 +38,12 @@ impl UseRoomState {
         self.inner.read().clone()
     }
 
-    pub fn set(&self, room: PreviewRoom) {
+    pub fn set(&mut self, room: PreviewRoom) {
         let mut inner = self.inner.write();
         *inner = room;
     }
 
-    pub fn default(&self) {
+    pub fn default(&mut self) {
         self.set(PreviewRoom::default())
     }
 }

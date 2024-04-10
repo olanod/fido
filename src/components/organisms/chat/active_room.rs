@@ -14,7 +14,6 @@ use crate::{
     hooks::{
         use_chat::{use_chat, UseChat},
         use_client::use_client,
-        use_lifecycle::use_lifecycle,
         use_messages::use_messages,
         use_notification::use_notification,
         use_reply::use_reply,
@@ -28,25 +27,26 @@ use crate::{
     services::matrix::matrix::{leave_room, Attachment, AttachmentStream, LeaveRoomError},
 };
 
-#[derive(Props)]
-pub struct ActiveRoomProps<'a> {
-    on_back: EventHandler<'a, ()>,
+#[derive(PartialEq, Props, Clone)]
+pub struct ActiveRoomProps {
+    on_back: EventHandler<()>,
 }
-pub fn ActiveRoom<'a>(cx: Scope<'a, ActiveRoomProps<'a>>) -> Element<'a> {
-    let i18 = use_i18(cx);
-    let nav = use_navigator(cx);
-    let room = use_room(cx);
-    let rooms = use_rooms(cx);
-    let messages = use_messages(cx);
-    let client = use_client(cx);
-    let notification = use_notification(cx);
-    let send_message = use_send_message(cx);
-    let send_attach = use_send_attach(cx);
+pub fn ActiveRoom(props: ActiveRoomProps) -> Element {
+    let i18 = use_i18();
+    let nav = use_navigator();
+    let mut room = use_room();
+    let mut rooms = use_rooms();
+    let messages = use_messages();
+    let client = use_client();
+    let mut notification = use_notification();
+    let send_message = use_send_message();
+    let send_attach = use_send_attach();
 
-    let replying_to = use_reply(cx);
-    let threading_to = use_thread(cx);
+    let mut replying_to = use_reply();
+    let mut threading_to = use_thread();
 
-    let use_m = use_chat(cx);
+    let mut use_m = use_chat();
+    let mut use_t = use_chat();
     let UseChat {
         messages: _,
         isLoading: is_loading,
@@ -54,60 +54,37 @@ pub fn ActiveRoom<'a>(cx: Scope<'a, ActiveRoomProps<'a>>) -> Element<'a> {
         task: _,
     } = use_m.get();
 
-    let messages_lifecycle = messages.clone();
-    let replying_to_lifecycle = replying_to.clone();
-    let threading_to_lifecycle = threading_to.clone();
+    let mut messages_lifecycle = messages.clone();
+    let mut replying_to_lifecycle = replying_to.clone();
+    let mut threading_to_lifecycle = threading_to.clone();
     let messages = messages.get();
 
-    let key_chat_common_error_room_id = translate!(i18, "chat.common.error.room_id");
-    let key_chat_common_error_room_not_found = translate!(i18, "chat.common.error.room_not_found");
-    let key_chat_actions_leave = translate!(i18, "chat.actions.leave");
+    let input_placeholder =
+        use_signal::<String>(|| translate!(i18, "chat.inputs.plain_message.placeholder"));
 
-    let input_placeholder = use_state::<String>(cx, || {
-        translate!(i18, "chat.inputs.plain_message.placeholder")
+    use_drop(move || {
+        messages_lifecycle.set(vec![]);
+        replying_to_lifecycle.set(None);
+        threading_to_lifecycle.set(None);
     });
 
-    use_lifecycle(
-        &cx,
-        || {},
-        move || {
-            to_owned![
-                messages_lifecycle,
-                replying_to_lifecycle,
-                threading_to_lifecycle
-            ];
-
-            messages_lifecycle.set(vec![]);
-            replying_to_lifecycle.set(None);
-            threading_to_lifecycle.set(None);
-        },
-    );
-
-    let header_event = move |evt: HeaderEvent| {
-        to_owned![room];
-
-        match evt.value {
-            HeaderCallOptions::CLOSE => {
-                nav.push(Route::ChatList {});
-                room.set(CurrentRoom::default());
-                cx.props.on_back.call(())
-            }
-            _ => {}
+    let header_event = move |evt: HeaderEvent| match evt.value {
+        HeaderCallOptions::CLOSE => {
+            nav.push(Route::ChatList {});
+            room.set(CurrentRoom::default());
+            props.on_back.call(())
         }
+        _ => {}
     };
 
-    let input_message_event = move |evt: HeaderEvent| {
-        to_owned![replying_to];
-
-        match evt.value {
-            HeaderCallOptions::CLOSE => {
-                replying_to.set(None);
-            }
-            _ => {}
+    let input_message_event = move |evt: HeaderEvent| match evt.value {
+        HeaderCallOptions::CLOSE => {
+            replying_to.set(None);
         }
+        _ => {}
     };
 
-    let on_push_message = move |evt: FormMessageEvent, send_to_thread: bool| {
+    let mut on_push_message = move |evt: FormMessageEvent, send_to_thread: bool| {
         let reply_to = replying_to.get().map(|r| r.event_id);
 
         send_message.send(MessageItem {
@@ -126,21 +103,11 @@ pub fn ActiveRoom<'a>(cx: Scope<'a, ActiveRoomProps<'a>>) -> Element<'a> {
     };
 
     let on_handle_leave = move |_| {
-        cx.spawn({
-            to_owned![
-                client,
-                room,
-                rooms,
-                notification,
-                key_chat_common_error_room_id,
-                key_chat_common_error_room_not_found,
-                key_chat_actions_leave
-            ];
+        spawn({
             async move {
-                let id = room.get().id;
-                leave_room(&client.get(), &id).await?;
+                leave_room(&client.get(), &room.get().id).await?;
                 rooms
-                    .remove_joined(&id)
+                    .remove_joined(&room.get().id)
                     .map_err(|_| LeaveRoomError::RoomNotFound)?;
                 room.default();
 
@@ -148,155 +115,148 @@ pub fn ActiveRoom<'a>(cx: Scope<'a, ActiveRoomProps<'a>>) -> Element<'a> {
             }
             .unwrap_or_else(move |e: LeaveRoomError| {
                 let message = match e {
-                    LeaveRoomError::InvalidRoomId => &key_chat_common_error_room_id,
-                    LeaveRoomError::RoomNotFound => &key_chat_common_error_room_not_found,
-                    LeaveRoomError::Failed => &key_chat_actions_leave,
+                    LeaveRoomError::InvalidRoomId => translate!(i18, "chat.common.error.room_id"),
+                    LeaveRoomError::RoomNotFound => {
+                        translate!(i18, "chat.common.error.room_not_found")
+                    }
+                    LeaveRoomError::Failed => translate!(i18, "chat.actions.leave"),
                 };
 
                 notification.handle_error(&message);
             })
-        })
+        });
     };
 
-    let show_room_menu = use_state(cx, || false);
+    let mut show_room_menu = use_signal(|| false);
     let on_handle_menu = move |_| {
-        let show_value = *show_room_menu.get();
-
-        show_room_menu.set(!show_value);
+        spawn(async move {
+            show_room_menu.toggle();
+        });
     };
 
-    cx.render(rsx! {
-            div {
-                class: "active-room",
-                Header {
-                    text: "{room.get().name.clone()}",
-                    avatar_element: render!(rsx!(
-                        Avatar {
-                            name: (room.get()).name.to_string(),
-                            size: 32,
-                            uri: room.get().avatar_uri.clone()
-                        }
-                    )),
-                    menu: render!(rsx!(
-                        section {
-                            button {
-                                class: "nav__cta",
-                                onclick: on_handle_menu,
-                                if *show_room_menu.get() {
-                                    rsx!(
-                                        Icon {
-                                            stroke: "var(--text-1)",
-                                            icon: ArrowUpCircle,
-                                            height: 24,
-                                            width: 24
-                                        }
-                                    )
-                                } else {
-                                    rsx!(
-                                        Icon {
-                                            stroke: "var(--text-1)",
-                                            icon: ArrowDownCircle,
-                                            height: 24,
-                                            width: 24
-                                        }
-                                    )
-                                },
-                            }
-                            if *show_room_menu.get() {
-                                rsx!(
-                                    div {
-                                        class: "room-menu",
-                                        ul {
-                                            li {
-                                                class: "room-menu__item",
-                                                button {
-                                                    class: "room-menu__cta",
-                                                    onclick: on_handle_leave,
-                                                    Icon {
-                                                        stroke: "var(--text-1)",
-                                                        icon: Exit
-                                                    }
-                                                    span {
-                                                        translate!(i18, "chat.room-menu.leave")
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    )),
-                    on_event: header_event
-                }
-                List {
-                    messages: messages.clone(),
-                    thread: None,
-                    is_loading: is_loading,
-                    show_load_button: true,
-                    on_scroll: move |_| {
-                        use_m.loadmore("{room.get().id}");
+    rsx! {
+        div {
+            class: "active-room",
+            Header {
+                text: "{room.get().name.clone()}",
+                avatar_element: rsx!(
+                    Avatar {
+                        name: (room.get()).name.to_string(),
+                        size: 32,
+                        uri: room.get().avatar_uri.clone()
                     }
-                },
-                InputMessage {
-                    placeholder: input_placeholder.get().as_str(),
-                    on_submit: move |event| {
-                        on_push_message(event, false)
-                    },
-                    on_event: input_message_event,
-                    on_attach: move |event|{
-                        on_handle_attach(event, false)
-                    }
-                }
-            }
-
-            if let Some(t) = threading_to.get() {
-                rsx!(
-                    div {
-                        class: "active-room__thread",
-                        // thread title
-                        div {
-                            class: "active-room__thread__head",
-                            p {
-                                class: "active-room__thread__title",
-                                translate!(i18, "chat.thread.title")
-                            }
-                            button {
-                                class: "active-room__close",
-                                onclick: move |_| {
-                                    threading_to.set(None)
-                                },
+                ),
+                menu: rsx!(
+                    section {
+                        button {
+                            class: "nav__cta",
+                            onclick: on_handle_menu,
+                            if show_room_menu() {
                                 Icon {
-                                    stroke: "var(--icon-subdued)",
-                                    icon: Close,
+                                    stroke: "var(--text-1)",
+                                    icon: ArrowUpCircle,
                                     height: 24,
                                     width: 24
                                 }
-                            }
-                        }
-
-                        // thread messages
-                        List {
-                            messages: vec![],
-                            thread: Some(t.thread.clone()),
-                            is_loading: is_loading,
-                            on_scroll: move |_| {
-                                use_m.loadmore("{room.get().id}");
-                            }
-                        },
-                        InputMessage {
-                            placeholder: input_placeholder.get().as_str(),
-                            on_submit: move |event| {
-                                on_push_message(event, true)
+                            } else {
+                                Icon {
+                                    stroke: "var(--text-1)",
+                                    icon: ArrowDownCircle,
+                                    height: 24,
+                                    width: 24
+                                }
                             },
-                            on_event: input_message_event,
-                            on_attach: move |event|{
-                                on_handle_attach(event, true)
+                        }
+                        if show_room_menu() {
+                            div {
+                                class: "room-menu",
+                                ul {
+                                    li {
+                                        class: "room-menu__item",
+                                        button {
+                                            class: "room-menu__cta",
+                                            onclick: on_handle_leave,
+                                            Icon {
+                                                stroke: "var(--text-1)",
+                                                icon: Exit
+                                            }
+                                            span {
+                                                {translate!(i18, "chat.room-menu.leave")}
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
-
                     }
-                )
+                ),
+                on_event: header_event
             }
-    })
+            List {
+                messages: messages.clone(),
+                thread: None,
+                is_loading: is_loading,
+                show_load_button: true,
+                on_scroll: move |_| {
+                    use_m.loadmore("{room().id}");
+                }
+            },
+            InputMessage {
+                placeholder: input_placeholder().as_str(),
+                on_submit: move |event| {
+                    on_push_message(event, false);
+                },
+                on_event: input_message_event,
+                on_attach: move |event|{
+                    on_handle_attach(event, false);
+                }
+            }
+        }
+
+        if let Some(t) = threading_to.get() {
+            div {
+                class: "active-room__thread",
+                // thread title
+                div {
+                    class: "active-room__thread__head",
+                    p {
+                        class: "active-room__thread__title",
+                        {translate!(i18, "chat.thread.title")}
+                    }
+                    button {
+                        class: "active-room__close",
+                        onclick: move |_| {
+                            threading_to.set(None)
+                        },
+                        Icon {
+                            stroke: "var(--icon-subdued)",
+                            icon: Close,
+                            height: 24,
+                            width: 24
+                        }
+                    }
+                }
+
+                // thread messages
+                List {
+                    messages: vec![],
+                    thread: Some(t.thread.clone()),
+                    is_loading: is_loading,
+                    on_scroll: move |_| {
+                        use_t.loadmore("{room.get().id}");
+                    }
+                },
+                InputMessage {
+                    placeholder: input_placeholder().as_str(),
+                    on_submit: move |event| {
+                        on_push_message(event, true);
+                    },
+                    on_event: input_message_event,
+                    on_attach: move |event|{
+                        on_handle_attach(event, true);
+                    }
+                }
+            }
+        }
+    }
 }

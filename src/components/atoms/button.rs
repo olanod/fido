@@ -1,61 +1,56 @@
 use dioxus::prelude::*;
 
+#[derive(PartialEq, Clone)]
 pub enum Variant {
     Primary,
     Secondary,
     Tertiary,
 }
 
-#[derive(Props)]
-pub struct ButtonProps<'a> {
-    text: &'a str,
-    #[props(default = &Variant::Primary)]
-    variant: &'a Variant,
+#[derive(PartialEq, Props, Clone)]
+pub struct ButtonProps {
+    text: String,
+    #[props(default = Variant::Primary)]
+    variant: Variant,
     #[props(default = false)]
     disabled: bool,
-    on_click: EventHandler<'a, MouseEvent>,
+    on_click: EventHandler<MouseEvent>,
     #[props(!optional)]
     status: Option<String>,
 }
 
-pub fn Button<'a>(cx: Scope<'a, ButtonProps<'a>>) -> Element<'a> {
-    let variant = match cx.props.variant {
+pub fn Button(props: ButtonProps) -> Element {
+    let variant = match props.variant {
         Variant::Primary => "button--primary",
         Variant::Secondary => "button--secondary",
         Variant::Tertiary => "button--tertiary",
     };
 
-    let disabled = if cx.props.disabled {
+    let disabled = if props.disabled {
         "button--disabled"
     } else {
         ""
     };
 
-    let loading = if cx.props.status.is_some() {
+    let loading = if props.status.is_some() {
         "button--loading"
     } else {
         ""
     };
 
-    match &cx.props.status {
+    match &props.status {
         Some(s) => {
-            render!(rsx!(
-                button {
-                  class: "button {variant} {loading}",
-                  disabled: true,
-                  "{s}"
-              }
-            ))
+            rsx!( button { class: "button {variant} {loading}", disabled: true, "{s}" } )
         }
         None => {
-            render!(rsx!(
+            rsx!(
                 button {
-                  class: "button {variant} {disabled}",
-                  disabled: cx.props.disabled,
-                  onclick: move |event| cx.props.on_click.call(event),
-                  "{cx.props.text}"
-              }
-            ))
+                    class: "button {variant} {disabled}",
+                    disabled: props.disabled,
+                    onclick: move |event| props.on_click.call(event),
+                    "{props.text}"
+                }
+            )
         }
     }
 }

@@ -14,7 +14,6 @@ pub mod hooks {
     pub mod use_chat;
     pub mod use_client;
     pub mod use_init_app;
-    pub mod use_lifecycle;
     pub mod use_listen_invitation;
     pub mod use_listen_message;
     pub mod use_messages;
