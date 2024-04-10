@@ -86,23 +86,7 @@ impl UseSessionState {
         client: Client,
         initial_sync_token: Option<String>,
     ) -> Result<(), SessionError> {
-        let mut room_event_filter = RoomEventFilter::empty();
-        room_event_filter.rooms = Some(&[]);
-
-        let filter_event_type = vec![RoomEventType::RoomMessage.to_string()];
-        room_event_filter.types = Some(&filter_event_type);
-
-        let mut filter = FilterDefinition::empty();
-        filter.room.include_leave = false;
-        filter.room.account_data = room_event_filter.clone();
-        filter.room.timeline = room_event_filter.clone();
-        filter.room.ephemeral = room_event_filter.clone();
-        filter.room.state = room_event_filter.clone();
-
-        let mut sync_settings = SyncSettings::default()
-            .filter(sync_events::v3::Filter::FilterDefinition(filter))
-            .timeout(Duration::from_millis(1000))
-            .full_state(true);
+        let mut sync_settings = SyncSettings::default();
 
         if let Some(sync_token) = initial_sync_token {
             sync_settings = sync_settings.token(sync_token);
