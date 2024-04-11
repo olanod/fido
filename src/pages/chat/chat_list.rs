@@ -261,35 +261,42 @@ pub fn ChatList() -> Element {
                         error: None,
                         on_input: move |event: FormEvent| {
                             pattern.set(event.value().clone());
-                            let default_rooms = all_rooms().iter().cloned().collect::<Vec<_>>();
                             if !event.value().is_empty() {
-                                let x = default_rooms
+                                let filter = all_rooms()
                                     .iter()
                                     .filter(|r| {
                                         r.name.to_lowercase().contains(&event.value().to_lowercase())
                                     })
                                     .cloned()
                                     .collect::<Vec<_>>();
-                                rooms_filtered.set(x);
+                                rooms_filtered.set(filter);
                             } else {
-                                rooms_filtered.set(rooms_list.get_joined().clone())
+                                rooms_filtered.set(rooms_list.get_joined())
                             }
                         },
                         on_keypress: move |_| {},
                         on_click: move |_| { on_scroll_chat_list_wrapper(ScrollToPosition::Right) }
                     }
-                    if !rooms_list.get_invited().is_empty() {
-                        h2 { class: "header__title", {translate!(i18, "chat.list.invitate")} }
+                    div {
+                        class: "chat-list__rooms__content",
+                        if !rooms_list.get_invited().is_empty() {
+                           div {
+                                class: "chat-list__item",
+                                h2 { class: "header__title header__title--sticky", {translate!(i18, "chat.list.invitate")} }
+                                RoomsList {
+                                    rooms: rooms_list.get_invited(),
+                                    is_loading: is_loading(),
+                                    on_submit: on_click_invitation
+                                }
+                           }
+                        }
 
-                        RoomsList {
-                            rooms: rooms_list.get_invited().clone(),
-                            is_loading: is_loading(),
-                            on_submit: on_click_invitation
+                        div {
+                            class: "chat-list__item",
+                            h2 { class: "header__title header__title--sticky", {translate!(i18, "chat.list.rooms")} }
+                            RoomsList { rooms: rooms_filtered(), is_loading: is_loading(), on_submit: on_click_room }
                         }
                     }
-
-                    h2 { class: "header__title", {translate!(i18, "chat.list.rooms")} }
-                    RoomsList { rooms: rooms_list.get_joined(), is_loading: is_loading(), on_submit: on_click_room }
                 }
                 div {
                     class: "chat-list__content",

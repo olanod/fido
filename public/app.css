@@ -281,6 +281,7 @@ ul {
   gap: 0;
   height: fit-content;
   min-height: 78px;
+  overflow: hidden;
 }
 
 .list {
@@ -847,6 +848,12 @@ ul {
   line-height: 24px;
 }
 
+.header__title--sticky {
+  position: sticky;
+  top: 0;
+  background: var(--background);
+}
+
 .header__cta {
   cursor: pointer;
   background: transparent;
@@ -1280,6 +1287,17 @@ ul {
   padding: 10px 10px 0px;
   border-right: 1px solid var(--border);
   height: calc(100vh - 80px);
+}
+
+.chat-list__rooms__content {
+  overflow: auto;
+}
+
+.chat-list__item {
+  display: flex;
+  height: fit-content;
+  flex-direction: column;
+  margin-bottom: 12px;
 }
 
 .chat-list__active-room {
